@@ -1,77 +1,121 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+export const runtime = 'nodejs';
 
-const SYSTEM_PROMPT = `You are Tula, the friendly AI assistant for TuloPots — a handcrafted terracotta pot and plant shop based in Nairobi, Kenya.
+type ChatMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
 
-You help customers with:
-- Finding the right pot or plant for their space
-- Pot sizes, care instructions, pricing
-- Delivery, orders, and payment questions (M-Pesa and card accepted)
-- Custom/studio orders and commissions
+function fallbackReply(userText: string) {
+  const text = userText.toLowerCase();
 
-Key facts:
-- Free delivery on orders over KES 5,000
-- Standard delivery: KES 350
-- Delivery within Nairobi (2–3 days), outside Nairobi (3–5 days)
-- Payment: M-Pesa STK Push or Stripe card
-- WhatsApp: +254700000000
-- Based in Nairobi, Kenya, EST. 2016
+  if (text.includes('price') || text.includes('cost') || text.includes('how much')) {
+    return `Our prices depend on the pot style, size, and whether you want it with a plant or as pot only. You can browse Indoor, Outdoor, or Pots Only, and I can also help narrow down the right option for your space.`;
+  }
 
-Keep responses warm, concise, and helpful. If someone wants to buy or enquire about a specific product, encourage them to share their name and phone so the team can follow up on WhatsApp.`;
+  if (text.includes('indoor')) {
+    return `For indoor styling, our most loved choices are Ribbed Globe, Pedestal Bowl, Cylinder Vase, and Wide Rim Planter. If you tell me your room type — living room, office, bedroom, or kitchen — I can suggest the best fit.`;
+  }
+
+  if (text.includes('outdoor')) {
+    return `For outdoor spaces, we usually recommend stronger statement forms like Studio Collection, Ribbed Cylinder XL, Round Belly, and Belly Pot Large. These work well for patios, terraces, gardens, and entrances.`;
+  }
+
+  if (text.includes('care') || text.includes('clean') || text.includes('terracotta')) {
+    return `Terracotta is breathable and plant-friendly. Clean gently with water and a soft cloth, avoid harsh chemicals, and make sure drainage stays open. You can also visit our Care Guide page for full support.`;
+  }
+
+  if (
+    text.includes('custom') ||
+    text.includes('studio') ||
+    text.includes('bulk') ||
+    text.includes('many pieces') ||
+    text.includes('wholesale')
+  ) {
+    return `Yes — we do custom and studio orders. You can use Studio Collection to share inspiration, quantity, and the look you want, and we will shape a guided brief from there.`;
+  }
+
+  if (text.includes('delivery') || text.includes('shipping')) {
+    return `We deliver across Kenya. Nairobi delivery is easier and faster, and larger orders may qualify for better delivery terms depending on the total order value.`;
+  }
+
+  return `I can help you choose the right TuloPots piece for your space. Tell me whether you want indoor, outdoor, pots only, or a custom studio order — and if possible, share your space type or style.`;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = (await req.json()) as { messages: Message[] };
+    const body = await req.json();
+    const messages = Array.isArray(body?.messages) ? (body.messages as ChatMessage[]) : [];
+    const lastUserMessage =
+      [...messages].reverse().find((m) => m.role === 'user')?.content?.trim() || '';
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      // Demo mode — smart canned responses
-      const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
-      let reply = "Hi! I'm Tula 🌿 I'm here to help you find the perfect pot or plant. What are you looking for today?";
-
-      if (lastMsg.includes('price') || lastMsg.includes('cost') || lastMsg.includes('how much'))
-        reply = "Our pots range from KES 800 to KES 8,500 depending on size. Plants + pot combos start from KES 1,200. Delivery is KES 350 (free over KES 5,000). Shall I help you find something specific?";
-      else if (lastMsg.includes('delivery') || lastMsg.includes('shipping'))
-        reply = "We deliver within Nairobi in 2–3 days, and outside Nairobi in 3–5 days. Delivery is KES 350, free on orders over KES 5,000. 🚚";
-      else if (lastMsg.includes('mpesa') || lastMsg.includes('pay') || lastMsg.includes('payment'))
-        reply = "We accept M-Pesa (STK Push directly to your phone) and card payments via Stripe. Both are available at checkout. Need help placing an order?";
-      else if (lastMsg.includes('indoor'))
-        reply = "Our indoor collection includes Maidenhair Ferns, Peace Lilies, Snake Plants, and more — all paired with our handcrafted terracotta. Browse at /indoor or I can describe specific plants!";
-      else if (lastMsg.includes('outdoor'))
-        reply = "Our outdoor range includes Lavender, Rosemary, Bird of Paradise, and more. All come in weather-treated terracotta. Check /outdoor for the full range!";
-      else if (lastMsg.includes('hello') || lastMsg.includes('hi') || lastMsg.includes('hey'))
-        reply = "Hello! I'm Tula 🌿 Welcome to TuloPots, handcrafted in Nairobi. Are you looking for indoor plants, outdoor pots, or something custom?";
-
-      return NextResponse.json({ reply, mocked: true });
+    if (!lastUserMessage) {
+      return NextResponse.json({
+        reply: 'Tell me what you are looking for — indoor, outdoor, pots only, care help, or a custom studio order.',
+      });
     }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json({
+        reply: fallbackReply(lastUserMessage),
+      });
+    }
+
+    const systemPrompt = `
+You are Tulo, the TuloPots assistant.
+
+Brand:
+- TuloPots is a Nairobi-based handcrafted terracotta brand
+- Tone: calm, premium, warm, helpful, short, human
+- Never sound robotic or overexcited
+- Keep replies concise and elegant
+- Focus on helping the customer choose the right pot, plant pairing, care advice, or custom order path
+
+Rules:
+- Recommend indoor, outdoor, or pots-only depending on what the user needs
+- Mention Studio Collection for custom or bulk orders
+- Mention Care Guide when the question is about care, watering, or terracotta maintenance
+- If the user seems ready to buy, encourage them to open a product or continue to cart
+- If the user sounds confused, ask one simple guiding question
+- Keep most replies under 120 words
+`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages,
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || 'AI API error');
+    if (!response.ok) {
+      return NextResponse.json({
+        reply: fallbackReply(lastUserMessage),
+      });
+    }
 
-    const reply = data.content?.[0]?.text || "I'm having trouble responding right now. Please WhatsApp us at +254700000000.";
-    return NextResponse.json({ reply, mocked: false });
-  } catch (error: any) {
-    console.error('[chat] error:', error);
-    return NextResponse.json(
-      { reply: "Sorry, I'm having a moment. Please WhatsApp us at +254700000000 for immediate help! 🌿", error: error?.message },
-      { status: 200 } // Return 200 so the chat doesn't break on the frontend
-    );
+    const data = await response.json();
+    const reply =
+      data?.choices?.[0]?.message?.content?.trim() || fallbackReply(lastUserMessage);
+
+    return NextResponse.json({ reply });
+  } catch {
+    return NextResponse.json({
+      reply: 'I can help with indoor pots, outdoor styling, care tips, or custom orders. Tell me what you are looking for.',
+    });
   }
 }
