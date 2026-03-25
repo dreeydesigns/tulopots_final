@@ -1,10 +1,9 @@
-# Railway deployment config for TuloPots
 [build]
 builder = "nixpacks"
-buildCommand = "npx prisma generate && npx prisma migrate deploy && npm run build"
+buildCommand = "npm install && npx prisma generate && npm run build"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "npx prisma migrate deploy && npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
