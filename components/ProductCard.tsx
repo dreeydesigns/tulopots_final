@@ -1,115 +1,171 @@
 'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart } from 'lucide-react';
-import { Product } from '@/lib/products';
+import { Heart, Eye } from 'lucide-react';
+import type { Product } from '@/lib/products';
 import { money } from '@/lib/utils';
-import { useStore } from './Providers';
+import { useStore } from '@/components/Providers';
 
-/* Star row — renders filled / half / empty based on rating */
-function Stars({ rating, reviews }: { rating: number; reviews: number }) {
+type ProductCardProps = {
+  product: Product;
+  collection?: boolean;
+};
+
+export function ProductCard({ product, collection = false }: ProductCardProps) {
+  const {
+    wishlist,
+    toggleWishlist,
+    addToCart,
+    isLoggedIn,
+    setShowAuthModal,
+  } = useStore();
+
+  const isWishlisted = wishlist.includes(product.slug);
+
+  const badgeTone =
+    product.badge === 'New'
+      ? 'bg-[#4b2d1f] text-white'
+      : product.badge === 'Bestseller'
+      ? 'bg-[#d77c49] text-white'
+      : product.badge === 'Pot Only'
+      ? 'bg-[#f4efe8] text-[#8a644b]'
+      : 'bg-[#e9f3ea] text-[#5b6f60]';
+
+  const handleWishlist = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    toggleWishlist(product.slug);
+  };
+
+  const handleQuickAdd = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    addToCart(product, {
+      mode: product.forcePotOnly || product.decorative ? 'pot' : 'plant',
+      quantity: 1,
+    });
+  };
+
+  const subtitle =
+    product.short ||
+    (product.forcePotOnly || product.decorative
+      ? 'Pot only'
+      : 'with curated plant pairing');
+
   return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((i) => {
-        const filled = rating >= i;
-        const half   = !filled && rating >= i - 0.5;
-        return (
-          <svg key={i} width="14" height="14" viewBox="0 0 24 24" className="flex-shrink-0">
-            <defs>
-              <linearGradient id={`half-${i}`}>
-                <stop offset="50%" stopColor="#f0b400" />
-                <stop offset="50%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-              fill={filled ? '#f0b400' : half ? `url(#half-${i})` : 'none'}
-              stroke={filled || half ? '#f0b400' : '#d1c5bb'}
-              strokeWidth="1.5"
-            />
-          </svg>
-        );
-      })}
-      <span className="ml-1.5 text-xs text-[#8a7a6d]">({reviews})</span>
-    </div>
-  );
-}
-
-/* Badge color based on badge value */
-function badgeStyle(badge: string): string {
-  const b = badge.toLowerCase();
-  if (b === 'bestseller') return 'bg-[#fef0e6] text-[#b05d2a]';
-  if (b === 'new')        return 'bg-[#fdf5e8] text-[#a07030]';
-  if (b === 'pot only')   return 'bg-[#eef3fb] text-[#4a6090]';
-  return 'bg-[#ecf5ed] text-[#3d7050]'; /* indoor / outdoor / default */
-}
-
-export function ProductCard({ product, collection }: { product: Product; collection?: boolean }) {
-  const { addToCart, toggleWishlist, wishlist, isLoggedIn, setIsLoggedIn } = useStore();
-
-  return (
-    <div className="group overflow-hidden rounded-[1.5rem] border border-[#ede5db] bg-white shadow-[0_4px_24px_rgba(90,52,34,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(90,52,34,0.13)]">
-      {/* Image */}
-      <div className="relative h-[22rem] overflow-hidden bg-[#f5ede4]">
-        {product.badge && (
-          <span className={`absolute left-4 top-4 z-10 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${badgeStyle(product.badge)}`}>
-            {product.badge}
-          </span>
-        )}
-        <button
-          onClick={() => isLoggedIn ? toggleWishlist(product.slug) : setIsLoggedIn(true)}
-          className="absolute right-4 top-4 z-10 rounded-full bg-white p-2.5 shadow-sm transition hover:scale-105"
-        >
-          <Heart className={`h-4 w-4 ${wishlist.includes(product.slug) ? 'fill-[#B66A3C] text-[#B66A3C]' : 'text-[#9a8677]'}`} />
-        </button>
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover transition duration-500 group-hover:scale-105"
-        />
-      </div>
-
-      {/* Content */}
-      <div className="p-5">
-        <Link
-          href={`/product/${product.slug}`}
-          className="serif-display block text-[1.45rem] leading-tight text-[#3d2a1e] transition hover:text-[#8A4E2D]"
-        >
-          {product.name}
-        </Link>
-
-        <div className="mt-1 text-sm italic text-[#B66A3C]">{product.short}</div>
-
-        <p className="mt-3 min-h-[4rem] text-[13px] leading-[1.75] text-[#7a6f65]">
-          {product.cardDescription}
-        </p>
-
-        <div className="mt-3">
-          <Stars rating={product.rating} reviews={product.reviews} />
-        </div>
-
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="serif-display text-[1.6rem] text-[#3d2a1e]">{money(product.price)}</div>
-          <button
-            onClick={() => addToCart(product, { mode: product.forcePotOnly || product.decorative ? 'pot' : 'plant' })}
-            className="cursor-hover rounded-full bg-[#3d2a1e] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#5A3422]"
-          >
-            Add to Cart
-          </button>
-        </div>
-
-        {collection && (
-          <div className="mt-3 border-t border-[#f0e8e0] pt-3">
-            <Link
-              href={`/product/${product.slug}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A4E2D] transition hover:text-[#5A3422]"
+    <article
+      data-cursor
+      className="group relative rounded-[2rem] border border-[#eadfd3] bg-white shadow-[0_10px_30px_rgba(61,42,32,0.05)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_28px_70px_rgba(61,42,32,0.14)]"
+    >
+      <Link href={`/product/${product.slug}`} className="block">
+        <div className="relative overflow-hidden rounded-t-[2rem] bg-[#efe3d6]">
+          {product.badge ? (
+            <span
+              className={`absolute left-4 top-4 z-20 rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] ${badgeTone}`}
             >
-              Quick View →
-            </Link>
+              {product.badge}
+            </span>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={handleWishlist}
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/92 text-[#9b8575] shadow-md backdrop-blur transition hover:scale-105 hover:bg-white"
+          >
+            <Heart
+              className={`h-5 w-5 transition ${
+                isWishlisted ? 'fill-[#B66A3C] text-[#B66A3C]' : 'text-[#9b8575]'
+              }`}
+            />
+          </button>
+
+          <div className="relative">
+            <Image
+              src={product.image}
+              alt={product.name}
+              width={900}
+              height={1100}
+              className={`w-full object-cover transition-transform duration-700 group-hover:scale-[1.06] ${
+                collection ? 'h-[28rem] md:h-[30rem]' : 'h-[22rem] md:h-[24rem]'
+              }`}
+            />
+
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2b1b13]/70 via-[#2b1b13]/10 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
+
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-500 group-hover:opacity-100">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A3422] shadow-xl">
+                <Eye className="h-3.5 w-3.5" />
+                Quick View
+              </span>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+
+        <div className="rounded-b-[2rem] bg-[#fbf8f4] px-5 pb-5 pt-5 md:px-6 md:pb-6">
+          <div className="min-h-[5.2rem]">
+            <h3 className="serif-display text-[2rem] leading-[0.95] text-[#4b3428]">
+              {product.name}
+            </h3>
+
+            <p className="mt-2 text-sm italic text-[#cf7d4a]">{subtitle}</p>
+
+            {product.description ? (
+              <p className="mt-3 line-clamp-2 text-sm leading-7 text-[#8f7f71]">
+                {product.description}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-4 flex items-center gap-1 text-[#f0b400]">
+            {Array.from({ length: 5 }).map((_, i) => {
+              const filled = i < Math.floor(product.rating || 4);
+              return (
+                <span
+                  key={i}
+                  className={`text-sm ${filled ? 'opacity-100' : 'opacity-30'}`}
+                >
+                  ★
+                </span>
+              );
+            })}
+            <span className="ml-2 text-xs text-[#8f7f71]">
+              ({product.reviews ?? 0})
+            </span>
+          </div>
+
+          <div className="mt-5 flex items-end justify-between gap-4">
+            <div>
+              <div className="serif-display text-4xl leading-none text-[#4b3428]">
+                {money(product.price)}
+              </div>
+              {product.potOnly &&
+              !product.forcePotOnly &&
+              !product.decorative ? (
+                <div className="mt-1 text-xs text-[#9b8575]">
+                  Pot only {money(product.potOnly)}
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleQuickAdd}
+              className="rounded-full bg-[#5A3422] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#6a402c] hover:shadow-lg"
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </Link>
+    </article>
   );
 }
