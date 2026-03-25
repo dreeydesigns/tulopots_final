@@ -79,7 +79,8 @@ export default function SettingsPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5ede4]"><User className="h-4 w-4 text-[#B66A3C]" /></div>
               <div><div className="font-semibold text-[#3d2a20]">Account Info</div><div className="text-xs text-[#9a8a80]">Your profile details</div></div>
             </div>
-            {[['Name', user?.name], ['Email', user?.email], user?.phone ? ['Phone', user.phone] : null].filter(Boolean).map(([label, val]) => (
+            {([['Name', user?.name], ['Email', user?.email], ...(user?.phone ? [['Phone', user.phone]] : []), ] as [string, string | undefined][]).map(([label, val]) => (
+           
               <div key={label} className="flex items-center justify-between rounded-2xl bg-[#fdf9f5] px-4 py-3 mb-2 last:mb-0">
                 <div><div className="text-[10px] uppercase tracking-[0.12em] text-[#b0a09a]">{label}</div><div className="text-sm font-medium text-[#3d2a20]">{val || '—'}</div></div>
                 <ChevronRight className="h-4 w-4 text-[#c0ada2]" />
