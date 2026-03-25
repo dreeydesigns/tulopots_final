@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, XCircle, Clock, ShoppingBag, MessageCircle } from 'lucide-react';
@@ -33,10 +33,10 @@ function money(n: number) {
   return `KES ${n.toLocaleString('en-KE')}`;
 }
 
-export default function OrderConfirmationPage() {
+function OrderConfirmationInner() {
   const params = useSearchParams();
   const orderId = params.get('order');
-  const paymentStatus = params.get('payment'); // 'success' | 'cancelled'
+  const paymentStatus = params.get('payment');
 
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,6 @@ export default function OrderConfirmationPage() {
 
   const isCancelled = paymentStatus === 'cancelled';
   const isPaid = order?.status === 'PAID';
-  const isPending = order?.status === 'CONFIRMED' || order?.status === 'PENDING';
 
   if (loading) {
     return (
@@ -99,8 +98,6 @@ export default function OrderConfirmationPage() {
   return (
     <main className="min-h-screen bg-[#F7F2EA] pt-24 pb-16">
       <div className="container-shell max-w-2xl">
-
-        {/* Status header */}
         <div className="text-center mb-10">
           {isPaid ? (
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
@@ -117,10 +114,10 @@ export default function OrderConfirmationPage() {
           </h1>
           <p className="mt-2 text-sm text-[#9a8a80]">
             {isPaid
-              ? `Payment received — we will prepare your order shortly.`
+              ? 'Payment received — we will prepare your order shortly.'
               : order.paymentMethod === 'MPESA'
-              ? `We are waiting for your M-Pesa payment. Check your phone.`
-              : `Processing your payment. This page will update automatically.`}
+              ? 'We are waiting for your M-Pesa payment. Check your phone.'
+              : 'Processing your payment. This page will update automatically.'}
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white border border-[#e8dccf] px-5 py-2.5 text-sm font-semibold text-[#3d2a20]">
@@ -129,10 +126,7 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* Order card */}
         <div className="rounded-[1.5rem] border border-[#e8dccf] bg-white p-6 space-y-6">
-
-          {/* Customer */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a09a] mb-3">
               Customer
@@ -144,7 +138,6 @@ export default function OrderConfirmationPage() {
             )}
           </div>
 
-          {/* Items */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a09a] mb-3">
               Items
@@ -160,54 +153,42 @@ export default function OrderConfirmationPage() {
                       {' · '}Qty {item.quantity}
                     </div>
                   </div>
-                  <div className="text-[#3d2a20] font-medium">{money(item.lineTotal)}</div>
+                  <div className="font-medium text-[#3d2a20]">{money(item.lineTotal)}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Totals */}
           <div className="border-t border-[#f0e6df] pt-4 space-y-2 text-sm">
-            <div className="flex justify-between text-[#76675c]">
+            <div className="flex items-center justify-between text-[#76675c]">
               <span>Subtotal</span>
               <span>{money(order.subtotal)}</span>
             </div>
-            <div className="flex justify-between text-[#76675c]">
+            <div className="flex items-center justify-between text-[#76675c]">
               <span>Delivery</span>
-              <span>{order.deliveryFee ? money(order.deliveryFee) : 'Free'}</span>
+              <span>{money(order.deliveryFee)}</span>
             </div>
-            <div className="flex justify-between font-semibold text-[#3d2a20] text-base pt-1">
+            <div className="flex items-center justify-between font-semibold text-[#3d2a20] text-base">
               <span>Total</span>
               <span>{money(order.totalAmount)}</span>
             </div>
           </div>
 
-          {/* Payment method */}
-          <div className="rounded-2xl bg-[#fdf9f5] px-4 py-3 flex items-center justify-between">
-            <div className="text-xs text-[#9a8a80]">Payment method</div>
-            <div className="text-sm font-semibold text-[#3d2a20]">
-              {order.paymentMethod === 'MPESA' ? 'M-Pesa' : 'Card (Stripe)'}
-            </div>
-          </div>
-
-          {/* M-Pesa pending instructions */}
           {order.paymentMethod === 'MPESA' && !isPaid && (
             <div className="rounded-2xl border border-[#B66A3C]/20 bg-[#fdf5ee] p-4 text-sm leading-6 text-[#76675c]">
-              <div className="font-semibold text-[#3d2a20] mb-1">📱 Check your phone</div>
+              <div className="font-semibold text-[#3d2a20] mb-1">Check your phone</div>
               A payment prompt has been sent to your M-Pesa number. Enter your PIN to complete the
-              payment. If you didn&apos;t receive it, contact us on WhatsApp and we&apos;ll help you
-              complete the order.
+              payment.
             </div>
           )}
         </div>
 
-        {/* CTA buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           <Link href="/" className="btn-primary flex-1 text-center">
             Continue Shopping
           </Link>
           <a
-            href={`https://wa.me/254700000000?text=${encodeURIComponent(
+            href={`https://wa.me/254743817931?text=${encodeURIComponent(
               `Hi TuloPots! I need help with order ${order.orderNumber}`
             )}`}
             target="_blank"
@@ -224,5 +205,20 @@ export default function OrderConfirmationPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="container-shell py-32 text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#e8dccf] border-t-[#B66A3C]" />
+          <p className="mt-4 text-sm text-[#9a8a80]">Loading order page…</p>
+        </main>
+      }
+    >
+      <OrderConfirmationInner />
+    </Suspense>
   );
 }
