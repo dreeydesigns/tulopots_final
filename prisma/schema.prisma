@@ -1,0 +1,106 @@
+// TuloPots Prisma Schema
+// Local dev: SQLite
+// Railway production: PostgreSQL (change provider + DATABASE_URL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // For Railway: change "sqlite" to "postgresql"
+  // and set DATABASE_URL in Railway Variables
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  phone     String?  @unique
+  provider  String?
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  orderNumber    String        @unique
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status         OrderStatus   @default(PENDING)
+  paymentMethod  PaymentMethod
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  subtotal       Int
+  deliveryFee    Int
+  totalAmount    Int
+  currency       String        @default("KES")
+  shippingAddr1  String?
+  shippingAddr2  String?
+  shippingCity   String?
+  shippingNotes  String?
+  items          OrderItem[]
+  payments       Payment[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productSlug String
+  sku         String?
+  name        String
+  image       String?
+  mode        String
+  sizeLabel   String?
+  unitPrice   Int
+  quantity    Int
+  lineTotal   Int
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id                  String          @id @default(cuid())
+  orderId             String
+  order               Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider            PaymentProvider
+  status              PaymentStatus   @default(PENDING)
+  amount              Int
+  currency            String          @default("KES")
+  externalRef         String?
+  checkoutUrl         String?
+  providerRequestId   String?
+  providerResponseRaw String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  STRIPE
+  MPESA
+}
+
+enum PaymentMethod {
+  CARD
+  MPESA
+}
+
+enum PaymentStatus {
+  PENDING
+  INITIATED
+  SUCCESS
+  FAILED
+}

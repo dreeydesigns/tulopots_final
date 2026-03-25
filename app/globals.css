@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────── */
+html {
+  /* No scroll-behavior: homepage is a fixed scene-based UI */
+}
+
+body {
+  background: #F7F2EA;
+  color: #222222;
+}
+
+/* ── Homepage scroll-lock ─────────────────────────────── */
+html.page-fullscreen,
+html.page-fullscreen body {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  overscroll-behavior: none !important;
+}
+
+/* ── Typography ───────────────────────────────────────── */
+.serif-display {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* ── Layout ───────────────────────────────────────────── */
+.container-shell {
+  @apply mx-auto max-w-7xl px-4 md:px-8;
+}
+
+/* ── Chips ────────────────────────────────────────────── */
+.chip {
+  @apply rounded-full border border-[#e0d0c1] bg-white px-4 py-1.5 text-xs text-[#7a6f64];
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn-primary {
+  @apply rounded-full bg-[#5A3422] px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90;
+}
+
+.btn-secondary {
+  @apply rounded-full border border-[#d8c9bc] bg-white px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A3422] transition hover:bg-[#fff8f2];
+}
+
+/* ── Cards ────────────────────────────────────────────── */
+.card-shell {
+  @apply overflow-hidden rounded-[1.5rem] border border-[#e8dccf] bg-white shadow-[0_4px_24px_rgba(90,52,34,0.07)];
+}
+
+/* ── Cursor halo (desktop only) ───────────────────────── */
+@media (min-width: 1024px) {
+  body.cursor-halo-on,
+  body.cursor-halo-on a,
+  body.cursor-halo-on button,
+  body.cursor-halo-on input,
+  body.cursor-halo-on textarea,
+  body.cursor-halo-on select,
+  body.cursor-halo-on [role="button"] {
+    cursor: none !important;
+  }
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  mix-blend-mode: difference;
+}
+
+.cursor-dot {
+  width: 10px;
+  height: 10px;
+  background: white;
+  transition: width 180ms ease, height 180ms ease, opacity 180ms ease;
+}
+
+.cursor-ring {
+  z-index: 9998;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  transition: width 220ms ease, height 220ms ease, border-color 220ms ease,
+    opacity 220ms ease, transform 120ms ease;
+}
+
+.cursor-dot.is-active {
+  width: 14px;
+  height: 14px;
+}
+
+.cursor-ring.is-active {
+  width: 58px;
+  height: 58px;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 1023px) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
+/* ── Subtle film grain overlay ────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.06;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.3) 0.5px, transparent 0.5px);
+  background-size: 6px 6px;
+}

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tulopots Fullstack - Visual Upgrade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: white;
+            --text-primary: #1e293b;
+            --accent: #3b82f6;
+            --accent-secondary: #ec4899;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --accent: #60a5fa;
+            --accent-secondary: #f472b6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: var(--accent);
+        }
+
+        .nav-menu a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .nav-menu a:hover::after { width: 100%; }
+
+        .theme-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+        }
+
+        .theme-btn:hover { transform: scale(1.1); }
+
+        /* HERO */
+        .hero {
+            padding: 120px 2rem 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(236,72,153,0.1));
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--accent), var(--accent-secondary), #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, var(--accent), var(--accent-secondary));
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 15px 35px rgba(59,130,246,0.4);
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(59,130,246,0.6);
+        }
+
+        /* FEATURES */
+        .features {
+            padding: 100px 2rem;
+            background: var(--bg-secondary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 4rem;
+            background: linear-gradient(45deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            padding: 2.5rem;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+        }
+
+        .card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 35px 80px rgba(0,0,0,0.15);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .card p {
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        /* FOOTER */
+        .footer {
+            background: rgba(15,23,42,0.8);
+            backdrop-filter: blur(20px);
+            color: white;
+            text-align: center;
+            padding: 3rem 2rem;
+            margin-top: 5rem;
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .nav-menu { display: none; }
+            .hero { padding: 80px 1rem 60px; }
+            .features { padding: 60px 1rem; }
+        }
+
+        /* LOADING */
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            margin: -12px 0 0 -12px;
+            border: 3px solid transparent;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">🌟 Tulopots</div>
+            <ul class="nav-menu">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <button class="theme-btn" id="theme-toggle">🌙</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Fullstack Excellence</h1>
+            <p>Transform your web experience with stunning modern design, smooth animations, and lightning-fast performance. Your app, reimagined.</p>
+            <button class="cta-button">🚀 Launch App</button>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Key Features</h2>
+            <div class="cards-grid">
+                <div class="card">
+                    <span class="card-icon">⚡</span>
+                    <h3>Lightning Fast</h3>
+                    <p>Optimized performance with instant load times and smooth interactions across all devices.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon">🎨</span>
+                    <h3>Modern Design</h3>
+                    <p>Beautiful gradients, glassmorphism effects, and responsive layouts that wow your users.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon">📱</span>
+                    <h3>Fully Responsive</h3>
+                    <p>Perfect on desktop, tablet, and mobile with fluid animations and adaptive layouts.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon">🔒</span>
+                    <h3>Secure & Scalable</h3>
+                    <p>Production-ready fullstack architecture built for growth and security.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>&copy; 2024 Tulopots Fullstack. Built with ❤️ and modern CSS.</p>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        const toggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const isDark = current === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            toggle.textContent = isDark ? '☀️' : '🌙';
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // CTA Button Loading Demo
+        document.querySelector('.cta-button').addEventListener('click', function() {
+            this.classList.add('loading');
+            this.textContent = 'Loading...';
+            setTimeout(() => {
+                this.classList.remove('loading');
+                this.textContent = 'App Launched! 🎉';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

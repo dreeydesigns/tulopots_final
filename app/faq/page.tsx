@@ -1,0 +1,6 @@
+'use client';
+import { faqItems } from '@/lib/products';
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+export default function Page(){ const [open, setOpen] = useState(0); return <main className="container-shell py-12 md:py-16"><div className="text-center"><div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#B66A3C]">Help Centre</div><h1 className="mt-4 serif-display text-6xl text-[#3d2a20]">Frequently Asked Questions</h1><p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-[#76675c]">Everything you need to know about TuloPots and our products.</p></div><div className="mt-10 space-y-4">{faqItems.map(([question,answer], index)=><div key={question} className="rounded-[2rem] border border-[#e6d9cd] bg-white p-6"><button onClick={()=>setOpen(open===index?-1:index)} className="flex w-full items-center justify-between gap-4 text-left"><span className="serif-display text-4xl text-[#4b3428]">{question}</span><ChevronDown className={`h-5 w-5 text-[#8b7a6d] transition ${open===index?'rotate-180':''}`} /></button>{open===index && <p className="mt-4 max-w-3xl text-base leading-8 text-[#726357]">{answer}{question.includes('care') && <> See our <Link href="/care-guide" className="text-[#B66A3C] underline">Care Guide</Link>.</>}</p>}</div>)}</div></main>}
