@@ -1,11 +1,9 @@
-/** @type {import('next').NextConfig} */
+import path from "path";
+
 const nextConfig = {
-  output: 'standalone',
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: '**' }
-    ]
-  }
+  turbopack: {
+    root: path.resolve("."),
+  },
 };
 
 export default nextConfig;
