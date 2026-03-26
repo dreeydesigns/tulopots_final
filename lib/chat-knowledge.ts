@@ -1,64 +1,80 @@
-export const CHAT_KNOWLEDGE = [
+export type KnowledgeEntry = {
+  title: string;
+  route: string;
+  text: string;
+  tags?: string[];
+};
+
+export const CHAT_KNOWLEDGE: KnowledgeEntry[] = [
   {
-    title: 'Brand overview',
+    title: 'Homepage',
     route: '/',
-    content:
-      'TuloPots is a Nairobi-based handcrafted terracotta brand. The brand focuses on warm, minimal, refined, natural, Kenyan, design-led terracotta pots for indoor styling, outdoor spaces, and custom studio orders.',
+    text:
+      'TuloPots is a Nairobi-based handcrafted terracotta brand. The brand focuses on premium handcrafted terracotta pots for indoor styling, outdoor spaces, pots only, and custom studio orders.',
+    tags: ['home', 'brand', 'about', 'tulopots'],
   },
   {
-    title: 'Indoor collection',
+    title: 'Indoor Collection',
     route: '/indoor',
-    content:
-      'The indoor collection includes handcrafted terracotta pots paired with indoor plants for living rooms, bedrooms, offices, kitchens, and studios. It includes products like Ribbed Globe Pot with Peace Lily, Pedestal Bowl with Succulents, Cylinder Vase with Snake Plant, Jug Handle Pot with Pothos, Wide Rim Planter with Monstera, and more.',
+    text:
+      'The indoor collection includes handcrafted terracotta pots paired with indoor plants for living rooms, bedrooms, offices, kitchens, and studios.',
+    tags: ['indoor', 'inside', 'living room', 'bedroom', 'office', 'kitchen', 'home'],
   },
   {
-    title: 'Outdoor collection',
+    title: 'Outdoor Collection',
     route: '/outdoor',
-    content:
-      'The outdoor collection includes stronger terracotta pots for patios, balconies, entrances, gardens, terraces, and courtyards. It includes Studio Collection with Agave and Aloe, Hut Sculpture with Garden Ornament, Ribbed Cylinder XL with Bougainvillea, Round Belly Pot with Lavender, Studio XL Deep with Date Palm, and more.',
+    text:
+      'The outdoor collection includes stronger terracotta pots for patios, balconies, entrances, gardens, terraces, and courtyards.',
+    tags: ['outdoor', 'outside', 'garden', 'patio', 'balcony', 'terrace', 'courtyard'],
   },
   {
-    title: 'Pots only collection',
+    title: 'Pots Only',
     route: '/pots',
-    content:
-      'The Pots Only collection is for customers who already have their own plant and only want the terracotta pot. It includes Ribbed Globe, Pedestal Bowl, Cylinder Vase, Jug Handle Pot, Hut Sculpture, Ribbed Cylinder, Wide Rim Planter, Tapered Column, Round Belly Pot, and Studio Workshop Set.',
+    text:
+      'The Pots Only collection is for customers who already have their own plant and only want the terracotta pot.',
+    tags: ['pots only', 'pot only', 'without plant', 'empty pot', 'just pot'],
   },
   {
-    title: 'Care guide',
+    title: 'Care Guide',
     route: '/care-guide',
-    content:
-      'The Care Guide explains terracotta care, indoor plant pairings, outdoor care, cleaning, drainage, watering, and troubleshooting. Terracotta is breathable and should be cleaned gently with water and a soft cloth. Avoid harsh chemicals and keep drainage open.',
+    text:
+      'The Care Guide explains terracotta care, cleaning, drainage, watering, indoor care, outdoor care, and troubleshooting.',
+    tags: ['care', 'clean', 'terracotta', 'watering', 'drainage', 'maintenance'],
   },
   {
     title: 'FAQ',
     route: '/faq',
-    content:
-      'TuloPots pots are handmade in Nairobi. The brand uses natural Kenyan clay. Plant-ready pots include drainage support depending on product type. Delivery is available across Kenya. Pots can be ordered without plants. Custom orders are accepted.',
+    text:
+      'The FAQ explains handmade quality, delivery, pots without plants, custom orders, returns, and terracotta basics.',
+    tags: ['faq', 'questions', 'answers', 'delivery', 'custom', 'returns'],
   },
   {
-    title: 'Studio collection / custom orders',
+    title: 'Studio Collection',
     route: '/studio',
-    content:
-      'Studio Collection is the custom order flow. Customers can share inspiration, quantity, dimensions, and styling direction for custom or larger orders.',
+    text:
+      'Studio Collection is the custom and larger-order flow where customers can share inspiration, quantity, dimensions, and styling direction.',
+    tags: ['studio', 'custom', 'bulk', 'project', 'wholesale', 'many pieces'],
   },
   {
     title: 'Contact',
     route: '/contact',
-    content:
-      'Customers can use the Contact page for direct support, enquiries, and custom-order follow-up.',
+    text:
+      'The Contact page is for direct support, enquiries, and follow-up from the TuloPots team.',
+    tags: ['contact', 'support', 'help', 'email', 'phone'],
   },
   {
-    title: 'Payments',
+    title: 'Cart and Checkout',
     route: '/cart',
-    content:
-      'The website supports M-Pesa and card payment flows. If a customer gets stuck during checkout, the chatbot should first explain the payment options before suggesting human support.',
+    text:
+      'The website supports checkout with cart review, M-Pesa, and card payment flow.',
+    tags: ['cart', 'checkout', 'payment', 'mpesa', 'm-pesa', 'card'],
   },
 ];
 
 export const CHAT_FAQS = [
   {
     q: 'Are TuloPots really handmade?',
-    a: 'Yes. Every pot is handcrafted in Nairobi, which means no two pieces are exactly alike.',
+    a: 'Yes. Every pot is handcrafted in Nairobi, so each piece carries a natural handmade character.',
   },
   {
     q: 'Can I buy pots without plants?',
@@ -66,7 +82,7 @@ export const CHAT_FAQS = [
   },
   {
     q: 'Do you do custom orders?',
-    a: 'Yes. Use /studio to start a Studio Collection custom order brief.',
+    a: 'Yes. Use /studio to begin a Studio Collection custom order brief.',
   },
   {
     q: 'How do I clean terracotta?',
@@ -74,7 +90,7 @@ export const CHAT_FAQS = [
   },
   {
     q: 'Do you deliver outside Nairobi?',
-    a: 'Yes. TuloPots delivers across Kenya, while Nairobi delivery is usually easier and faster.',
+    a: 'Yes. TuloPots delivers across Kenya. Nairobi delivery is usually easier and faster.',
   },
   {
     q: 'What payment methods do you support?',
