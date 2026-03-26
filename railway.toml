@@ -1,5 +1,9 @@
+[env]
+PORT = "8080"
+HOSTNAME = "0.0.0.0"
+
 [deploy]
-startCommand = "PORT=8080 HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+startCommand = "node .next/standalone/server.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
