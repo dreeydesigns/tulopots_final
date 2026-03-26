@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 
 type Message = {
@@ -8,16 +9,23 @@ type Message = {
   content: string;
 };
 
+type Card = {
+  title: string;
+  subtitle?: string;
+  route: string;
+};
+
 export function Chatbot() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
   const [needsHuman, setNeedsHuman] = useState(false);
+  const [cards, setCards] = useState<Card[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
-        "Hi! I'm Tula 🌿 Your TuloPots assistant. I can help you choose pots, answer care questions, explain delivery and payment, or guide custom orders. What are you looking for today?",
+        'Hello 🌿 What would you like help with today — indoor, outdoor, pots only, care, payment, or custom orders?',
     },
   ]);
 
@@ -36,7 +44,7 @@ export function Chatbot() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open]);
+  }, [messages, open, needsHuman, cards]);
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
@@ -46,6 +54,8 @@ export function Chatbot() {
     setInput('');
     setLoading(true);
     setNeedsHuman(false);
+    setSent(false);
+    setCards([]);
 
     try {
       const res = await fetch('/api/chat', {
@@ -61,36 +71,37 @@ export function Chatbot() {
         {
           role: 'assistant',
           content:
-            data?.reply ||
-            'I can help with pots, care, delivery, payment, and custom orders.',
+            data?.reply || 'I can help with products, care, delivery, payment, and custom orders.',
         },
       ]);
 
       setNeedsHuman(Boolean(data?.needsHuman));
+      setCards(Array.isArray(data?.cards) ? data.cards : []);
     } catch {
       setMessages((current) => [
         ...current,
         {
           role: 'assistant',
           content:
-            'Something went wrong while answering. If you want, I can connect you to the TuloPots team on WhatsApp.',
+            'Something went wrong while checking the website knowledge. I can continue this with the TuloPots team on WhatsApp if you want.',
         },
       ]);
       setNeedsHuman(true);
+      setCards([]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function sendToWhatsApp() {
+  async function continueOnWhatsApp() {
     if (!contactForm.name.trim() || !contactForm.phone.trim()) return;
 
     setSendingWhatsApp(true);
 
     try {
       const summary = messages
-        .slice(-6)
-        .map((m) => `${m.role === 'user' ? 'Customer' : 'Tula'}: ${m.content}`)
+        .slice(-8)
+        .map((m) => `${m.role === 'user' ? 'Customer' : 'Assistant'}: ${m.content}`)
         .join('\n');
 
       const res = await fetch('/api/whatsapp', {
@@ -107,7 +118,7 @@ export function Chatbot() {
 
       setSent(true);
     } catch {
-      // silent fallback
+      setSent(true);
     } finally {
       setSendingWhatsApp(false);
     }
@@ -123,22 +134,22 @@ export function Chatbot() {
           <MessageCircle className="h-5 w-5" />
         </button>
       ) : (
-        <div className="w-[92vw] max-w-[380px] overflow-hidden rounded-[1.5rem] border border-[#e8dccf] bg-white shadow-[0_20px_60px_rgba(90,52,34,0.18)]">
+        <div className="w-[92vw] max-w-[390px] overflow-hidden rounded-[1.5rem] border border-[#e8dccf] bg-white shadow-[0_20px_60px_rgba(90,52,34,0.18)]">
           <div className="flex items-center justify-between bg-[#1e100a] px-4 py-3 text-white">
             <div>
-              <div className="text-sm font-semibold">Tula 🌿</div>
-              <div className="text-[11px] text-white/70">TuloPots Assistant</div>
+              <div className="text-sm font-semibold">TuloPots Assistant</div>
+              <div className="text-[11px] text-white/70">Website knowledge support</div>
             </div>
             <button onClick={() => setOpen(false)} className="rounded-full p-1.5 hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div ref={scrollRef} className="max-h-[360px] space-y-3 overflow-y-auto bg-[#faf7f4] p-4">
+          <div ref={scrollRef} className="max-h-[380px] space-y-3 overflow-y-auto bg-[#faf7f4] p-4">
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`max-w-[85%] rounded-[1rem] px-4 py-3 text-sm leading-7 ${
+                className={`max-w-[88%] whitespace-pre-line rounded-[1rem] px-4 py-3 text-sm leading-7 ${
                   m.role === 'assistant'
                     ? 'bg-white text-[#3d2a20] border border-[#eee4da]'
                     : 'ml-auto bg-[#5A3422] text-white'
@@ -147,6 +158,26 @@ export function Chatbot() {
                 {m.content}
               </div>
             ))}
+
+            {cards.length > 0 && (
+              <div className="space-y-2">
+                {cards.map((card, i) => (
+                  <Link
+                    key={`${card.route}-${i}`}
+                    href={card.route}
+                    className="block rounded-[1rem] border border-[#e8dccf] bg-white px-4 py-3 transition hover:border-[#B66A3C] hover:bg-[#fff8f2]"
+                  >
+                    <div className="text-sm font-semibold text-[#3d2a20]">{card.title}</div>
+                    {card.subtitle && (
+                      <div className="mt-1 text-xs text-[#8a7a6d]">{card.subtitle}</div>
+                    )}
+                    <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[#B66A3C]">
+                      Open {card.route}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {loading && (
               <div className="max-w-[85%] rounded-[1rem] border border-[#eee4da] bg-white px-4 py-3 text-sm text-[#7a6f65]">
@@ -163,7 +194,7 @@ export function Chatbot() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') sendMessage(input);
                 }}
-                placeholder="Ask about pots, care, delivery..."
+                placeholder="Ask about products, care, delivery..."
                 className="flex-1 rounded-full border border-[#e8dccf] bg-[#fdf9f6] px-4 py-2.5 text-[13px] text-[#3d2a20] outline-none placeholder:text-[#c0ada2]"
               />
               <button
@@ -178,10 +209,10 @@ export function Chatbot() {
             {needsHuman && !sent && (
               <div className="mt-3 rounded-[1rem] border border-[#d9ead7] bg-[#f4fbf4] p-3">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5b6f60]">
-                  Continue with TuloPots team
+                  Continue with the TuloPots team
                 </div>
                 <p className="mt-2 text-xs leading-6 text-[#6e7c70]">
-                  I’ve shared what I can from the website. Add your details and continue on WhatsApp.
+                  I’ve already exhausted the website knowledge. Add your details and continue on WhatsApp.
                 </p>
 
                 <div className="mt-3 space-y-2">
@@ -205,19 +236,13 @@ export function Chatbot() {
                   />
 
                   <button
-                    onClick={sendToWhatsApp}
+                    onClick={continueOnWhatsApp}
                     disabled={!contactForm.name.trim() || !contactForm.phone.trim() || sendingWhatsApp}
                     className="w-full rounded-full bg-[#2c6e49] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90 disabled:opacity-50"
                   >
-                    {sendingWhatsApp ? 'Sending...' : 'Continue on WhatsApp'}
+                    {sendingWhatsApp ? 'Opening WhatsApp...' : 'Continue on WhatsApp'}
                   </button>
                 </div>
-              </div>
-            )}
-
-            {sent && (
-              <div className="mt-3 rounded-[1rem] border border-[#d9ead7] bg-[#f4fbf4] p-3 text-xs leading-6 text-[#5b6f60]">
-                Your enquiry is ready and has been prepared for WhatsApp continuation.
               </div>
             )}
           </div>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { products } from '@/lib/products';
-import { CHAT_FAQS, CHAT_KNOWLEDGE } from '@/lib/chat-knowledge';
+import { products, faqItems } from '@/lib/products';
 
 export const runtime = 'nodejs';
 
@@ -8,6 +7,54 @@ type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
   content: string;
 };
+
+type ChatResult = {
+  reply: string;
+  needsHuman: boolean;
+  cards?: Array<{
+    title: string;
+    subtitle?: string;
+    route: string;
+  }>;
+};
+
+const KNOWLEDGE_PAGES = [
+  {
+    title: 'Indoor Collection',
+    route: '/indoor',
+    text: 'Indoor terracotta pots and plant pairings for living rooms, bedrooms, offices, kitchens, and studios.',
+  },
+  {
+    title: 'Outdoor Collection',
+    route: '/outdoor',
+    text: 'Outdoor terracotta pots for patios, balconies, gardens, entrances, terraces, and courtyards.',
+  },
+  {
+    title: 'Pots Only',
+    route: '/pots',
+    text: 'Terracotta pots without plants for customers who already have their own plant.',
+  },
+  {
+    title: 'Care Guide',
+    route: '/care-guide',
+    text: 'Terracotta care, cleaning, drainage, plant care, watering, and troubleshooting.',
+  },
+  {
+    title: 'Studio Collection',
+    route: '/studio',
+    text: 'Custom orders, bulk orders, inspiration upload, dimensions, and styling direction.',
+  },
+  {
+    title: 'FAQ',
+    route: '/faq',
+    text: 'Frequently asked questions about handmade quality, delivery, returns, pots only, and custom orders.',
+  },
+  {
+    title: 'Contact',
+    route: '/contact',
+    text: 'Direct support and enquiries for follow-up.',
+  },
+];
 
 function normalize(text: string) {
   return text.toLowerCase().replace(/[^\w\s/-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -18,27 +65,34 @@ function words(text: string) {
 }
 
 function score(query: string, text: string) {
-  const qWords = words(query);
+  const q = words(query);
   const hay = normalize(text);
   let total = 0;
-  for (const w of qWords) {
+  for (const w of q) {
     if (hay.includes(w)) total += 1;
   }
   return total;
 }
 
-function getResolvedIntent(messages: ChatMessage[]) {
+function resolveQuery(messages: ChatMessage[]) {
   const userMessages = messages.filter((m) => m.role === 'user').map((m) => m.content.trim());
   const last = userMessages[userMessages.length - 1] || '';
-  const previous = userMessages[userMessages.length - 2] || '';
+  const prev = userMessages[userMessages.length - 2] || '';
 
-  const genericFollowUps = ['yes', 'yes please', 'okay', 'ok', 'continue', 'go on', 'tell me more', 'please', 'sure'];
-
-  if (genericFollowUps.includes(normalize(last)) && previous) {
-    return `${previous} ${last}`;
+  const followUps = ['yes', 'yes please', 'okay', 'ok', 'continue', 'go on', 'tell me more', 'please', 'sure'];
+  if (followUps.includes(normalize(last)) && prev) {
+    return `${prev} ${last}`;
   }
 
   return userMessages.join(' ');
+}
+
+function productCard(p: any) {
+  return {
+    title: p.name,
+    subtitle: `KSh ${Number(p.price).toLocaleString('en-KE')}`,
+    route: `/product/${p.slug}`,
+  };
 }
 
 function productLine(p: any) {
@@ -68,45 +122,49 @@ function findProducts(query: string) {
     .map((x) => x.product);
 }
 
-function findKnowledge(query: string) {
-  return CHAT_KNOWLEDGE
-    .map((item) => ({
-      item,
-      score: score(query, `${item.title} ${item.route} ${item.content}`),
+function findPages(query: string) {
+  return KNOWLEDGE_PAGES
+    .map((p) => ({
+      page: p,
+      score: score(query, `${p.title} ${p.route} ${p.text}`),
     }))
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
-    .map((x) => x.item);
+    .map((x) => x.page);
 }
 
 function findFaq(query: string) {
-  const ranked = CHAT_FAQS
-    .map((f) => ({
-      faq: f,
-      score: score(query, `${f.q} ${f.a}`),
+  const ranked = [...faqItems]
+    .map(([q, a]) => ({
+      q,
+      a,
+      score: score(query, `${q} ${a}`),
     }))
     .sort((a, b) => b.score - a.score);
 
-  return ranked[0]?.score > 0 ? ranked[0].faq : null;
+  return ranked[0]?.score > 0 ? ranked[0] : null;
 }
 
-function groundedReply(messages: ChatMessage[]) {
-  const query = getResolvedIntent(messages);
+function groundedReply(messages: ChatMessage[]): ChatResult {
+  const query = resolveQuery(messages);
   const q = normalize(query);
 
   if (!q) {
     return {
-      reply:
-        'Tell me what you need help with — indoor pots, outdoor pots, pots only, care guide, delivery, payment, or custom orders.',
+      reply: 'Tell me what you need help with — indoor pots, outdoor pots, pots only, care, delivery, payment, or custom orders.',
       needsHuman: false,
     };
   }
 
   if (q === 'hello' || q === 'hi' || q === 'hey') {
     return {
-      reply:
-        'Hello 🌿 I can help you choose the right TuloPots product, answer care questions, explain delivery or payment, and guide custom orders. What would you like help with?',
+      reply: 'Hello 🌿 What would you like help with today — indoor, outdoor, pots only, care, payment, or custom orders?',
       needsHuman: false,
+      cards: [
+        { title: 'Indoor Collection', route: '/indoor' },
+        { title: 'Outdoor Collection', route: '/outdoor' },
+        { title: 'Pots Only', route: '/pots' },
+      ],
     };
   }
 
@@ -117,7 +175,7 @@ function groundedReply(messages: ChatMessage[]) {
     q.includes('talk to someone')
   ) {
     return {
-      reply: 'Of course. I can continue this with the TuloPots team on WhatsApp.',
+      reply: 'Of course. I can hand this over to the TuloPots team on WhatsApp.',
       needsHuman: true,
     };
   }
@@ -128,13 +186,12 @@ function groundedReply(messages: ChatMessage[]) {
     q.includes('office') ||
     q.includes('kitchen')
   ) {
-    const indoor = products.filter((p: any) => p.category === 'indoor').slice(0, 4);
+    const indoor = products.filter((p: any) => p.category === 'indoor').slice(0, 3);
     return {
       reply:
-        `For that type of indoor space, these are strong options:\n\n${indoor
-          .map(productLine)
-          .join('\n')}\n\nYou can browse more at /indoor. If you want, tell me whether you prefer rounded, tall, or minimal shapes and I’ll narrow it down further.`,
+        `For that kind of indoor space, these are strong options:\n\n${indoor.map(productLine).join('\n')}\n\nYou can also browse /indoor.`,
       needsHuman: false,
+      cards: indoor.map(productCard),
     };
   }
 
@@ -146,9 +203,44 @@ function groundedReply(messages: ChatMessage[]) {
     q.includes('project')
   ) {
     return {
-      reply:
-        'For custom or larger orders, use /studio. That is where you can share inspiration, quantity, dimensions, and styling direction for a more tailored brief.',
+      reply: 'For custom or larger orders, the best place to start is Studio Collection.',
       needsHuman: false,
+      cards: [{ title: 'Studio Collection', subtitle: 'Custom orders', route: '/studio' }],
+    };
+  }
+
+  if (
+    q.includes('care') ||
+    q.includes('clean') ||
+    q.includes('terracotta') ||
+    q.includes('watering') ||
+    q.includes('drainage')
+  ) {
+    const faq = findFaq(query);
+    return {
+      reply:
+        faq?.a ||
+        'Terracotta is breathable and plant-friendly. Clean gently with a soft cloth and water, avoid harsh chemicals, and keep drainage open.',
+      needsHuman: false,
+      cards: [{ title: 'Care Guide', subtitle: 'Plant & pot support', route: '/care-guide' }],
+    };
+  }
+
+  if (q.includes('delivery') || q.includes('shipping')) {
+    return {
+      reply:
+        'TuloPots delivers across Kenya. Nairobi delivery is usually easier and faster, and larger orders may qualify for better delivery terms depending on value and location.',
+      needsHuman: false,
+      cards: [{ title: 'Contact', subtitle: 'Delivery help', route: '/contact' }],
+    };
+  }
+
+  if (q.includes('payment') || q.includes('mpesa') || q.includes('m-pesa') || q.includes('card')) {
+    return {
+      reply:
+        'The website supports M-Pesa and card payment flows. If checkout gives you trouble, I can guide you first before handing you to the team.',
+      needsHuman: false,
+      cards: [{ title: 'Cart / Checkout', subtitle: 'Payment flow', route: '/cart' }],
     };
   }
 
@@ -157,6 +249,7 @@ function groundedReply(messages: ChatMessage[]) {
     return {
       reply: faq.a,
       needsHuman: false,
+      cards: [{ title: 'FAQ', subtitle: 'More answers', route: '/faq' }],
     };
   }
 
@@ -164,19 +257,22 @@ function groundedReply(messages: ChatMessage[]) {
   if (matchedProducts.length > 0) {
     return {
       reply:
-        `Here are the closest matches I found from the website:\n\n${matchedProducts
-          .map(productLine)
-          .join('\n')}\n\nIf you want, tell me your space type, preferred size, or whether you want it with a plant or as pot only.`,
+        `Here are the closest matches I found:\n\n${matchedProducts.map(productLine).join('\n')}\n\nIf you want, tell me your space type, preferred size, or whether you want it with a plant or as pot only.`,
       needsHuman: false,
+      cards: matchedProducts.map(productCard),
     };
   }
 
-  const matchedKnowledge = findKnowledge(query);
-  if (matchedKnowledge.length > 0) {
-    const top = matchedKnowledge[0];
+  const matchedPages = findPages(query);
+  if (matchedPages.length > 0) {
+    const top = matchedPages[0];
     return {
-      reply: `${top.content}\n\nBest page to open: ${top.route}`,
+      reply: `${top.text}\n\nBest page to open: ${top.route}`,
       needsHuman: false,
+      cards: matchedPages.slice(0, 3).map((p) => ({
+        title: p.title,
+        route: p.route,
+      })),
     };
   }
 
@@ -191,13 +287,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? (body.messages as ChatMessage[]) : [];
-
     const result = groundedReply(messages);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({
-      reply:
-        'I can help with products, care, delivery, payment, and custom orders. Tell me what you need.',
+      reply: 'I can help with products, care, delivery, payment, and custom orders. Tell me what you need.',
       needsHuman: false,
     });
   }
