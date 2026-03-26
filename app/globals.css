@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base ─────────────────────────────────────────────── */
+/* Base */
 html {
   /* No scroll-behavior: homepage is a fixed scene-based UI */
 }
@@ -12,7 +12,7 @@ body {
   color: #222222;
 }
 
-/* ── Homepage scroll-lock ─────────────────────────────── */
+/* Homepage scroll-lock */
 html.page-fullscreen,
 html.page-fullscreen body {
   overflow: hidden !important;
@@ -21,22 +21,22 @@ html.page-fullscreen body {
   overscroll-behavior: none !important;
 }
 
-/* ── Typography ───────────────────────────────────────── */
+/* Typography */
 .serif-display {
   font-family: Georgia, 'Times New Roman', serif;
 }
 
-/* ── Layout ───────────────────────────────────────────── */
+/* Layout */
 .container-shell {
   @apply mx-auto max-w-7xl px-4 md:px-8;
 }
 
-/* ── Chips ────────────────────────────────────────────── */
+/* Chips */
 .chip {
   @apply rounded-full border border-[#e0d0c1] bg-white px-4 py-1.5 text-xs text-[#7a6f64];
 }
 
-/* ── Buttons ──────────────────────────────────────────── */
+/* Buttons */
 .btn-primary {
   @apply rounded-full bg-[#5A3422] px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90;
 }
@@ -45,12 +45,12 @@ html.page-fullscreen body {
   @apply rounded-full border border-[#d8c9bc] bg-white px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A3422] transition hover:bg-[#fff8f2];
 }
 
-/* ── Cards ────────────────────────────────────────────── */
+/* Cards */
 .card-shell {
   @apply overflow-hidden rounded-[1.5rem] border border-[#e8dccf] bg-white shadow-[0_4px_24px_rgba(90,52,34,0.07)];
 }
 
-/* ── Cursor halo (desktop only) ───────────────────────── */
+/* Cursor halo (desktop only) */
 @media (min-width: 1024px) {
   body.cursor-halo-on,
   body.cursor-halo-on a,
@@ -58,7 +58,8 @@ html.page-fullscreen body {
   body.cursor-halo-on input,
   body.cursor-halo-on textarea,
   body.cursor-halo-on select,
-  body.cursor-halo-on [role="button"] {
+  body.cursor-halo-on [role="button"],
+  body.cursor-halo-on .cursor-hover {
     cursor: none !important;
   }
 }
@@ -66,27 +67,36 @@ html.page-fullscreen body {
 .cursor-dot,
 .cursor-ring {
   position: fixed;
+  top: 0;
+  left: 0;
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
   border-radius: 9999px;
-  mix-blend-mode: difference;
+  opacity: 0;
+  will-change: transform, left, top, width, height, opacity;
 }
 
 .cursor-dot {
   width: 10px;
   height: 10px;
-  background: white;
-  transition: width 180ms ease, height 180ms ease, opacity 180ms ease;
+  background: rgba(255, 255, 255, 0.95);
+  mix-blend-mode: difference;
+  transition: width 120ms ease, height 120ms ease, opacity 120ms ease, transform 120ms ease;
 }
 
 .cursor-ring {
   z-index: 9998;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  transition: width 220ms ease, height 220ms ease, border-color 220ms ease,
-    opacity 220ms ease, transform 120ms ease;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  mix-blend-mode: difference;
+  transition:
+    width 140ms ease,
+    height 140ms ease,
+    opacity 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
 }
 
 .cursor-dot.is-active {
@@ -95,19 +105,27 @@ html.page-fullscreen body {
 }
 
 .cursor-ring.is-active {
-  width: 58px;
-  height: 58px;
-  border-color: rgba(255, 255, 255, 0.8);
+  width: 56px;
+  height: 56px;
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.cursor-dot.is-pressed {
+  transform: translate(-50%, -50%) scale(0.82);
+}
+
+.cursor-ring.is-pressed {
+  transform: translate(-50%, -50%) scale(0.92);
 }
 
 @media (max-width: 1023px) {
   .cursor-dot,
   .cursor-ring {
-    display: none;
+    display: none !important;
   }
 }
 
-/* ── Subtle film grain overlay ────────────────────────── */
+/* Subtle film grain overlay */
 body::after {
   content: '';
   position: fixed;
