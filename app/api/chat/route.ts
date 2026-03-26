@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { products, faqItems } from '@/lib/products';
+import { products } from '@/lib/products';
+import { CHAT_FAQS, CHAT_KNOWLEDGE } from '@/lib/chat-knowledge';
 
 export const runtime = 'nodejs';
 
@@ -8,191 +9,180 @@ type ChatMessage = {
   content: string;
 };
 
-function productSummary(product: any) {
-  return `${product.name} — ${product.short}. Price: KSh ${Number(product.price).toLocaleString('en-KE')}. Category: ${product.category}.`;
+function normalize(text: string) {
+  return text.toLowerCase().replace(/[^\w\s/-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function findMatchingProducts(text: string) {
-  const q = text.toLowerCase();
-
-  return products.filter((p: any) => {
-    const haystack = [
-      p.name,
-      p.short,
-      p.category,
-      p.size,
-      p.badge || '',
-      p.description || '',
-      p.cardDescription || '',
-      p.details?.shape || '',
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    return haystack.includes(q) || q.split(' ').some((word) => word.length > 2 && haystack.includes(word));
-  });
+function words(text: string) {
+  return normalize(text).split(' ').filter((w) => w.length > 2);
 }
 
-function faqReply(text: string) {
-  const q = text.toLowerCase();
+function score(query: string, text: string) {
+  const qWords = words(query);
+  const hay = normalize(text);
+  let total = 0;
+  for (const w of qWords) {
+    if (hay.includes(w)) total += 1;
+  }
+  return total;
+}
 
-  for (const [question, answer] of faqItems) {
-    const qWords = question.toLowerCase().split(' ');
-    if (qWords.some((w) => w.length > 3 && q.includes(w))) {
-      return answer;
-    }
+function getResolvedIntent(messages: ChatMessage[]) {
+  const userMessages = messages.filter((m) => m.role === 'user').map((m) => m.content.trim());
+  const last = userMessages[userMessages.length - 1] || '';
+  const previous = userMessages[userMessages.length - 2] || '';
+
+  const genericFollowUps = ['yes', 'yes please', 'okay', 'ok', 'continue', 'go on', 'tell me more', 'please', 'sure'];
+
+  if (genericFollowUps.includes(normalize(last)) && previous) {
+    return `${previous} ${last}`;
   }
 
-  return null;
+  return userMessages.join(' ');
 }
 
-function knowledgeReply(userText: string) {
-  const text = userText.toLowerCase();
+function productLine(p: any) {
+  return `• ${p.name} — KSh ${Number(p.price).toLocaleString('en-KE')} → /product/${p.slug}`;
+}
 
-  // greeting
-  if (['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'].some((g) => text.includes(g))) {
+function findProducts(query: string) {
+  return products
+    .map((p: any) => ({
+      product: p,
+      score: score(
+        query,
+        [
+          p.name,
+          p.short,
+          p.category,
+          p.badge || '',
+          p.description || '',
+          p.cardDescription || '',
+          p.sku || '',
+        ].join(' ')
+      ),
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map((x) => x.product);
+}
+
+function findKnowledge(query: string) {
+  return CHAT_KNOWLEDGE
+    .map((item) => ({
+      item,
+      score: score(query, `${item.title} ${item.route} ${item.content}`),
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.item);
+}
+
+function findFaq(query: string) {
+  const ranked = CHAT_FAQS
+    .map((f) => ({
+      faq: f,
+      score: score(query, `${f.q} ${f.a}`),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  return ranked[0]?.score > 0 ? ranked[0].faq : null;
+}
+
+function groundedReply(messages: ChatMessage[]) {
+  const query = getResolvedIntent(messages);
+  const q = normalize(query);
+
+  if (!q) {
     return {
       reply:
-        "Hello 🌿 I’m Tula, your TuloPots assistant. I can help you choose indoor pots, outdoor pots, pots only, care advice, or custom studio orders. What would you like help with?",
+        'Tell me what you need help with — indoor pots, outdoor pots, pots only, care guide, delivery, payment, or custom orders.',
       needsHuman: false,
     };
   }
 
-  // indoor help
-  if (text.includes('indoor')) {
+  if (q === 'hello' || q === 'hi' || q === 'hey') {
+    return {
+      reply:
+        'Hello 🌿 I can help you choose the right TuloPots product, answer care questions, explain delivery or payment, and guide custom orders. What would you like help with?',
+      needsHuman: false,
+    };
+  }
+
+  if (
+    q.includes('whatsapp') ||
+    q.includes('human') ||
+    q.includes('agent') ||
+    q.includes('talk to someone')
+  ) {
+    return {
+      reply: 'Of course. I can continue this with the TuloPots team on WhatsApp.',
+      needsHuman: true,
+    };
+  }
+
+  if (
+    q.includes('living room') ||
+    q.includes('bedroom') ||
+    q.includes('office') ||
+    q.includes('kitchen')
+  ) {
     const indoor = products.filter((p: any) => p.category === 'indoor').slice(0, 4);
     return {
       reply:
-        `For indoor spaces, some beautiful options are:\n\n${indoor.map(productSummary).join('\n')}\n\nIf you want, tell me your room type — living room, office, bedroom, or kitchen — and I’ll narrow it down further.`,
+        `For that type of indoor space, these are strong options:\n\n${indoor
+          .map(productLine)
+          .join('\n')}\n\nYou can browse more at /indoor. If you want, tell me whether you prefer rounded, tall, or minimal shapes and I’ll narrow it down further.`,
       needsHuman: false,
     };
   }
 
-  // outdoor help
-  if (text.includes('outdoor')) {
-    const outdoor = products.filter((p: any) => p.category === 'outdoor').slice(0, 4);
-    return {
-      reply:
-        `For outdoor spaces, these are strong options:\n\n${outdoor.map(productSummary).join('\n')}\n\nIf you tell me whether it is a garden, balcony, patio, or entrance, I can guide you better.`,
-      needsHuman: false,
-    };
-  }
-
-  // pots only
-  if (text.includes('pot only') || text.includes('pots only') || text.includes('without plant')) {
-    const potsOnly = products.filter((p: any) => p.category === 'pots').slice(0, 4);
-    return {
-      reply:
-        `Yes — we have a full Pots Only collection.\n\nHere are some examples:\n\n${potsOnly.map(productSummary).join('\n')}\n\nThese are great if you already have your own plant.`,
-      needsHuman: false,
-    };
-  }
-
-  // living room / space styling
-  if (text.includes('living room')) {
-    const picks = products.filter((p: any) =>
-      ['indoor'].includes(p.category)
-    ).slice(0, 3);
-
-    return {
-      reply:
-        `For a living room, I’d suggest calm statement indoor pieces like:\n\n${picks.map(productSummary).join('\n')}\n\nIf you want a softer look, go for rounded shapes. If you want a cleaner modern look, choose cylinder or column styles.`,
-      needsHuman: false,
-    };
-  }
-
-  // custom / bulk / studio
   if (
-    text.includes('custom') ||
-    text.includes('studio') ||
-    text.includes('bulk') ||
-    text.includes('wholesale') ||
-    text.includes('many pieces')
+    q.includes('custom') ||
+    q.includes('studio') ||
+    q.includes('bulk') ||
+    q.includes('wholesale') ||
+    q.includes('project')
   ) {
     return {
       reply:
-        `Yes — we do custom work through Studio Collection. You can share inspirations, quantity, styling direction, and dimensions, and the team can shape a more tailored brief for you.`,
+        'For custom or larger orders, use /studio. That is where you can share inspiration, quantity, dimensions, and styling direction for a more tailored brief.',
       needsHuman: false,
     };
   }
 
-  // care
-  if (
-    text.includes('care') ||
-    text.includes('clean') ||
-    text.includes('terracotta') ||
-    text.includes('watering') ||
-    text.includes('drainage')
-  ) {
-    const faq = faqReply(userText);
-    return {
-      reply:
-        faq ||
-        `Terracotta is breathable and naturally plant-friendly. Clean gently with a damp cloth, avoid harsh chemicals, and keep drainage open. You can also visit the Care Guide page for more support.`,
-      needsHuman: false,
-    };
-  }
-
-  // delivery
-  if (text.includes('delivery') || text.includes('shipping')) {
-    return {
-      reply:
-        `We deliver across Kenya. Nairobi deliveries are easier and faster, and larger orders may qualify for better delivery terms depending on order value and location.`,
-      needsHuman: false,
-    };
-  }
-
-  // payment
-  if (text.includes('payment') || text.includes('mpesa') || text.includes('m-pesa') || text.includes('card')) {
-    return {
-      reply:
-        `We support M-Pesa and card payment flows on the website. If you run into a payment issue, I can guide you first — and if needed, I’ll connect you to the TuloPots team.`,
-      needsHuman: false,
-    };
-  }
-
-  // prices
-  if (text.includes('price') || text.includes('cost') || text.includes('how much')) {
-    const matched = findMatchingProducts(userText).slice(0, 4);
-
-    if (matched.length) {
-      return {
-        reply:
-          `Here are the closest matches I found:\n\n${matched.map(productSummary).join('\n')}`,
-        needsHuman: false,
-      };
-    }
-
-    return {
-      reply:
-        `Prices depend on the pot style, size, and whether you want it with a plant or as pot only. If you tell me the product name or the kind of space you are styling, I can narrow it down.`,
-      needsHuman: false,
-    };
-  }
-
-  // direct product search
-  const matchedProducts = findMatchingProducts(userText).slice(0, 4);
-  if (matchedProducts.length) {
-    return {
-      reply:
-        `I found these relevant options:\n\n${matchedProducts.map(productSummary).join('\n')}\n\nIf you want, I can help you choose the best one for your space.`,
-      needsHuman: false,
-    };
-  }
-
-  // FAQ fallback
-  const faq = faqReply(userText);
+  const faq = findFaq(query);
   if (faq) {
     return {
-      reply: faq,
+      reply: faq.a,
       needsHuman: false,
     };
   }
 
-  // only now suggest human help
+  const matchedProducts = findProducts(query);
+  if (matchedProducts.length > 0) {
+    return {
+      reply:
+        `Here are the closest matches I found from the website:\n\n${matchedProducts
+          .map(productLine)
+          .join('\n')}\n\nIf you want, tell me your space type, preferred size, or whether you want it with a plant or as pot only.`,
+      needsHuman: false,
+    };
+  }
+
+  const matchedKnowledge = findKnowledge(query);
+  if (matchedKnowledge.length > 0) {
+    const top = matchedKnowledge[0];
+    return {
+      reply: `${top.content}\n\nBest page to open: ${top.route}`,
+      needsHuman: false,
+    };
+  }
+
   return {
     reply:
-      `I’m not fully sure from the website information alone. I can connect you to the TuloPots team on WhatsApp so they can continue the conversation properly.`,
+      'I could not find a confident answer from the website knowledge base alone. I can now continue this with the TuloPots team on WhatsApp.',
     needsHuman: true,
   };
 }
@@ -201,24 +191,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? (body.messages as ChatMessage[]) : [];
-    const lastUserMessage =
-      [...messages].reverse().find((m) => m.role === 'user')?.content?.trim() || '';
 
-    if (!lastUserMessage) {
-      return NextResponse.json({
-        reply:
-          'Tell me what you need help with — indoor pots, outdoor pots, pots only, care guide, delivery, payment, or custom orders.',
-        needsHuman: false,
-      });
-    }
-
-    const result = knowledgeReply(lastUserMessage);
-
+    const result = groundedReply(messages);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({
       reply:
-        'I can help with products, care, delivery, payments, and custom orders. Tell me what you are looking for.',
+        'I can help with products, care, delivery, payment, and custom orders. Tell me what you need.',
       needsHuman: false,
     });
   }
