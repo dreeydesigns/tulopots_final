@@ -60,7 +60,7 @@ html.page-fullscreen body {
   body.cursor-halo-on select,
   body.cursor-halo-on [role="button"],
   body.cursor-halo-on .cursor-hover {
-    cursor: auto !important;
+    cursor: none !important;
   }
 }
 
@@ -70,44 +70,53 @@ html.page-fullscreen body {
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 9999;
-  transform: translate(-50%, -50%);
   border-radius: 9999px;
   opacity: 0;
   will-change: transform, left, top, width, height, opacity;
 }
 
 .cursor-dot {
-  width: 10px;
-  height: 10px;
+  z-index: 10000;
+  width: 8px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.95);
   mix-blend-mode: difference;
-  transition: width 120ms ease, height 120ms ease, opacity 120ms ease, transform 120ms ease;
+  transform: translate(-50%, -50%);
+  transition:
+    width 120ms ease,
+    height 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
 }
 
 .cursor-ring {
-  z-index: 9998;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  mix-blend-mode: difference;
+  z-index: 9999;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid rgba(181, 106, 60, 0.45);
+  background: rgba(181, 106, 60, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(1px);
+  transform: translate(-50%, -50%);
   transition:
-    width 140ms ease,
-    height 140ms ease,
-    opacity 140ms ease,
-    border-color 140ms ease,
-    transform 140ms ease;
+    width 160ms ease,
+    height 160ms ease,
+    opacity 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .cursor-dot.is-active {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .cursor-ring.is-active {
-  width: 56px;
-  height: 56px;
-  border-color: rgba(255, 255, 255, 0.95);
+  width: 40px;
+  height: 40px;
+  border-color: rgba(232, 177, 120, 0.7);
+  background: rgba(232, 177, 120, 0.12);
 }
 
 .cursor-dot.is-pressed {
