@@ -177,7 +177,7 @@ function ProductCard({
           src={imageSrc}
           alt={product.name}
           fill
-          sizes="320px"
+          sizes="286px"
           className="object-cover"
         />
         <div className="tp-card__image-fade" />
@@ -216,7 +216,13 @@ function StoryCard() {
   return (
     <div className="tp-story-card">
       <div className="tp-story-card__image">
-        <Image src={imageByKey.clay} alt="TuloPots Studio" fill className="object-cover" />
+        <Image
+          src={imageByKey.clay}
+          alt="TuloPots Studio"
+          fill
+          sizes="320px"
+          className="object-cover"
+        />
       </div>
 
       <div className="tp-story-card__bottom">
@@ -244,6 +250,7 @@ function MagneticPotScene({
   const onMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const el = wrapRef.current;
     if (!el) return;
+
     const rect = el.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
@@ -252,6 +259,7 @@ function MagneticPotScene({
       x: -((py - 50) / 50) * 10,
       y: ((px - 50) / 50) * 12,
     });
+
     setGlow({ x: px, y: py });
   };
 
@@ -388,6 +396,7 @@ export default function LoggedInHome() {
 
   const goTo = (nextIndex: number) => {
     if (animating || nextIndex === current || nextIndex < 0 || nextIndex >= SLIDES.length) return;
+
     setAnimating(true);
     setPrev(current);
     setCurrent(nextIndex);
@@ -431,12 +440,15 @@ export default function LoggedInHome() {
 
     const onTouchEnd = (e: TouchEvent) => {
       if (touchStartY.current === null) return;
+
       const endY = e.changedTouches[0]?.clientY ?? touchStartY.current;
       const delta = touchStartY.current - endY;
+
       if (Math.abs(delta) > 50) {
         if (delta > 0) goNext();
         else goPrev();
       }
+
       touchStartY.current = null;
     };
 
@@ -468,12 +480,13 @@ export default function LoggedInHome() {
             key={slide.id}
             className={`scene${isActive ? ' active' : ''}${isPrev ? ' prev' : ''}`}
           >
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 z-0">
               <Image
                 src={slide.background}
                 alt={`${slide.titleTop} ${slide.titleBottom}`}
                 fill
                 priority={index === 0}
+                sizes="100vw"
                 className="object-cover"
               />
               <div className="tp-scene-overlay tp-scene-overlay-a absolute inset-0" />
@@ -566,7 +579,7 @@ export default function LoggedInHome() {
                   ) : null}
                 </div>
 
-                <div className="relative hidden h-[580px] lg:block">
+                <div className="relative z-20 hidden h-[580px] lg:block">
                   {slide.storyMode ? (
                     <div className="absolute left-[12%] top-[7%]">
                       <StoryCard />
