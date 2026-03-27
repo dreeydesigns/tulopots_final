@@ -1,22 +1,25 @@
 import './globals.css';
-import { Nav } from '@/components/Nav';
-import { Footer } from '@/components/Footer';
-import { Providers } from '@/components/Providers';
-import CursorHalo from '@/components/CursorHalo';
-import { AuthModal } from '@/components/AuthModal';
-import { Chatbot } from '@/components/Chatbot';
+import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 
-export const metadata = {
+import { Nav } from '../components/Nav';
+import { Footer } from '../components/Footer';
+import { Providers } from '../components/Providers';
+import Cursor from '../components/Cursor';
+import { AuthModal } from '../components/AuthModal';
+import { Chatbot } from '../components/Chatbot';
+
+export const metadata: Metadata = {
   title: 'TuloPots - Handcrafted Terracotta from Kenya',
   description: 'Premium handcrafted terracotta pots, plant pairings, and custom studio commissions from Nairobi.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="cursor-halo-on">
         <Providers>
-          <CursorHalo />
+          <Cursor />
           <Nav />
           <AuthModal />
           <Chatbot />
