@@ -60,7 +60,7 @@ html.page-fullscreen body {
   body.cursor-halo-on select,
   body.cursor-halo-on [role="button"],
   body.cursor-halo-on .cursor-hover {
-    cursor: none !important;
+    cursor: auto !important;
   }
 }
 
