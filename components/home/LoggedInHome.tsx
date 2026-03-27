@@ -500,9 +500,9 @@ export default function LoggedInHome() {
               </div>
             )}
 
-            <div className="relative z-10 mx-auto flex h-screen max-w-[1600px] items-center px-[4.5%] pb-[84px] pt-[84px]">
+            <div className="relative z-20 mx-auto flex h-screen max-w-[1600px] items-center px-[4.5%] pb-[84px] pt-[84px]">
               <div className="grid w-full items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] xl:gap-20">
-                <div className="max-w-[430px] text-white">
+                <div className="relative z-30 max-w-[430px] text-white">
                   {slide.kicker ? (
                     <p className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       {slide.kicker}
@@ -577,7 +577,7 @@ export default function LoggedInHome() {
                       onContact={() => router.push('/contact')}
                     />
                   ) : (
-                    <div className="absolute left-[0.5%] top-[2%] h-[540px] w-[820px]">
+                    <div className="absolute left-[10%] top-[4%] h-[540px] w-[760px]">
                       {slide.cardSlugs.map((slug, cardIndex) => {
                         const product = productMap[slug];
                         if (!product) return null;
