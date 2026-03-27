@@ -2,7 +2,7 @@ import './globals.css';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
 import { Providers } from '@/components/Providers';
-import { CursorHalo } from '@/components/CursorHalo';
+import CursorHalo from '@/components/CursorHalo';
 import { AuthModal } from '@/components/AuthModal';
 import { Chatbot } from '@/components/Chatbot';
 

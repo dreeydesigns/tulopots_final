@@ -1,70 +1,104 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-export function CursorHalo() {
-  const [mounted, setMounted] = useState(false);
-  const [pos, setPos] = useState({ x: -100, y: -100 });
+export default function CursorHalo() {
+  const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(false);
+  const [pressed, setPressed] = useState(false);
+
+  const dotRef = useRef<HTMLDivElement | null>(null);
+  const ringRef = useRef<HTMLDivElement | null>(null);
+
+  const mouse = useRef({ x: -100, y: -100 });
+  const ring = useRef({ x: -100, y: -100 });
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    if (window.innerWidth < 1024) return;
+
     document.body.classList.add('cursor-halo-on');
 
     const move = (e: MouseEvent) => {
-      setPos({ x: e.clientX, y: e.clientY });
+      mouse.current.x = e.clientX;
+      mouse.current.y = e.clientY;
+      setVisible(true);
+
+      if (dotRef.current) {
+        dotRef.current.style.left = `${e.clientX}px`;
+        dotRef.current.style.top = `${e.clientY}px`;
+        dotRef.current.style.opacity = '1';
+      }
     };
 
-    const touchStart = () => {
-      document.body.classList.remove('cursor-halo-on');
+    const enter = () => setVisible(true);
+    const leave = () => {
+      setVisible(false);
+      setActive(false);
+      setPressed(false);
     };
 
-    const enableHoverStates = () => {
-      const selector =
-        'a, button, input, textarea, select, [role="button"], .cursor-hover';
+    const down = () => setPressed(true);
+    const up = () => setPressed(false);
 
-      const nodes = Array.from(document.querySelectorAll(selector));
+    const over = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
 
-      const onEnter = () => setActive(true);
-      const onLeave = () => setActive(false);
+      const interactive = target.closest(
+        'a, button, input, textarea, select, [role="button"], .cursor-hover'
+      );
 
-      nodes.forEach((node) => {
-        node.addEventListener('mouseenter', onEnter);
-        node.addEventListener('mouseleave', onLeave);
-      });
-
-      return () => {
-        nodes.forEach((node) => {
-          node.removeEventListener('mouseenter', onEnter);
-          node.removeEventListener('mouseleave', onLeave);
-        });
-      };
+      setActive(Boolean(interactive));
     };
 
-    const cleanupHover = enableHoverStates();
+    const animate = () => {
+      ring.current.x += (mouse.current.x - ring.current.x) * 0.18;
+      ring.current.y += (mouse.current.y - ring.current.y) * 0.18;
+
+      if (ringRef.current) {
+        ringRef.current.style.left = `${ring.current.x}px`;
+        ringRef.current.style.top = `${ring.current.y}px`;
+        ringRef.current.style.opacity = visible ? '1' : '0';
+      }
+
+      rafRef.current = window.requestAnimationFrame(animate);
+    };
 
     window.addEventListener('mousemove', move);
-    window.addEventListener('touchstart', touchStart, { passive: true });
+    window.addEventListener('mouseover', over);
+    window.addEventListener('mouseenter', enter);
+    window.addEventListener('mouseleave', leave);
+    window.addEventListener('mousedown', down);
+    window.addEventListener('mouseup', up);
+
+    rafRef.current = window.requestAnimationFrame(animate);
 
     return () => {
-      cleanupHover();
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('touchstart', touchStart);
       document.body.classList.remove('cursor-halo-on');
-    };
-  }, []);
 
-  if (!mounted) return null;
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseover', over);
+      window.removeEventListener('mouseenter', enter);
+      window.removeEventListener('mouseleave', leave);
+      window.removeEventListener('mousedown', down);
+      window.removeEventListener('mouseup', up);
+
+      if (rafRef.current) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [visible]);
 
   return (
     <>
       <div
-        className={`cursor-dot ${active ? 'is-active' : ''}`}
-        style={{ left: pos.x, top: pos.y }}
+        ref={ringRef}
+        className={`cursor-ring${active ? ' is-active' : ''}${pressed ? ' is-pressed' : ''}`}
       />
       <div
-        className={`cursor-ring ${active ? 'is-active' : ''}`}
-        style={{ left: pos.x, top: pos.y }}
+        ref={dotRef}
+        className={`cursor-dot${active ? ' is-active' : ''}${pressed ? ' is-pressed' : ''}`}
       />
     </>
   );
