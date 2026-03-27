@@ -2,15 +2,20 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { products } from '../../lib/products';
 import { imageByKey } from '../../lib/site';
 import { useStore } from '../Providers';
-
-type ProductBadge = 'Best Seller' | 'Most Loved' | 'Fast Pickup';
 
 const SLIDES = [
   {
@@ -38,7 +43,6 @@ const SLIDES = [
       'pedestal-bowl-succulents',
       'cylinder-vase-snake-plant',
     ],
-    cardBadges: ['Best Seller', 'Most Loved', 'Fast Pickup'] as ProductBadge[],
   },
   {
     id: 'indoor',
@@ -65,7 +69,6 @@ const SLIDES = [
       'pedestal-bowl-succulents',
       'jug-handle-pothos',
     ],
-    cardBadges: ['Best Seller', 'Most Loved', 'Fast Pickup'] as ProductBadge[],
   },
   {
     id: 'outdoor',
@@ -92,7 +95,6 @@ const SLIDES = [
       'wide-rim-bougainvillea',
       'studio-xl-deep-palm',
     ],
-    cardBadges: ['Best Seller', 'Most Loved', 'Fast Pickup'] as ProductBadge[],
   },
   {
     id: 'pots',
@@ -115,7 +117,6 @@ const SLIDES = [
     storyMode: false,
     potMode: true,
     cardSlugs: [],
-    cardBadges: [] as ProductBadge[],
   },
   {
     id: 'story',
@@ -138,35 +139,48 @@ const SLIDES = [
     storyMode: true,
     potMode: false,
     cardSlugs: [],
-    cardBadges: [] as ProductBadge[],
   },
 ] as const;
 
-const imageOverride: Record<string, string> = {
-  'ribbed-globe-solo': imageByKey.indoor1,
-  'pedestal-bowl-solo': imageByKey.indoor2,
-  'hut-sculpture-solo': imageByKey.outdoor2,
+const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
+  'ribbed-globe-peace-lily': imageByKey.indoor1,
+  'pedestal-bowl-succulents': imageByKey.indoor1,
+  'cylinder-vase-snake-plant': imageByKey.indoor1,
+  'jug-handle-pothos': imageByKey.indoor1,
+
+  'hut-sculpture-garden': imageByKey.outdoor2,
+  'wide-rim-bougainvillea': imageByKey.outdoor2,
+  'studio-xl-deep-palm': imageByKey.outdoor2,
 };
+
+const CARD_POSITIONS = [
+  { left: 0, top: 18, zIndex: 24, rotate: -6 },
+  { left: 196, top: 54, zIndex: 23, rotate: -1.5 },
+  { left: 392, top: 90, zIndex: 22, rotate: 4.5 },
+] as const;
 
 function ProductCard({
   product,
   imageSrc,
-  badge,
   style,
   onBuyNow,
 }: {
   product: (typeof products)[number];
   imageSrc: string;
-  badge: ProductBadge;
   style?: CSSProperties;
   onBuyNow: () => void;
 }) {
   return (
-    <div className="tp-card" style={style}>
+    <div className="tp-card tp-card--funnel" style={style}>
       <div className="tp-card__image">
-        <Image src={imageSrc} alt={product.name} fill className="object-cover" />
+        <Image
+          src={imageSrc}
+          alt={product.name}
+          fill
+          sizes="320px"
+          className="object-cover"
+        />
         <div className="tp-card__image-fade" />
-        <div className="tp-card__badge">{badge}</div>
       </div>
 
       <div className="tp-card__bottom">
@@ -184,13 +198,15 @@ function ProductCard({
 
         <div className="tp-card__price">KSh {Number(product.price).toLocaleString()}</div>
 
-        <button onClick={onBuyNow} className="tp-card__buy cursor-hover">
-          Buy Now
-        </button>
+        <div className="tp-card__cta">
+          <button onClick={onBuyNow} className="tp-card__buy cursor-hover" type="button">
+            Buy Now
+          </button>
 
-        <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
-          View Item
-        </Link>
+          <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
+            View Item
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -225,7 +241,7 @@ function MagneticPotScene({
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [glow, setGlow] = useState({ x: 50, y: 50 });
 
-  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const onMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const el = wrapRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -316,12 +332,14 @@ function MagneticPotScene({
           </div>
 
           <p className="mt-4 text-[12px] leading-6 text-white/60">
-            Rotate the pot preview, feel the form, then move straight into purchase or browse the full terracotta selection.
+            Rotate the pot preview, feel the form, then move straight into purchase or browse the
+            full terracotta selection.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <button
               onClick={onBrowse}
+              type="button"
               className="cursor-hover inline-flex h-11 items-center justify-center rounded-full bg-[#d0824d] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#c3723d]"
             >
               Shop Pots
@@ -329,6 +347,7 @@ function MagneticPotScene({
 
             <button
               onClick={onContact}
+              type="button"
               className="cursor-hover inline-flex h-11 items-center justify-center rounded-full border border-white/16 bg-white/8 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/14"
             >
               Contact Studio
@@ -435,7 +454,11 @@ export default function LoggedInHome() {
   }, [animating, current]);
 
   return (
-    <main className={`fixed inset-0 overflow-hidden ${theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'}`}>
+    <main
+      className={`fixed inset-0 overflow-hidden ${
+        theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'
+      }`}
+    >
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
@@ -554,32 +577,28 @@ export default function LoggedInHome() {
                       onContact={() => router.push('/contact')}
                     />
                   ) : (
-                    <div className="absolute left-[2%] top-[5%] h-[500px] w-[760px]">
+                    <div className="absolute left-[0.5%] top-[2%] h-[540px] w-[820px]">
                       {slide.cardSlugs.map((slug, cardIndex) => {
                         const product = productMap[slug];
                         if (!product) return null;
 
-                        const imageSrc = imageOverride[slug] || product.image;
-                        const positions = [
-                          { left: 0,   top: 20, zIndex: 22 },
-                          { left: 190, top: 50, zIndex: 21 },
-                          { left: 380, top: 80, zIndex: 20 },
-                        ];
+                        const position = CARD_POSITIONS[cardIndex];
+                        const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
 
                         return (
                           <ProductCard
                             key={slug}
                             product={product}
                             imageSrc={imageSrc}
-                            badge={slide.cardBadges[cardIndex]}
                             onBuyNow={() => handleBuyNow(product)}
                             style={{
                               position: 'absolute',
-                              width: 210,
-                              height: 400,
-                              left: positions[cardIndex].left,
-                              top: positions[cardIndex].top,
-                              zIndex: positions[cardIndex].zIndex,
+                              width: 286,
+                              height: 430,
+                              left: position.left,
+                              top: position.top,
+                              zIndex: position.zIndex,
+                              transform: `rotate(${position.rotate}deg)`,
                               animationDelay: `${140 + cardIndex * 90}ms`,
                             }}
                           />
@@ -597,12 +616,14 @@ export default function LoggedInHome() {
       <div className="absolute left-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 lg:flex">
         <button
           onClick={goPrev}
+          type="button"
           className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
         >
           <ArrowUp className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={goNext}
+          type="button"
           className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
         >
           <ArrowDown className="h-3.5 w-3.5" />
@@ -619,6 +640,7 @@ export default function LoggedInHome() {
           <button
             key={slide.id}
             onClick={() => goTo(index)}
+            type="button"
             className={`cursor-hover rounded-full transition-all duration-300 ${
               index === current ? 'h-1.5 w-7 bg-white' : 'h-1.5 w-1.5 bg-white/28 hover:bg-white/48'
             }`}
@@ -641,7 +663,6 @@ export default function LoggedInHome() {
       `}</style>
 
       <style jsx>{`
-        /* ─── Scene transitions ─────────────────────────────────── */
         .scene {
           position: fixed;
           inset: 0;
@@ -667,7 +688,6 @@ export default function LoggedInHome() {
           z-index: 10;
         }
 
-        /* ─── Scene backgrounds ─────────────────────────────────── */
         .tp-scene-light {
           background: #f7f2ea;
         }
@@ -679,9 +699,9 @@ export default function LoggedInHome() {
         .tp-scene-light .tp-scene-overlay-a {
           background: linear-gradient(
             90deg,
-            rgba(24, 16, 12, 0.50) 0%,
+            rgba(24, 16, 12, 0.5) 0%,
             rgba(24, 16, 12, 0.34) 28%,
-            rgba(24, 16, 12, 0.10) 56%,
+            rgba(24, 16, 12, 0.1) 56%,
             rgba(24, 16, 12, 0.04) 100%
           );
         }
@@ -699,9 +719,9 @@ export default function LoggedInHome() {
           background: linear-gradient(
             90deg,
             rgba(16, 10, 7, 0.82) 0%,
-            rgba(16, 10, 7, 0.60) 28%,
+            rgba(16, 10, 7, 0.6) 28%,
             rgba(16, 10, 7, 0.24) 56%,
-            rgba(16, 10, 7, 0.10) 100%
+            rgba(16, 10, 7, 0.1) 100%
           );
         }
 
@@ -709,12 +729,11 @@ export default function LoggedInHome() {
           background: linear-gradient(
             to top,
             rgba(0, 0, 0, 0.36) 0%,
-            rgba(0, 0, 0, 0.10) 38%,
+            rgba(0, 0, 0, 0.1) 38%,
             rgba(0, 0, 0, 0.04) 100%
           );
         }
 
-        /* ─── Fade-up animations ────────────────────────────────── */
         .fade-item {
           opacity: 0;
           transform: translateY(16px);
@@ -724,106 +743,100 @@ export default function LoggedInHome() {
           animation: fadeUp 620ms ease forwards;
         }
 
-        .fade-1 { animation-delay: 40ms !important; }
-        .fade-2 { animation-delay: 110ms !important; }
-        .fade-3 { animation-delay: 180ms !important; }
-        .fade-4 { animation-delay: 250ms !important; }
-        .fade-5 { animation-delay: 320ms !important; }
+        .fade-1 {
+          animation-delay: 40ms !important;
+        }
 
-        /* ─── Product Card ──────────────────────────────────────── */
+        .fade-2 {
+          animation-delay: 110ms !important;
+        }
+
+        .fade-3 {
+          animation-delay: 180ms !important;
+        }
+
+        .fade-4 {
+          animation-delay: 250ms !important;
+        }
+
+        .fade-5 {
+          animation-delay: 320ms !important;
+        }
+
         .tp-card {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          border-radius: 24px;
-          border: 1px solid rgba(255, 255, 255, 0.10);
-          background: rgba(12, 6, 4, 0.72);
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: rgba(9, 5, 3, 0.48);
           box-shadow:
-            0 32px 80px rgba(0, 0, 0, 0.48),
-            inset 0 2px 0 rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(8px);
+            0 34px 90px rgba(0, 0, 0, 0.46),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(10px);
           opacity: 0;
-          transform: translate3d(28px, 0, 0) scale(0.97);
-          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          animation: cardIn 720ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
           transition:
-            transform 300ms ease,
-            box-shadow 300ms ease,
-            border-color 300ms ease;
+            transform 320ms ease,
+            box-shadow 320ms ease,
+            border-color 320ms ease;
         }
 
-        .tp-card:hover {
-          transform: translateY(-8px) scale(1.01);
+        .tp-card--funnel:hover {
+          transform: translateY(-10px) scale(1.015) !important;
           box-shadow:
-            0 40px 90px rgba(0, 0, 0, 0.54),
-            inset 0 2px 0 rgba(255, 255, 255, 0.10);
-          border-color: rgba(255, 255, 255, 0.16);
+            0 42px 110px rgba(0, 0, 0, 0.56),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.2);
         }
 
         .tp-card__image {
           position: relative;
-          height: 62%;
+          height: 74%;
           overflow: hidden;
           background: #e8e0d6;
-          border-radius: 24px 24px 0 0;
         }
 
         .tp-card__image :global(img) {
-          transition: transform 420ms ease;
+          transition: transform 520ms ease;
         }
 
-        .tp-card:hover .tp-card__image :global(img) {
-          transform: scale(1.05);
+        .tp-card--funnel:hover .tp-card__image :global(img) {
+          transform: scale(1.06);
         }
 
         .tp-card__image-fade {
           position: absolute;
           inset: auto 0 0 0;
-          height: 100px;
+          height: 150px;
           background: linear-gradient(
             to top,
             rgba(10, 5, 3, 0.92) 0%,
-            rgba(10, 5, 3, 0.40) 40%,
-            rgba(10, 5, 3, 0.00) 100%
+            rgba(10, 5, 3, 0.42) 42%,
+            rgba(10, 5, 3, 0) 100%
           );
-          z-index: 1;
-        }
-
-        .tp-card__badge {
-          position: absolute;
-          left: 12px;
-          top: 12px;
-          z-index: 2;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(10, 5, 3, 0.40);
-          padding: 5px 11px;
-          font-size: 7.5px;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.82);
-          backdrop-filter: blur(8px);
         }
 
         .tp-card__bottom {
+          position: relative;
           display: flex;
           flex: 1;
           flex-direction: column;
           justify-content: flex-end;
-          padding: 18px 16px 18px;
+          padding: 18px 18px 18px;
           background: linear-gradient(
             180deg,
-            rgba(10, 5, 3, 0.80) 0%,
-            rgba(10, 5, 3, 0.96) 40%,
-            rgba(8, 4, 2, 1.00) 100%
+            rgba(20, 10, 6, 0.78) 0%,
+            rgba(14, 7, 4, 0.95) 34%,
+            rgba(8, 4, 2, 1) 100%
           );
         }
 
         .tp-card__title {
-          min-height: 36px;
-          font-size: 13.5px;
-          line-height: 1.2;
-          color: rgba(255, 255, 255, 0.94);
+          min-height: 44px;
+          font-size: 18px;
+          line-height: 1.08;
+          color: rgba(255, 255, 255, 0.96);
           letter-spacing: 0.01em;
         }
 
@@ -832,23 +845,49 @@ export default function LoggedInHome() {
           font-size: 14px;
           font-weight: 700;
           color: #e0b97a;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.05em;
+        }
+
+        .tp-card__cta {
+          display: grid;
+          grid-template-rows: 42px 38px;
+          gap: 8px;
+          margin-top: 0;
+          max-height: 0;
+          opacity: 0;
+          transform: translateY(14px);
+          overflow: hidden;
+          transition:
+            max-height 280ms ease,
+            opacity 240ms ease,
+            transform 280ms ease,
+            margin-top 280ms ease;
+        }
+
+        .tp-card--funnel:hover .tp-card__cta {
+          margin-top: 14px;
+          max-height: 100px;
+          opacity: 1;
+          transform: translateY(0);
         }
 
         .tp-card__buy {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          margin-top: 14px;
-          height: 38px;
+          height: 42px;
           border-radius: 9999px;
           background: #d0824d;
-          color: white;
-          font-size: 8.5px;
+          color: #fff;
+          font-size: 9px;
           font-weight: 700;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          transition: background 220ms ease, transform 220ms ease;
+          transition:
+            background 220ms ease,
+            transform 220ms ease,
+            box-shadow 220ms ease;
+          box-shadow: 0 10px 24px rgba(208, 130, 77, 0.22);
         }
 
         .tp-card__buy:hover {
@@ -860,26 +899,27 @@ export default function LoggedInHome() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          margin-top: 7px;
-          height: 36px;
+          height: 38px;
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.70);
+          background: rgba(255, 255, 255, 0.04);
+          color: rgba(255, 255, 255, 0.72);
           font-size: 8.5px;
           font-weight: 600;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
+          transition:
+            background 220ms ease,
+            color 220ms ease,
+            border-color 220ms ease;
         }
 
         .tp-card__view:hover {
-          background: rgba(255, 255, 255, 0.10);
-          color: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.94);
           border-color: rgba(255, 255, 255, 0.22);
         }
 
-        /* ─── Story Card ────────────────────────────────────────── */
         .tp-story-card {
           width: 320px;
           height: 450px;
@@ -948,7 +988,6 @@ export default function LoggedInHome() {
           background: rgba(255, 255, 255, 0.14);
         }
 
-        /* ─── Keyframes ─────────────────────────────────────────── */
         @keyframes fadeUp {
           from {
             opacity: 0;
@@ -971,7 +1010,6 @@ export default function LoggedInHome() {
           }
         }
 
-        /* ─── Reduced motion ────────────────────────────────────── */
         @media (prefers-reduced-motion: reduce) {
           .scene,
           .fade-item,
@@ -980,11 +1018,11 @@ export default function LoggedInHome() {
           .scene.active .fade-item {
             animation: none !important;
             transition: none !important;
-            transform: none !important;
           }
 
           .scene {
             opacity: 0;
+            transform: none !important;
           }
 
           .scene.active {
@@ -995,6 +1033,14 @@ export default function LoggedInHome() {
           .tp-card,
           .tp-story-card {
             opacity: 1;
+            transform: none !important;
+          }
+
+          .tp-card__cta {
+            margin-top: 14px;
+            max-height: 100px;
+            opacity: 1;
+            transform: none;
           }
         }
       `}</style>
