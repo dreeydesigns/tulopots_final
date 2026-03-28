@@ -156,12 +156,128 @@ const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
   'studio-xl-deep-palm': imageByKey.outdoor1,
 };
 
-// Card sizing — original homepage.tsx values
 const CARD_WIDTHS = [210, 195, 180];
 const CARD_HEIGHTS = [290, 272, 255];
 const CARD_MARGINS = [0, 28, -8];
 
-function MagneticPotScene({ onBrowse, onContact }: { onBrowse: () => void; onContact: () => void }) {
+type ThemePalette = {
+  sceneText: string;
+  sceneTextSoft: string;
+  sceneTextFaint: string;
+  sceneTextMuted: string;
+  statBorder: string;
+  primaryBtnBg: string;
+  primaryBtnText: string;
+  primaryBtnHover: string;
+  secondaryBtnBg: string;
+  secondaryBtnText: string;
+  secondaryBtnBorder: string;
+  secondaryBtnHover: string;
+  navBtnBg: string;
+  navBtnBorder: string;
+  navBtnText: string;
+  navBtnHover: string;
+  cardShell: string;
+  cardInfoBg: string;
+  cardTitle: string;
+  cardSecondaryText: string;
+  cardBorder: string;
+  cardSecondaryBg: string;
+  cardSecondaryHover: string;
+  storyOverlay: string;
+  storySecondaryBg: string;
+  storySecondaryBorder: string;
+  potPanelBg: string;
+  potPanelBorder: string;
+  potPanelText: string;
+  potPanelMuted: string;
+  potChipBg: string;
+  potChipBorder: string;
+};
+
+function getPalette(isLight: boolean): ThemePalette {
+  if (isLight) {
+    return {
+      sceneText: '#231711',
+      sceneTextSoft: 'rgba(35,23,17,0.78)',
+      sceneTextFaint: 'rgba(35,23,17,0.58)',
+      sceneTextMuted: 'rgba(35,23,17,0.34)',
+      statBorder: 'rgba(35,23,17,0.12)',
+      primaryBtnBg: '#d0824d',
+      primaryBtnText: '#ffffff',
+      primaryBtnHover: '#c3723d',
+      secondaryBtnBg: 'rgba(247,242,234,0.72)',
+      secondaryBtnText: '#2a1b14',
+      secondaryBtnBorder: 'rgba(35,23,17,0.16)',
+      secondaryBtnHover: 'rgba(255,255,255,0.86)',
+      navBtnBg: 'rgba(247,242,234,0.34)',
+      navBtnBorder: 'rgba(35,23,17,0.14)',
+      navBtnText: '#231711',
+      navBtnHover: 'rgba(247,242,234,0.56)',
+      cardShell: '#f6efe6',
+      cardInfoBg: 'linear-gradient(180deg,rgba(248,244,239,0.98) 0%,rgba(241,231,219,0.98) 100%)',
+      cardTitle: '#20140f',
+      cardSecondaryText: 'rgba(32,20,15,0.72)',
+      cardBorder: 'rgba(35,23,17,0.10)',
+      cardSecondaryBg: 'rgba(255,255,255,0.60)',
+      cardSecondaryHover: 'rgba(255,255,255,0.88)',
+      storyOverlay: 'linear-gradient(to top, rgba(247,242,234,0.94) 0%, rgba(247,242,234,0.22) 56%, rgba(247,242,234,0.04) 100%)',
+      storySecondaryBg: 'rgba(255,255,255,0.62)',
+      storySecondaryBorder: 'rgba(35,23,17,0.12)',
+      potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.78) 0%,rgba(239,229,217,0.96) 100%)',
+      potPanelBorder: 'rgba(35,23,17,0.10)',
+      potPanelText: '#20140f',
+      potPanelMuted: 'rgba(32,20,15,0.68)',
+      potChipBg: 'rgba(255,255,255,0.64)',
+      potChipBorder: 'rgba(35,23,17,0.10)',
+    };
+  }
+
+  return {
+    sceneText: '#ffffff',
+    sceneTextSoft: 'rgba(255,255,255,0.72)',
+    sceneTextFaint: 'rgba(255,255,255,0.58)',
+    sceneTextMuted: 'rgba(255,255,255,0.30)',
+    statBorder: 'rgba(255,255,255,0.10)',
+    primaryBtnBg: '#d0824d',
+    primaryBtnText: '#ffffff',
+    primaryBtnHover: '#c3723d',
+    secondaryBtnBg: 'rgba(0,0,0,0.14)',
+    secondaryBtnText: '#ffffff',
+    secondaryBtnBorder: 'rgba(255,255,255,0.18)',
+    secondaryBtnHover: 'rgba(255,255,255,0.10)',
+    navBtnBg: 'rgba(0,0,0,0.18)',
+    navBtnBorder: 'rgba(255,255,255,0.14)',
+    navBtnText: '#ffffff',
+    navBtnHover: 'rgba(255,255,255,0.10)',
+    cardShell: '#111',
+    cardInfoBg: 'linear-gradient(180deg,#0e0906 0%,#080503 100%)',
+    cardTitle: 'rgba(255,255,255,0.92)',
+    cardSecondaryText: 'rgba(255,255,255,0.78)',
+    cardBorder: 'rgba(255,255,255,0.08)',
+    cardSecondaryBg: 'rgba(255,255,255,0.05)',
+    cardSecondaryHover: 'rgba(255,255,255,0.10)',
+    storyOverlay: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 56%, rgba(0,0,0,0.04) 100%)',
+    storySecondaryBg: 'rgba(255,255,255,0.08)',
+    storySecondaryBorder: 'rgba(255,255,255,0.20)',
+    potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(22,10,6,0.94) 28%,rgba(16,9,5,0.98) 100%)',
+    potPanelBorder: 'rgba(255,255,255,0.14)',
+    potPanelText: '#ffffff',
+    potPanelMuted: 'rgba(255,255,255,0.62)',
+    potChipBg: 'rgba(255,255,255,0.08)',
+    potChipBorder: 'rgba(255,255,255,0.14)',
+  };
+}
+
+function MagneticPotScene({
+  onBrowse,
+  onContact,
+  palette,
+}: {
+  onBrowse: () => void;
+  onContact: () => void;
+  palette: ThemePalette;
+}) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [glow, setGlow] = useState({ x: 50, y: 50 });
@@ -175,6 +291,7 @@ function MagneticPotScene({ onBrowse, onContact }: { onBrowse: () => void; onCon
     setTilt({ x: -((py - 50) / 50) * 10, y: ((px - 50) / 50) * 12 });
     setGlow({ x: px, y: py });
   };
+
   const onLeave = () => {
     setTilt({ x: 0, y: 0 });
     setGlow({ x: 50, y: 50 });
@@ -216,12 +333,13 @@ function MagneticPotScene({ onBrowse, onContact }: { onBrowse: () => void; onCon
                 <div className="absolute left-[94px] top-[42px] h-[58px] w-[10px] rotate-[42deg] rounded-full bg-[#43693b]" />
                 <div className="absolute left-[40px] top-[42px] h-[56px] w-[10px] rotate-[-44deg] rounded-full bg-[#4f7d44]" />
               </div>
+
               <div
                 className="absolute bottom-[22px] left-1/2 z-10 h-[176px] w-[196px] -translate-x-1/2 rounded-b-[44%] rounded-t-[38%]"
                 style={{
                   background: 'linear-gradient(180deg,#d98956 0%,#b96b3d 28%,#9f5b34 58%,#7d4729 100%)',
                   boxShadow:
-                    'inset -16px -26px 32px rgba(71,36,18,0.32),inset 10px 10px 18px rgba(255,212,180,0.18),0 24px 50px rgba(0,0,0,0.28)',
+                    'inset -16px -26px 32px rgba(71,36,18,0.32), inset 10px 10px 18px rgba(255,212,180,0.18), 0 24px 50px rgba(0,0,0,0.28)',
                 }}
               >
                 <div className="absolute left-1/2 top-[-10px] h-[28px] w-[204px] -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,#e6a578_0%,#b96b3d_68%,#8a4d2e_100%)] shadow-[0_8px_18px_rgba(0,0,0,0.18)]" />
@@ -232,29 +350,73 @@ function MagneticPotScene({ onBrowse, onContact }: { onBrowse: () => void; onCon
             </div>
           </div>
         </div>
-        <div className="absolute right-[4%] top-[18%] z-20 w-[340px] rounded-[34px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(22,10,6,0.94)_28%,rgba(16,9,5,0.98)_100%)] p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md">
+
+        <div
+          className="absolute right-[4%] top-[18%] z-20 w-[340px] rounded-[34px] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md"
+          style={{
+            background: palette.potPanelBg,
+            border: `1px solid ${palette.potPanelBorder}`,
+            color: palette.potPanelText,
+          }}
+        >
           <div className="mb-3 flex items-center justify-between">
-            <div className="rounded-full border border-white/14 bg-white/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white">
+            <div
+              className="rounded-full px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]"
+              style={{
+                background: palette.potChipBg,
+                border: `1px solid ${palette.potChipBorder}`,
+                color: palette.potPanelText,
+              }}
+            >
               Interactive Pot
             </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-white/46">Move cursor</div>
+            <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
+              Move cursor
+            </div>
           </div>
-          <div className="serif-display text-[26px] leading-none text-white">Signature Clay Pot</div>
-          <p className="mt-4 text-[12px] leading-6 text-white/60">
+
+          <div className="serif-display text-[26px] leading-none" style={{ color: palette.potPanelText }}>
+            Signature Clay Pot
+          </div>
+
+          <p className="mt-4 text-[12px] leading-6" style={{ color: palette.potPanelMuted }}>
             Rotate the pot preview, feel the form, then move straight into purchase or browse the full terracotta selection.
           </p>
+
           <div className="mt-5 grid grid-cols-2 gap-2">
             <button
               onClick={onBrowse}
               type="button"
-              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full bg-[#d0824d] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#c3723d]"
+              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] transition"
+              style={{
+                background: palette.primaryBtnBg,
+                color: palette.primaryBtnText,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = palette.primaryBtnHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = palette.primaryBtnBg;
+              }}
             >
               Shop Pots
             </button>
+
             <button
               onClick={onContact}
               type="button"
-              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full border border-white/16 bg-white/8 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/14"
+              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] transition"
+              style={{
+                background: palette.secondaryBtnBg,
+                color: palette.secondaryBtnText,
+                border: `1px solid ${palette.secondaryBtnBorder}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = palette.secondaryBtnHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = palette.secondaryBtnBg;
+              }}
             >
               Contact Studio
             </button>
@@ -275,6 +437,9 @@ export default function LoggedInHome() {
   const [animating, setAnimating] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const sceneRefs = useRef<(HTMLElement | null)[]>([]);
+
+  const isLight = theme === 'light';
+  const palette = getPalette(isLight);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -312,6 +477,7 @@ export default function LoggedInHome() {
 
   const goNext = () => goTo(current + 1);
   const goPrev = () => goTo(current - 1);
+
   const handleBuyNow = (product: (typeof products)[number]) => {
     addToCart(product, { quantity: 1 });
     router.push('/cart');
@@ -328,6 +494,7 @@ export default function LoggedInHome() {
       if (e.deltaY > 0) goNext();
       else goPrev();
     };
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
@@ -338,9 +505,11 @@ export default function LoggedInHome() {
         goPrev();
       }
     };
+
     const onTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0]?.clientY ?? null;
     };
+
     const onTouchEnd = (e: TouchEvent) => {
       if (touchStartY.current === null) return;
       const delta = touchStartY.current - (e.changedTouches[0]?.clientY ?? touchStartY.current);
@@ -350,10 +519,12 @@ export default function LoggedInHome() {
       }
       touchStartY.current = null;
     };
+
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
+
     return () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
@@ -363,10 +534,11 @@ export default function LoggedInHome() {
   }, [animating, current]);
 
   return (
-    <main className={`fixed inset-0 overflow-hidden ${theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'}`}>
+    <main className={`fixed inset-0 overflow-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
+
         return (
           <section
             key={slide.id}
@@ -390,16 +562,21 @@ export default function LoggedInHome() {
 
             {slide.featured && (
               <div className="absolute right-10 top-[86px] z-30 hidden lg:block">
-                <div className="text-right text-[10px] font-medium uppercase tracking-[0.22em] text-white/45">
+                <div
+                  className="text-right text-[10px] font-medium uppercase tracking-[0.22em]"
+                  style={{ color: palette.sceneTextFaint }}
+                >
                   {slide.featured.label}
                 </div>
+
                 <div className="mt-2 flex justify-end gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
                       className={`h-3 w-3 ${
-                        s <= slide.featured.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : 'text-white/20'
+                        s <= slide.featured.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : ''
                       }`}
+                      style={s <= slide.featured.stars ? undefined : { color: isLight ? 'rgba(35,23,17,0.18)' : 'rgba(255,255,255,0.20)' }}
                     />
                   ))}
                 </div>
@@ -408,9 +585,12 @@ export default function LoggedInHome() {
 
             <div className="relative z-20 mx-auto flex h-screen max-w-[1600px] items-center px-[4.5%] pb-[84px] pt-[84px]">
               <div className="grid w-full items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] xl:gap-20">
-                <div className="relative z-30 max-w-[430px] text-white">
+                <div className="relative z-30 max-w-[430px]">
                   {slide.kicker ? (
-                    <p className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                    <p
+                      className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em]"
+                      style={{ color: palette.sceneTextFaint }}
+                    >
                       {slide.kicker}
                     </p>
                   ) : (
@@ -418,8 +598,11 @@ export default function LoggedInHome() {
                   )}
 
                   <h1
-                    className="fade-item fade-2 serif-display leading-[0.92] text-white"
-                    style={{ fontSize: 'clamp(3.5rem, 6vw, 6.35rem)' }}
+                    className="fade-item fade-2 serif-display leading-[0.92]"
+                    style={{
+                      fontSize: 'clamp(3.5rem, 6vw, 6.35rem)',
+                      color: palette.sceneText,
+                    }}
                   >
                     {slide.titleTop}
                     {slide.titleAccent ? (
@@ -431,31 +614,67 @@ export default function LoggedInHome() {
                     {slide.titleBottom}
                   </h1>
 
-                  <p className="fade-item fade-3 mt-7 max-w-[340px] text-[14px] leading-[1.9] text-white/68 md:text-[15px]">
+                  <p
+                    className="fade-item fade-3 mt-7 max-w-[340px] text-[14px] leading-[1.9] md:text-[15px]"
+                    style={{ color: palette.sceneTextSoft }}
+                  >
                     {slide.description}
                   </p>
 
                   <div className="fade-item fade-4 mt-9 flex flex-wrap gap-3">
                     <Link
                       href={slide.primaryCta.href}
-                      className="cursor-hover inline-flex items-center gap-2 rounded-full bg-[#d0824d] px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_28px_rgba(208,130,77,0.28)] transition hover:-translate-y-0.5 hover:bg-[#c3723d]"
+                      className="cursor-hover inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-[0_12px_28px_rgba(208,130,77,0.28)] transition hover:-translate-y-0.5"
+                      style={{
+                        background: palette.primaryBtnBg,
+                        color: palette.primaryBtnText,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = palette.primaryBtnHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = palette.primaryBtnBg;
+                      }}
                     >
                       <ArrowRight className="h-3.5 w-3.5" />
                       {slide.primaryCta.label}
                     </Link>
+
                     <Link
                       href={slide.secondaryCta.href}
-                      className="cursor-hover inline-flex items-center rounded-full border border-white/18 bg-black/10 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10"
+                      className="cursor-hover inline-flex items-center rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition"
+                      style={{
+                        background: palette.secondaryBtnBg,
+                        color: palette.secondaryBtnText,
+                        border: `1px solid ${palette.secondaryBtnBorder}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = palette.secondaryBtnHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = palette.secondaryBtnBg;
+                      }}
                     >
                       {slide.secondaryCta.label}
                     </Link>
                   </div>
 
-                  <div className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 border-t border-white/10 pt-6">
+                  <div
+                    className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 pt-6"
+                    style={{ borderTop: `1px solid ${palette.statBorder}` }}
+                  >
                     {slide.stats.map((stat) => (
                       <div key={stat.label}>
-                        <div className="text-[1.75rem] font-semibold leading-none text-white">{stat.value}</div>
-                        <div className="mt-2 text-[10px] uppercase tracking-[0.15em] text-white/38">
+                        <div
+                          className="text-[1.75rem] font-semibold leading-none"
+                          style={{ color: palette.sceneText }}
+                        >
+                          {stat.value}
+                        </div>
+                        <div
+                          className="mt-2 text-[10px] uppercase tracking-[0.15em]"
+                          style={{ color: palette.sceneTextMuted }}
+                        >
                           {stat.label}
                         </div>
                       </div>
@@ -463,7 +682,10 @@ export default function LoggedInHome() {
                   </div>
 
                   {slide.nextLabel ? (
-                    <div className="fade-item fade-5 mt-8 text-[13px] font-light text-white/22">
+                    <div
+                      className="fade-item fade-5 mt-8 text-[13px] font-light"
+                      style={{ color: palette.sceneTextMuted }}
+                    >
                       {slide.nextLabel}
                     </div>
                   ) : null}
@@ -474,10 +696,15 @@ export default function LoggedInHome() {
                     <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
                       <div
                         className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
-                        style={{ width: CARD_WIDTHS[0], height: CARD_HEIGHTS[0] }}
+                        style={{
+                          width: CARD_WIDTHS[0],
+                          height: CARD_HEIGHTS[0],
+                          background: palette.cardShell,
+                          border: `1px solid ${palette.cardBorder}`,
+                        }}
                         onClick={() => router.push('/about')}
                       >
-                        <div className="group relative h-full w-full bg-[#1a1a1a]">
+                        <div className="group relative h-full w-full">
                           <Image
                             src={imageByKey.clay}
                             alt="TuloPots Studio"
@@ -485,24 +712,53 @@ export default function LoggedInHome() {
                             sizes="210px"
                             className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                          <div className="absolute inset-0" style={{ background: palette.storyOverlay }} />
+
                           <div className="absolute bottom-0 left-0 right-0 p-3.5">
-                            <div className="text-[12px] font-medium tracking-[0.04em] text-white">
+                            <div
+                              className="text-[12px] font-medium tracking-[0.04em]"
+                              style={{ color: palette.cardTitle }}
+                            >
                               TuloPots Studio
                             </div>
-                            <div className="text-[10px] italic text-white/60">Est. 2016 — Nairobi</div>
+                            <div className="text-[10px] italic" style={{ color: palette.cardSecondaryText }}>
+                              Est. 2016 — Nairobi
+                            </div>
+
                             <div className="mt-2 grid grid-cols-2 gap-1.5">
                               <Link
                                 href="/about"
                                 onClick={(e) => e.stopPropagation()}
-                                className="pointer-events-auto flex items-center justify-center rounded-full bg-[#d0824d] px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#c3723d]"
+                                className="pointer-events-auto flex items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.14em] transition"
+                                style={{
+                                  background: palette.primaryBtnBg,
+                                  color: palette.primaryBtnText,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = palette.primaryBtnHover;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = palette.primaryBtnBg;
+                                }}
                               >
                                 Read Story
                               </Link>
+
                               <Link
                                 href="/contact"
                                 onClick={(e) => e.stopPropagation()}
-                                className="pointer-events-auto flex items-center justify-center rounded-full border border-white/20 bg-white/8 px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.14em] text-white/80 transition hover:bg-white/14"
+                                className="pointer-events-auto flex items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.14em] transition"
+                                style={{
+                                  background: palette.storySecondaryBg,
+                                  color: palette.secondaryBtnText,
+                                  border: `1px solid ${palette.storySecondaryBorder}`,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = palette.secondaryBtnHover;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = palette.storySecondaryBg;
+                                }}
                               >
                                 Contact
                               </Link>
@@ -512,19 +768,29 @@ export default function LoggedInHome() {
                       </div>
                     </div>
                   ) : slide.potMode ? (
-                    <MagneticPotScene onBrowse={() => router.push('/pots')} onContact={() => router.push('/contact')} />
+                    <MagneticPotScene
+                      onBrowse={() => router.push('/pots')}
+                      onContact={() => router.push('/contact')}
+                      palette={palette}
+                    />
                   ) : (
                     <>
                       <div className="replay fade-up delay-2 absolute left-[60px] top-[44px] z-30 flex gap-1">
                         {[0, 1, 2, 3].map((i) => (
                           <Star key={i} className="h-3.5 w-3.5 fill-[#f2c94c] text-[#f2c94c]" />
                         ))}
-                        <Star className="h-3.5 w-3.5 text-white/28" />
+                        <Star
+                          className="h-3.5 w-3.5"
+                          style={{ color: isLight ? 'rgba(35,23,17,0.24)' : 'rgba(255,255,255,0.28)' }}
+                        />
                       </div>
 
                       {slide.sideLabel && (
                         <div className="replay fade-up delay-2 absolute left-[60px] top-[68px] z-30">
-                          <div className="text-[11px] uppercase tracking-[0.14em] text-white/68">
+                          <div
+                            className="text-[11px] uppercase tracking-[0.14em]"
+                            style={{ color: palette.sceneTextSoft }}
+                          >
                             {slide.sideLabel}
                           </div>
                         </div>
@@ -548,7 +814,8 @@ export default function LoggedInHome() {
                                 marginTop: CARD_MARGINS[ci],
                                 marginLeft: ci === 0 ? 0 : 12,
                                 zIndex: 30 - ci,
-                                background: '#111',
+                                background: palette.cardShell,
+                                border: `1px solid ${palette.cardBorder}`,
                               }}
                             >
                               <div
@@ -562,15 +829,18 @@ export default function LoggedInHome() {
                                   sizes="210px"
                                   className="object-cover transition-transform duration-500 hover:scale-[1.06]"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                               </div>
 
                               <div
                                 className="flex flex-1 flex-col justify-between px-3 pt-2.5 pb-3"
-                                style={{ background: 'linear-gradient(180deg,#0e0906 0%,#080503 100%)' }}
+                                style={{ background: palette.cardInfoBg }}
                               >
                                 <div>
-                                  <div className="line-clamp-1 text-[11px] font-medium tracking-[0.03em] text-white/90">
+                                  <div
+                                    className="line-clamp-1 text-[11px] font-medium tracking-[0.03em]"
+                                    style={{ color: palette.cardTitle }}
+                                  >
                                     {product.name}
                                   </div>
                                   <div className="mt-0.5 font-serif text-[13px] font-semibold text-[#e0b97a]">
@@ -581,14 +851,35 @@ export default function LoggedInHome() {
                                 <div className="mt-2 grid grid-cols-2 gap-1.5">
                                   <button
                                     onClick={() => handleBuyNow(product)}
-                                    className="flex min-w-0 items-center justify-center rounded-full bg-[#d0824d] px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#c3723d]"
+                                    className="flex min-w-0 items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.12em] transition"
+                                    style={{
+                                      background: palette.primaryBtnBg,
+                                      color: palette.primaryBtnText,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = palette.primaryBtnHover;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = palette.primaryBtnBg;
+                                    }}
                                   >
                                     Buy Now
                                   </button>
 
                                   <Link
                                     href={`/product/${product.slug}`}
-                                    className="flex min-w-0 items-center justify-center rounded-full border border-white/18 bg-white/5 px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.12em] text-white/78 transition hover:bg-white/10 hover:text-white/92"
+                                    className="flex min-w-0 items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.12em] transition"
+                                    style={{
+                                      background: palette.cardSecondaryBg,
+                                      color: palette.cardSecondaryText,
+                                      border: `1px solid ${palette.secondaryBtnBorder}`,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = palette.cardSecondaryHover;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = palette.cardSecondaryBg;
+                                    }}
                                   >
                                     View Item
                                   </Link>
@@ -611,21 +902,47 @@ export default function LoggedInHome() {
         <button
           onClick={goPrev}
           type="button"
-          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
+          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition"
+          style={{
+            background: palette.navBtnBg,
+            border: `1px solid ${palette.navBtnBorder}`,
+            color: palette.navBtnText,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = palette.navBtnHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = palette.navBtnBg;
+          }}
         >
           <ArrowUp className="h-3.5 w-3.5" />
         </button>
+
         <button
           onClick={goNext}
           type="button"
-          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
+          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition"
+          style={{
+            background: palette.navBtnBg,
+            border: `1px solid ${palette.navBtnBorder}`,
+            color: palette.navBtnText,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = palette.navBtnHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = palette.navBtnBg;
+          }}
         >
           <ArrowDown className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      <div className="absolute bottom-7 left-7 z-40 hidden items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-white/28 md:flex">
-        <div className="h-px w-10 bg-white/16" />
+      <div
+        className="absolute bottom-7 left-7 z-40 hidden items-center gap-3 text-[10px] uppercase tracking-[0.18em] md:flex"
+        style={{ color: palette.sceneTextMuted }}
+      >
+        <div className="h-px w-10" style={{ background: palette.statBorder }} />
         Scroll to explore
       </div>
 
@@ -635,15 +952,21 @@ export default function LoggedInHome() {
             key={slide.id}
             onClick={() => goTo(index)}
             type="button"
-            className={`cursor-hover rounded-full transition-all duration-300 ${
-              index === current ? 'h-1.5 w-7 bg-white' : 'h-1.5 w-1.5 bg-white/28 hover:bg-white/48'
-            }`}
+            className="cursor-hover rounded-full transition-all duration-300"
+            style={{
+              height: '6px',
+              width: index === current ? '28px' : '6px',
+              background: index === current ? palette.sceneText : palette.sceneTextMuted,
+            }}
           />
         ))}
       </div>
 
-      <div className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] text-white/30 md:right-28">
-        <span className="text-white/76">{String(current + 1).padStart(2, '0')}</span> /{' '}
+      <div
+        className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] md:right-28"
+        style={{ color: palette.sceneTextMuted }}
+      >
+        <span style={{ color: palette.sceneTextSoft }}>{String(current + 1).padStart(2, '0')}</span> /{' '}
         {String(SLIDES.length).padStart(2, '0')}
       </div>
 
@@ -694,19 +1017,19 @@ export default function LoggedInHome() {
         .tp-scene-light .tp-scene-overlay-a {
           background: linear-gradient(
             90deg,
-            rgba(24, 16, 12, 0.5) 0%,
-            rgba(24, 16, 12, 0.34) 28%,
-            rgba(24, 16, 12, 0.1) 56%,
-            rgba(24, 16, 12, 0.04) 100%
+            rgba(247, 242, 234, 0.54) 0%,
+            rgba(247, 242, 234, 0.34) 28%,
+            rgba(247, 242, 234, 0.12) 56%,
+            rgba(247, 242, 234, 0.04) 100%
           );
         }
 
         .tp-scene-light .tp-scene-overlay-b {
           background: linear-gradient(
             to top,
-            rgba(0, 0, 0, 0.12) 0%,
-            rgba(0, 0, 0, 0.04) 38%,
-            rgba(0, 0, 0, 0.02) 100%
+            rgba(255, 248, 240, 0.22) 0%,
+            rgba(255, 248, 240, 0.08) 38%,
+            rgba(255, 248, 240, 0.02) 100%
           );
         }
 
