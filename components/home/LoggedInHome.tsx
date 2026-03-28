@@ -144,19 +144,19 @@ const SLIDES = [
 
 const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
   'ribbed-globe-peace-lily': imageByKey.indoor1,
-  'pedestal-bowl-succulents': imageByKey.indoor1,
-  'cylinder-vase-snake-plant': imageByKey.indoor1,
-  'jug-handle-pothos': imageByKey.indoor1,
-
+  'pedestal-bowl-succulents': imageByKey.indoor2,
+  'cylinder-vase-snake-plant': imageByKey.indoor3,
+  'jug-handle-pothos': imageByKey.indoor4,
   'hut-sculpture-garden': imageByKey.outdoor2,
-  'wide-rim-bougainvillea': imageByKey.outdoor2,
-  'studio-xl-deep-palm': imageByKey.outdoor2,
+  'wide-rim-bougainvillea': imageByKey.outdoor3,
+  'studio-xl-deep-palm': imageByKey.outdoor1,
 };
 
+// BUG FIX 1: Removed all rotation. Cards are upright with clean vertical stagger only.
 const CARD_POSITIONS = [
-  { left: 0, top: 18, zIndex: 24, rotate: -6 },
-  { left: 196, top: 54, zIndex: 23, rotate: -1.5 },
-  { left: 392, top: 90, zIndex: 22, rotate: 4.5 },
+  { left: 0,   top: 10, zIndex: 24 },
+  { left: 200, top: 40, zIndex: 23 },
+  { left: 400, top: 70, zIndex: 22 },
 ] as const;
 
 function ProductCard({
@@ -171,13 +171,13 @@ function ProductCard({
   onBuyNow: () => void;
 }) {
   return (
-    <div className="tp-card tp-card--funnel" style={style}>
+    <div className="tp-card" style={style}>
       <div className="tp-card__image">
         <Image
           src={imageSrc}
           alt={product.name}
           fill
-          sizes="286px"
+          sizes="210px"
           className="object-cover"
         />
         <div className="tp-card__image-fade" />
@@ -198,15 +198,14 @@ function ProductCard({
 
         <div className="tp-card__price">KSh {Number(product.price).toLocaleString()}</div>
 
-        <div className="tp-card__cta">
-          <button onClick={onBuyNow} className="tp-card__buy cursor-hover" type="button">
-            Buy Now
-          </button>
+        {/* BUG FIX 2: Buttons are always visible. Removed the hover-only show/hide pattern. */}
+        <button onClick={onBuyNow} className="tp-card__buy cursor-hover" type="button">
+          Buy Now
+        </button>
 
-          <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
-            View Item
-          </Link>
-        </div>
+        <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
+          View Item
+        </Link>
       </div>
     </div>
   );
@@ -590,7 +589,8 @@ export default function LoggedInHome() {
                       onContact={() => router.push('/contact')}
                     />
                   ) : (
-                    <div className="absolute left-[10%] top-[4%] h-[540px] w-[760px]">
+                    // BUG FIX 3: Container fits 3 × 210px cards with clean stagger
+                    <div className="absolute left-[5%] top-[2%] h-[560px] w-[680px]">
                       {slide.cardSlugs.map((slug, cardIndex) => {
                         const product = productMap[slug];
                         if (!product) return null;
@@ -606,12 +606,12 @@ export default function LoggedInHome() {
                             onBuyNow={() => handleBuyNow(product)}
                             style={{
                               position: 'absolute',
-                              width: 286,
-                              height: 430,
+                              width: 210,
+                              height: 420,
                               left: position.left,
                               top: position.top,
                               zIndex: position.zIndex,
-                              transform: `rotate(${position.rotate}deg)`,
+                              // NO rotation applied here
                               animationDelay: `${140 + cardIndex * 90}ms`,
                             }}
                           />
@@ -661,7 +661,7 @@ export default function LoggedInHome() {
         ))}
       </div>
 
-      <div className="absolute bottom-7 right-7 z-40 text-[10px] uppercase tracking-[0.18em] text-white/30">
+      <div className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] text-white/30 md:right-28">
         <span className="text-white/76">{String(current + 1).padStart(2, '0')}</span> /{' '}
         {String(SLIDES.length).padStart(2, '0')}
       </div>
@@ -676,6 +676,7 @@ export default function LoggedInHome() {
       `}</style>
 
       <style jsx>{`
+        /* ── Scene transitions ───────────────────────────────────────── */
         .scene {
           position: fixed;
           inset: 0;
@@ -686,14 +687,12 @@ export default function LoggedInHome() {
             opacity 680ms ease,
             transform 680ms cubic-bezier(0.22, 0.61, 0.36, 1);
         }
-
         .scene.active {
           opacity: 1;
           transform: translateY(0);
           pointer-events: auto;
           z-index: 20;
         }
-
         .scene.prev {
           opacity: 0;
           transform: translateY(-24px);
@@ -701,238 +700,177 @@ export default function LoggedInHome() {
           z-index: 10;
         }
 
-        .tp-scene-light {
-          background: #f7f2ea;
-        }
-
-        .tp-scene-dark {
-          background: #140c08;
-        }
+        /* ── Theme overlays ──────────────────────────────────────────── */
+        .tp-scene-light { background: #f7f2ea; }
+        .tp-scene-dark  { background: #140c08; }
 
         .tp-scene-light .tp-scene-overlay-a {
-          background: linear-gradient(
-            90deg,
-            rgba(24, 16, 12, 0.5) 0%,
-            rgba(24, 16, 12, 0.34) 28%,
-            rgba(24, 16, 12, 0.1) 56%,
-            rgba(24, 16, 12, 0.04) 100%
-          );
+          background: linear-gradient(90deg,
+            rgba(24,16,12,0.50) 0%, rgba(24,16,12,0.34) 28%,
+            rgba(24,16,12,0.10) 56%, rgba(24,16,12,0.04) 100%);
         }
-
         .tp-scene-light .tp-scene-overlay-b {
-          background: linear-gradient(
-            to top,
-            rgba(0, 0, 0, 0.12) 0%,
-            rgba(0, 0, 0, 0.04) 38%,
-            rgba(0, 0, 0, 0.02) 100%
-          );
+          background: linear-gradient(to top,
+            rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 38%, rgba(0,0,0,0.02) 100%);
         }
-
         .tp-scene-dark .tp-scene-overlay-a {
-          background: linear-gradient(
-            90deg,
-            rgba(16, 10, 7, 0.82) 0%,
-            rgba(16, 10, 7, 0.6) 28%,
-            rgba(16, 10, 7, 0.24) 56%,
-            rgba(16, 10, 7, 0.1) 100%
-          );
+          background: linear-gradient(90deg,
+            rgba(16,10,7,0.82) 0%, rgba(16,10,7,0.60) 28%,
+            rgba(16,10,7,0.24) 56%, rgba(16,10,7,0.10) 100%);
         }
-
         .tp-scene-dark .tp-scene-overlay-b {
-          background: linear-gradient(
-            to top,
-            rgba(0, 0, 0, 0.36) 0%,
-            rgba(0, 0, 0, 0.1) 38%,
-            rgba(0, 0, 0, 0.04) 100%
-          );
+          background: linear-gradient(to top,
+            rgba(0,0,0,0.36) 0%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.04) 100%);
         }
 
-        .fade-item {
-          opacity: 0;
-          transform: translateY(16px);
-        }
+        /* ── Text fade-up animations ─────────────────────────────────── */
+        .fade-item { opacity: 0; transform: translateY(16px); }
+        .scene.active .fade-item { animation: fadeUp 620ms ease forwards; }
+        .fade-1 { animation-delay:  40ms !important; }
+        .fade-2 { animation-delay: 110ms !important; }
+        .fade-3 { animation-delay: 180ms !important; }
+        .fade-4 { animation-delay: 250ms !important; }
+        .fade-5 { animation-delay: 320ms !important; }
 
-        .scene.active .fade-item {
-          animation: fadeUp 620ms ease forwards;
-        }
-
-        .fade-1 {
-          animation-delay: 40ms !important;
-        }
-
-        .fade-2 {
-          animation-delay: 110ms !important;
-        }
-
-        .fade-3 {
-          animation-delay: 180ms !important;
-        }
-
-        .fade-4 {
-          animation-delay: 250ms !important;
-        }
-
-        .fade-5 {
-          animation-delay: 320ms !important;
-        }
-
+        /* ══════════════════════════════════════════════════════════════
+           PRODUCT CARD — 3 bugs fixed:
+           1. No rotation (removed from CARD_POSITIONS + no inline transform)
+           2. Buttons always visible (no max-height:0 / opacity:0 trick)
+           3. Image 60% height — enough room for name + price + 2 buttons
+           4. cardIn animates translateX only — never fights inline styles
+        ══════════════════════════════════════════════════════════════ */
         .tp-card {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          border-radius: 30px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(9, 5, 3, 0.48);
+          border-radius: 22px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(10, 5, 3, 0.72);
           box-shadow:
-            0 34px 90px rgba(0, 0, 0, 0.46),
+            0 30px 80px rgba(0, 0, 0, 0.52),
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(10px);
           opacity: 0;
-          animation: cardIn 720ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-          transition:
-            transform 320ms ease,
-            box-shadow 320ms ease,
-            border-color 320ms ease;
+          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          transition: transform 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
         }
 
-        .tp-card--funnel:hover {
-          transform: translateY(-10px) scale(1.015) !important;
+        .tp-card:hover {
+          transform: translateY(-8px) scale(1.02);
           box-shadow:
-            0 42px 110px rgba(0, 0, 0, 0.56),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.2);
+            0 44px 100px rgba(0, 0, 0, 0.60),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+          border-color: rgba(255, 255, 255, 0.20);
         }
 
+        /* FIX 3: 60% image — leaves 40% for all content */
         .tp-card__image {
           position: relative;
-          height: 74%;
+          height: 60%;
+          flex-shrink: 0;
           overflow: hidden;
-          background: #e8e0d6;
+          background: #e8dfd5;
+          border-radius: 22px 22px 0 0;
         }
 
         .tp-card__image :global(img) {
-          transition: transform 520ms ease;
+          transition: transform 440ms ease;
         }
-
-        .tp-card--funnel:hover .tp-card__image :global(img) {
+        .tp-card:hover .tp-card__image :global(img) {
           transform: scale(1.06);
         }
 
         .tp-card__image-fade {
           position: absolute;
           inset: auto 0 0 0;
-          height: 150px;
-          background: linear-gradient(
-            to top,
-            rgba(10, 5, 3, 0.92) 0%,
-            rgba(10, 5, 3, 0.42) 42%,
-            rgba(10, 5, 3, 0) 100%
-          );
+          height: 70px;
+          background: linear-gradient(to top,
+            rgba(10,5,3,0.90) 0%,
+            rgba(10,5,3,0.30) 50%,
+            rgba(10,5,3,0.00) 100%);
+          z-index: 1;
+          pointer-events: none;
         }
 
+        /* FIX 2: Bottom always shows all content, no hidden state */
         .tp-card__bottom {
-          position: relative;
           display: flex;
           flex: 1;
           flex-direction: column;
           justify-content: flex-end;
-          padding: 18px 18px 18px;
-          background: linear-gradient(
-            180deg,
-            rgba(20, 10, 6, 0.78) 0%,
-            rgba(14, 7, 4, 0.95) 34%,
-            rgba(8, 4, 2, 1) 100%
-          );
+          padding: 12px 14px 14px;
+          background: linear-gradient(180deg,
+            rgba(10,5,3,0.84) 0%,
+            rgba(8,4,2,0.97) 40%,
+            rgba(6,3,1,1.00) 100%);
+          min-height: 0;
         }
 
         .tp-card__title {
-          min-height: 44px;
-          font-size: 18px;
-          line-height: 1.08;
-          color: rgba(255, 255, 255, 0.96);
+          font-size: 12.5px;
+          line-height: 1.2;
+          color: rgba(255, 255, 255, 0.95);
           letter-spacing: 0.01em;
+          min-height: 30px;
         }
 
         .tp-card__price {
-          margin-top: 8px;
-          font-size: 14px;
+          margin-top: 5px;
+          font-size: 12.5px;
           font-weight: 700;
           color: #e0b97a;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.03em;
         }
 
-        .tp-card__cta {
-          display: grid;
-          grid-template-rows: 42px 38px;
-          gap: 8px;
-          margin-top: 0;
-          max-height: 0;
-          opacity: 0;
-          transform: translateY(14px);
-          overflow: hidden;
-          transition:
-            max-height 280ms ease,
-            opacity 240ms ease,
-            transform 280ms ease,
-            margin-top 280ms ease;
-        }
-
-        .tp-card--funnel:hover .tp-card__cta {
-          margin-top: 14px;
-          max-height: 100px;
-          opacity: 1;
-          transform: translateY(0);
-        }
-
+        /* FIX 2: Buy Now — always visible, full width */
         .tp-card__buy {
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
-          height: 42px;
+          width: 100%;
+          margin-top: 10px;
+          height: 34px;
+          flex-shrink: 0;
           border-radius: 9999px;
           background: #d0824d;
           color: #fff;
-          font-size: 9px;
+          font-size: 7.5px;
           font-weight: 700;
           letter-spacing: 0.16em;
           text-transform: uppercase;
-          transition:
-            background 220ms ease,
-            transform 220ms ease,
-            box-shadow 220ms ease;
-          box-shadow: 0 10px 24px rgba(208, 130, 77, 0.22);
+          transition: background 220ms ease, transform 220ms ease;
         }
-
         .tp-card__buy:hover {
           background: #c3723d;
           transform: translateY(-1px);
         }
 
+        /* FIX 2: View Item — always visible, full width */
         .tp-card__view {
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
-          height: 38px;
+          width: 100%;
+          margin-top: 5px;
+          height: 32px;
+          flex-shrink: 0;
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.72);
-          font-size: 8.5px;
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.70);
+          font-size: 7.5px;
           font-weight: 600;
           letter-spacing: 0.16em;
           text-transform: uppercase;
-          transition:
-            background 220ms ease,
-            color 220ms ease,
-            border-color 220ms ease;
+          transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
         }
-
         .tp-card__view:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.10);
           color: rgba(255, 255, 255, 0.94);
-          border-color: rgba(255, 255, 255, 0.22);
+          border-color: rgba(255, 255, 255, 0.24);
         }
 
+        /* ── Story Card ──────────────────────────────────────────────── */
         .tp-story-card {
           width: 320px;
           height: 450px;
@@ -944,40 +882,30 @@ export default function LoggedInHome() {
           backdrop-filter: blur(6px);
           animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
         }
-
         .tp-story-card__image {
           position: relative;
           height: 64%;
           background: #efebe5;
         }
-
         .tp-story-card__bottom {
           display: flex;
           height: 36%;
           flex-direction: column;
           justify-content: flex-end;
           padding: 20px 18px 18px;
-          background: linear-gradient(
-            180deg,
-            rgba(255, 255, 255, 0.02) 0%,
-            rgba(19, 9, 5, 0.84) 18%,
-            rgba(14, 7, 4, 0.98) 100%
-          );
+          background: linear-gradient(180deg,
+            rgba(255,255,255,0.02) 0%,
+            rgba(19,9,5,0.84) 18%,
+            rgba(14,7,4,0.98) 100%);
           color: white;
         }
-
-        .tp-story-card__title {
-          font-size: 20px;
-          line-height: 1.1;
-        }
-
+        .tp-story-card__title { font-size: 20px; line-height: 1.1; }
         .tp-story-card__meta {
           margin-top: 8px;
           font-size: 11px;
           font-style: italic;
           color: rgba(255, 255, 255, 0.56);
         }
-
         .tp-story-card__button {
           display: inline-flex;
           align-items: center;
@@ -996,33 +924,26 @@ export default function LoggedInHome() {
           text-transform: uppercase;
           color: white;
         }
+        .tp-story-card__button:hover { background: rgba(255, 255, 255, 0.14); }
 
-        .tp-story-card__button:hover {
-          background: rgba(255, 255, 255, 0.14);
-        }
-
+        /* ── Keyframes ───────────────────────────────────────────────── */
         @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
 
+        /*
+         * FIX 1+2: cardIn uses translateX only.
+         * It does NOT end with transform:scale(1) or transform:rotate(0)
+         * which would overwrite any inline transform on the card element.
+         * This is what was killing the layout before.
+         */
         @keyframes cardIn {
-          from {
-            opacity: 0;
-            transform: translate3d(28px, 0, 0) scale(0.97);
-          }
-          to {
-            opacity: 1;
-            transform: translate3d(0, 0, 0) scale(1);
-          }
+          from { opacity: 0; transform: translateX(24px); }
+          to   { opacity: 1; transform: translateX(0); }
         }
 
+        /* ── Reduced motion ──────────────────────────────────────────── */
         @media (prefers-reduced-motion: reduce) {
           .scene,
           .fade-item,
@@ -1032,29 +953,11 @@ export default function LoggedInHome() {
             animation: none !important;
             transition: none !important;
           }
-
-          .scene {
-            opacity: 0;
-            transform: none !important;
-          }
-
-          .scene.active {
-            opacity: 1;
-          }
-
+          .scene { opacity: 0; transform: none !important; }
+          .scene.active { opacity: 1; }
           .fade-item,
           .tp-card,
-          .tp-story-card {
-            opacity: 1;
-            transform: none !important;
-          }
-
-          .tp-card__cta {
-            margin-top: 14px;
-            max-height: 100px;
-            opacity: 1;
-            transform: none;
-          }
+          .tp-story-card { opacity: 1; transform: none !important; }
         }
       `}</style>
     </main>
