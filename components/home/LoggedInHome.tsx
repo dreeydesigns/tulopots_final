@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
@@ -38,6 +37,7 @@ const SLIDES = [
     featured: null,
     storyMode: false,
     potMode: false,
+    sideLabel: 'Nairobi studio selection',
     cardSlugs: [
       'ribbed-globe-peace-lily',
       'pedestal-bowl-succulents',
@@ -64,6 +64,7 @@ const SLIDES = [
     featured: { label: 'Featured Collection', stars: 5 },
     storyMode: false,
     potMode: false,
+    sideLabel: 'Indoor edit',
     cardSlugs: [
       'ribbed-globe-peace-lily',
       'pedestal-bowl-succulents',
@@ -90,6 +91,7 @@ const SLIDES = [
     featured: { label: 'Outdoor Selection', stars: 5 },
     storyMode: false,
     potMode: false,
+    sideLabel: 'Garden edit',
     cardSlugs: [
       'hut-sculpture-garden',
       'wide-rim-bougainvillea',
@@ -116,6 +118,7 @@ const SLIDES = [
     featured: { label: 'Pots Only', stars: 5 },
     storyMode: false,
     potMode: true,
+    sideLabel: 'Terracotta forms',
     cardSlugs: [],
   },
   {
@@ -138,6 +141,7 @@ const SLIDES = [
     featured: null,
     storyMode: true,
     potMode: false,
+    sideLabel: 'Since 2016',
     cardSlugs: [],
   },
 ] as const;
@@ -152,96 +156,12 @@ const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
   'studio-xl-deep-palm': imageByKey.outdoor1,
 };
 
-// BUG FIX 1: Removed all rotation. Cards are upright with clean vertical stagger only.
-const CARD_POSITIONS = [
-  { left: 0,   top: 10, zIndex: 24 },
-  { left: 200, top: 40, zIndex: 23 },
-  { left: 400, top: 70, zIndex: 22 },
-] as const;
+// Card sizing — original homepage.tsx values
+const CARD_WIDTHS = [210, 195, 180];
+const CARD_HEIGHTS = [290, 272, 255];
+const CARD_MARGINS = [0, 28, -8];
 
-function ProductCard({
-  product,
-  imageSrc,
-  style,
-  onBuyNow,
-}: {
-  product: (typeof products)[number];
-  imageSrc: string;
-  style?: CSSProperties;
-  onBuyNow: () => void;
-}) {
-  return (
-    <div className="tp-card" style={style}>
-      <div className="tp-card__image">
-        <Image
-          src={imageSrc}
-          alt={product.name}
-          fill
-          sizes="210px"
-          className="object-cover"
-        />
-        <div className="tp-card__image-fade" />
-      </div>
-
-      <div className="tp-card__bottom">
-        <div
-          className="tp-card__title serif-display"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {product.name}
-        </div>
-
-        <div className="tp-card__price">KSh {Number(product.price).toLocaleString()}</div>
-
-        {/* BUG FIX 2: Buttons are always visible. Removed the hover-only show/hide pattern. */}
-        <button onClick={onBuyNow} className="tp-card__buy cursor-hover" type="button">
-          Buy Now
-        </button>
-
-        <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
-          View Item
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function StoryCard() {
-  return (
-    <div className="tp-story-card">
-      <div className="tp-story-card__image">
-        <Image
-          src={imageByKey.clay}
-          alt="TuloPots Studio"
-          fill
-          sizes="320px"
-          className="object-cover"
-        />
-      </div>
-
-      <div className="tp-story-card__bottom">
-        <div className="tp-story-card__title serif-display">TuloPots Studio</div>
-        <div className="tp-story-card__meta">Est. 2016 — Nairobi</div>
-        <Link href="/about" className="tp-story-card__button cursor-hover">
-          Read More
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function MagneticPotScene({
-  onBrowse,
-  onContact,
-}: {
-  onBrowse: () => void;
-  onContact: () => void;
-}) {
+function MagneticPotScene({ onBrowse, onContact }: { onBrowse: () => void; onContact: () => void }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [glow, setGlow] = useState({ x: 50, y: 50 });
@@ -249,19 +169,12 @@ function MagneticPotScene({
   const onMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const el = wrapRef.current;
     if (!el) return;
-
     const rect = el.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setTilt({
-      x: -((py - 50) / 50) * 10,
-      y: ((px - 50) / 50) * 12,
-    });
-
+    setTilt({ x: -((py - 50) / 50) * 10, y: ((px - 50) / 50) * 12 });
     setGlow({ x: px, y: py });
   };
-
   const onLeave = () => {
     setTilt({ x: 0, y: 0 });
     setGlow({ x: 50, y: 50 });
@@ -279,7 +192,7 @@ function MagneticPotScene({
         <div
           className="absolute left-[34%] top-[48%] h-[430px] w-[340px] -translate-x-1/2 -translate-y-1/2"
           style={{
-            transform: `translate(-50%, -50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transform: `translate(-50%,-50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
             transformStyle: 'preserve-3d',
             transition: 'transform 120ms ease-out',
             zIndex: 1,
@@ -292,9 +205,7 @@ function MagneticPotScene({
               filter: 'blur(2px)',
             }}
           />
-
           <div className="absolute inset-x-12 bottom-6 h-10 rounded-full bg-black/35 blur-2xl" />
-
           <div className="absolute inset-x-0 bottom-8 top-0 mx-auto flex w-[260px] items-end justify-center">
             <div className="relative h-[326px] w-[228px]">
               <div className="absolute left-1/2 top-[18px] z-20 h-[138px] w-[138px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_50%_40%,#5c8f52_0%,#395d34_58%,#213720_100%)] shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
@@ -305,14 +216,12 @@ function MagneticPotScene({
                 <div className="absolute left-[94px] top-[42px] h-[58px] w-[10px] rotate-[42deg] rounded-full bg-[#43693b]" />
                 <div className="absolute left-[40px] top-[42px] h-[56px] w-[10px] rotate-[-44deg] rounded-full bg-[#4f7d44]" />
               </div>
-
               <div
                 className="absolute bottom-[22px] left-1/2 z-10 h-[176px] w-[196px] -translate-x-1/2 rounded-b-[44%] rounded-t-[38%]"
                 style={{
-                  background:
-                    'linear-gradient(180deg, #d98956 0%, #b96b3d 28%, #9f5b34 58%, #7d4729 100%)',
+                  background: 'linear-gradient(180deg,#d98956 0%,#b96b3d 28%,#9f5b34 58%,#7d4729 100%)',
                   boxShadow:
-                    'inset -16px -26px 32px rgba(71,36,18,0.32), inset 10px 10px 18px rgba(255,212,180,0.18), 0 24px 50px rgba(0,0,0,0.28)',
+                    'inset -16px -26px 32px rgba(71,36,18,0.32),inset 10px 10px 18px rgba(255,212,180,0.18),0 24px 50px rgba(0,0,0,0.28)',
                 }}
               >
                 <div className="absolute left-1/2 top-[-10px] h-[28px] w-[204px] -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,#e6a578_0%,#b96b3d_68%,#8a4d2e_100%)] shadow-[0_8px_18px_rgba(0,0,0,0.18)]" />
@@ -323,26 +232,17 @@ function MagneticPotScene({
             </div>
           </div>
         </div>
-
         <div className="absolute right-[4%] top-[18%] z-20 w-[340px] rounded-[34px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(22,10,6,0.94)_28%,rgba(16,9,5,0.98)_100%)] p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md">
           <div className="mb-3 flex items-center justify-between">
             <div className="rounded-full border border-white/14 bg-white/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white">
               Interactive Pot
             </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-white/46">
-              Move cursor
-            </div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-white/46">Move cursor</div>
           </div>
-
-          <div className="serif-display text-[26px] leading-none text-white">
-            Signature Clay Pot
-          </div>
-
+          <div className="serif-display text-[26px] leading-none text-white">Signature Clay Pot</div>
           <p className="mt-4 text-[12px] leading-6 text-white/60">
-            Rotate the pot preview, feel the form, then move straight into purchase or browse the
-            full terracotta selection.
+            Rotate the pot preview, feel the form, then move straight into purchase or browse the full terracotta selection.
           </p>
-
           <div className="mt-5 grid grid-cols-2 gap-2">
             <button
               onClick={onBrowse}
@@ -351,7 +251,6 @@ function MagneticPotScene({
             >
               Shop Pots
             </button>
-
             <button
               onClick={onContact}
               type="button"
@@ -369,23 +268,19 @@ function MagneticPotScene({
 export default function LoggedInHome() {
   const { addToCart, theme } = useStore();
   const router = useRouter();
-
-  const productMap = useMemo(
-    () => Object.fromEntries(products.map((product) => [product.slug, product])),
-    []
-  );
+  const productMap = useMemo(() => Object.fromEntries(products.map((p) => [p.slug, p])), []);
 
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
   const touchStartY = useRef<number | null>(null);
+  const sceneRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     const html = document.documentElement;
     html.classList.add('page-fullscreen');
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-
     return () => {
       html.classList.remove('page-fullscreen');
       html.style.overflow = '';
@@ -393,26 +288,38 @@ export default function LoggedInHome() {
     };
   }, []);
 
-  const goTo = (nextIndex: number) => {
-    if (animating || nextIndex === current || nextIndex < 0 || nextIndex >= SLIDES.length) return;
+  const replaySceneAnimations = (idx: number) => {
+    const scene = sceneRefs.current[idx];
+    if (!scene) return;
+    scene.querySelectorAll<HTMLElement>('.replay').forEach((el) => {
+      el.style.animation = 'none';
+      void el.offsetHeight;
+      el.style.animation = '';
+    });
+  };
 
+  const goTo = (next: number) => {
+    if (animating || next === current || next < 0 || next >= SLIDES.length) return;
     setAnimating(true);
     setPrev(current);
-    setCurrent(nextIndex);
-
+    setCurrent(next);
+    window.setTimeout(() => replaySceneAnimations(next), 50);
     window.setTimeout(() => {
       setPrev(null);
       setAnimating(false);
-    }, 680);
+    }, 920);
   };
 
   const goNext = () => goTo(current + 1);
   const goPrev = () => goTo(current - 1);
-
   const handleBuyNow = (product: (typeof products)[number]) => {
     addToCart(product, { quantity: 1 });
     router.push('/cart');
   };
+
+  useEffect(() => {
+    replaySceneAnimations(0);
+  }, []);
 
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
@@ -421,7 +328,6 @@ export default function LoggedInHome() {
       if (e.deltaY > 0) goNext();
       else goPrev();
     };
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
@@ -432,30 +338,22 @@ export default function LoggedInHome() {
         goPrev();
       }
     };
-
     const onTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0]?.clientY ?? null;
     };
-
     const onTouchEnd = (e: TouchEvent) => {
       if (touchStartY.current === null) return;
-
-      const endY = e.changedTouches[0]?.clientY ?? touchStartY.current;
-      const delta = touchStartY.current - endY;
-
+      const delta = touchStartY.current - (e.changedTouches[0]?.clientY ?? touchStartY.current);
       if (Math.abs(delta) > 50) {
         if (delta > 0) goNext();
         else goPrev();
       }
-
       touchStartY.current = null;
     };
-
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
-
     return () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
@@ -465,18 +363,16 @@ export default function LoggedInHome() {
   }, [animating, current]);
 
   return (
-    <main
-      className={`fixed inset-0 overflow-hidden ${
-        theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'
-      }`}
-    >
+    <main className={`fixed inset-0 overflow-hidden ${theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
-
         return (
           <section
             key={slide.id}
+            ref={(el) => {
+              sceneRefs.current[index] = el;
+            }}
             className={`scene${isActive ? ' active' : ''}${isPrev ? ' prev' : ''}`}
           >
             <div className="absolute inset-0 z-0">
@@ -498,13 +394,11 @@ export default function LoggedInHome() {
                   {slide.featured.label}
                 </div>
                 <div className="mt-2 flex justify-end gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
+                  {[1, 2, 3, 4, 5].map((s) => (
                     <Star
-                      key={star}
+                      key={s}
                       className={`h-3 w-3 ${
-                        star <= slide.featured.stars
-                          ? 'fill-[#e0b97a] text-[#e0b97a]'
-                          : 'text-white/20'
+                        s <= slide.featured.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : 'text-white/20'
                       }`}
                     />
                   ))}
@@ -549,7 +443,6 @@ export default function LoggedInHome() {
                       <ArrowRight className="h-3.5 w-3.5" />
                       {slide.primaryCta.label}
                     </Link>
-
                     <Link
                       href={slide.secondaryCta.href}
                       className="cursor-hover inline-flex items-center rounded-full border border-white/18 bg-black/10 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10"
@@ -561,9 +454,7 @@ export default function LoggedInHome() {
                   <div className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 border-t border-white/10 pt-6">
                     {slide.stats.map((stat) => (
                       <div key={stat.label}>
-                        <div className="text-[1.75rem] font-semibold leading-none text-white">
-                          {stat.value}
-                        </div>
+                        <div className="text-[1.75rem] font-semibold leading-none text-white">{stat.value}</div>
                         <div className="mt-2 text-[10px] uppercase tracking-[0.15em] text-white/38">
                           {stat.label}
                         </div>
@@ -578,46 +469,136 @@ export default function LoggedInHome() {
                   ) : null}
                 </div>
 
-                <div className="relative z-20 hidden h-[580px] lg:block">
+                <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
                   {slide.storyMode ? (
-                    <div className="absolute left-[12%] top-[7%]">
-                      <StoryCard />
+                    <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
+                      <div
+                        className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
+                        style={{ width: CARD_WIDTHS[0], height: CARD_HEIGHTS[0] }}
+                        onClick={() => router.push('/about')}
+                      >
+                        <div className="group relative h-full w-full bg-[#1a1a1a]">
+                          <Image
+                            src={imageByKey.clay}
+                            alt="TuloPots Studio"
+                            fill
+                            sizes="210px"
+                            className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                            <div className="text-[12px] font-medium tracking-[0.04em] text-white">
+                              TuloPots Studio
+                            </div>
+                            <div className="text-[10px] italic text-white/60">Est. 2016 — Nairobi</div>
+                            <div className="mt-2 grid grid-cols-2 gap-1.5">
+                              <Link
+                                href="/about"
+                                onClick={(e) => e.stopPropagation()}
+                                className="pointer-events-auto flex items-center justify-center rounded-full bg-[#d0824d] px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#c3723d]"
+                              >
+                                Read Story
+                              </Link>
+                              <Link
+                                href="/contact"
+                                onClick={(e) => e.stopPropagation()}
+                                className="pointer-events-auto flex items-center justify-center rounded-full border border-white/20 bg-white/8 px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.14em] text-white/80 transition hover:bg-white/14"
+                              >
+                                Contact
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ) : slide.potMode ? (
-                    <MagneticPotScene
-                      onBrowse={() => router.push('/pots')}
-                      onContact={() => router.push('/contact')}
-                    />
+                    <MagneticPotScene onBrowse={() => router.push('/pots')} onContact={() => router.push('/contact')} />
                   ) : (
-                    // BUG FIX 3: Container fits 3 × 210px cards with clean stagger
-                    <div className="absolute left-[5%] top-[2%] h-[560px] w-[680px]">
-                      {slide.cardSlugs.map((slug, cardIndex) => {
-                        const product = productMap[slug];
-                        if (!product) return null;
+                    <>
+                      <div className="replay fade-up delay-2 absolute left-[60px] top-[44px] z-30 flex gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-[#f2c94c] text-[#f2c94c]" />
+                        ))}
+                        <Star className="h-3.5 w-3.5 text-white/28" />
+                      </div>
 
-                        const position = CARD_POSITIONS[cardIndex];
-                        const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
+                      {slide.sideLabel && (
+                        <div className="replay fade-up delay-2 absolute left-[60px] top-[68px] z-30">
+                          <div className="text-[11px] uppercase tracking-[0.14em] text-white/68">
+                            {slide.sideLabel}
+                          </div>
+                        </div>
+                      )}
 
-                        return (
-                          <ProductCard
-                            key={slug}
-                            product={product}
-                            imageSrc={imageSrc}
-                            onBuyNow={() => handleBuyNow(product)}
-                            style={{
-                              position: 'absolute',
-                              width: 210,
-                              height: 420,
-                              left: position.left,
-                              top: position.top,
-                              zIndex: position.zIndex,
-                              // NO rotation applied here
-                              animationDelay: `${140 + cardIndex * 90}ms`,
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
+                      <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
+                        {slide.cardSlugs.map((slug, ci) => {
+                          const product = productMap[slug];
+                          if (!product) return null;
+
+                          const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
+                          const imageHeight = Math.round(CARD_HEIGHTS[ci] * 0.65);
+
+                          return (
+                            <div
+                              key={slug}
+                              className={`replay card-stage card-${ci + 1} pointer-events-auto flex flex-col flex-shrink-0 overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]`}
+                              style={{
+                                width: CARD_WIDTHS[ci],
+                                height: CARD_HEIGHTS[ci],
+                                marginTop: CARD_MARGINS[ci],
+                                marginLeft: ci === 0 ? 0 : 12,
+                                zIndex: 30 - ci,
+                                background: '#111',
+                              }}
+                            >
+                              <div
+                                className="relative w-full flex-shrink-0 overflow-hidden"
+                                style={{ height: imageHeight }}
+                              >
+                                <Image
+                                  src={imageSrc}
+                                  alt={product.name}
+                                  fill
+                                  sizes="210px"
+                                  className="object-cover transition-transform duration-500 hover:scale-[1.06]"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                              </div>
+
+                              <div
+                                className="flex flex-1 flex-col justify-between px-3 pt-2.5 pb-3"
+                                style={{ background: 'linear-gradient(180deg,#0e0906 0%,#080503 100%)' }}
+                              >
+                                <div>
+                                  <div className="line-clamp-1 text-[11px] font-medium tracking-[0.03em] text-white/90">
+                                    {product.name}
+                                  </div>
+                                  <div className="mt-0.5 font-serif text-[13px] font-semibold text-[#e0b97a]">
+                                    KSh {Number(product.price).toLocaleString()}
+                                  </div>
+                                </div>
+
+                                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                                  <button
+                                    onClick={() => handleBuyNow(product)}
+                                    className="flex min-w-0 items-center justify-center rounded-full bg-[#d0824d] px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#c3723d]"
+                                  >
+                                    Buy Now
+                                  </button>
+
+                                  <Link
+                                    href={`/product/${product.slug}`}
+                                    className="flex min-w-0 items-center justify-center rounded-full border border-white/18 bg-white/5 px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.12em] text-white/78 transition hover:bg-white/10 hover:text-white/92"
+                                  >
+                                    View Item
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -672,292 +653,214 @@ export default function LoggedInHome() {
           overflow: hidden !important;
           height: 100% !important;
           max-height: 100vh !important;
+          overscroll-behavior: none;
         }
       `}</style>
 
       <style jsx>{`
-        /* ── Scene transitions ───────────────────────────────────────── */
         .scene {
           position: fixed;
           inset: 0;
           opacity: 0;
-          transform: translateY(26px);
+          transform: translateY(60px);
           pointer-events: none;
           transition:
-            opacity 680ms ease,
-            transform 680ms cubic-bezier(0.22, 0.61, 0.36, 1);
+            transform 920ms cubic-bezier(0.22, 0.61, 0.36, 1),
+            opacity 920ms ease;
         }
+
         .scene.active {
           opacity: 1;
           transform: translateY(0);
-          pointer-events: auto;
           z-index: 20;
+          pointer-events: auto;
         }
+
         .scene.prev {
           opacity: 0;
-          transform: translateY(-24px);
-          pointer-events: none;
+          transform: translateY(-60px);
           z-index: 10;
+          pointer-events: none;
         }
 
-        /* ── Theme overlays ──────────────────────────────────────────── */
-        .tp-scene-light { background: #f7f2ea; }
-        .tp-scene-dark  { background: #140c08; }
+        .tp-scene-light {
+          background: #f7f2ea;
+        }
+
+        .tp-scene-dark {
+          background: #140c08;
+        }
 
         .tp-scene-light .tp-scene-overlay-a {
-          background: linear-gradient(90deg,
-            rgba(24,16,12,0.50) 0%, rgba(24,16,12,0.34) 28%,
-            rgba(24,16,12,0.10) 56%, rgba(24,16,12,0.04) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(24, 16, 12, 0.5) 0%,
+            rgba(24, 16, 12, 0.34) 28%,
+            rgba(24, 16, 12, 0.1) 56%,
+            rgba(24, 16, 12, 0.04) 100%
+          );
         }
+
         .tp-scene-light .tp-scene-overlay-b {
-          background: linear-gradient(to top,
-            rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 38%, rgba(0,0,0,0.02) 100%);
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.12) 0%,
+            rgba(0, 0, 0, 0.04) 38%,
+            rgba(0, 0, 0, 0.02) 100%
+          );
         }
+
         .tp-scene-dark .tp-scene-overlay-a {
-          background: linear-gradient(90deg,
-            rgba(16,10,7,0.82) 0%, rgba(16,10,7,0.60) 28%,
-            rgba(16,10,7,0.24) 56%, rgba(16,10,7,0.10) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(16, 10, 7, 0.82) 0%,
+            rgba(16, 10, 7, 0.6) 28%,
+            rgba(16, 10, 7, 0.24) 56%,
+            rgba(16, 10, 7, 0.1) 100%
+          );
         }
+
         .tp-scene-dark .tp-scene-overlay-b {
-          background: linear-gradient(to top,
-            rgba(0,0,0,0.36) 0%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.04) 100%);
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.36) 0%,
+            rgba(0, 0, 0, 0.1) 38%,
+            rgba(0, 0, 0, 0.04) 100%
+          );
         }
 
-        /* ── Text fade-up animations ─────────────────────────────────── */
-        .fade-item { opacity: 0; transform: translateY(16px); }
-        .scene.active .fade-item { animation: fadeUp 620ms ease forwards; }
-        .fade-1 { animation-delay:  40ms !important; }
-        .fade-2 { animation-delay: 110ms !important; }
-        .fade-3 { animation-delay: 180ms !important; }
-        .fade-4 { animation-delay: 250ms !important; }
-        .fade-5 { animation-delay: 320ms !important; }
-
-        /* ══════════════════════════════════════════════════════════════
-           PRODUCT CARD — 3 bugs fixed:
-           1. No rotation (removed from CARD_POSITIONS + no inline transform)
-           2. Buttons always visible (no max-height:0 / opacity:0 trick)
-           3. Image 60% height — enough room for name + price + 2 buttons
-           4. cardIn animates translateX only — never fights inline styles
-        ══════════════════════════════════════════════════════════════ */
-        .tp-card {
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          border-radius: 22px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(10, 5, 3, 0.72);
-          box-shadow:
-            0 30px 80px rgba(0, 0, 0, 0.52),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(10px);
+        .fade-item {
           opacity: 0;
-          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-          transition: transform 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
+          transform: translateY(16px);
         }
 
-        .tp-card:hover {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow:
-            0 44px 100px rgba(0, 0, 0, 0.60),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
-          border-color: rgba(255, 255, 255, 0.20);
+        .scene.active .fade-item {
+          animation: fadeUp 620ms ease forwards;
         }
 
-        /* FIX 3: 60% image — leaves 40% for all content */
-        .tp-card__image {
-          position: relative;
-          height: 60%;
-          flex-shrink: 0;
-          overflow: hidden;
-          background: #e8dfd5;
-          border-radius: 22px 22px 0 0;
+        .fade-1 {
+          animation-delay: 40ms !important;
         }
 
-        .tp-card__image :global(img) {
-          transition: transform 440ms ease;
-        }
-        .tp-card:hover .tp-card__image :global(img) {
-          transform: scale(1.06);
+        .fade-2 {
+          animation-delay: 110ms !important;
         }
 
-        .tp-card__image-fade {
-          position: absolute;
-          inset: auto 0 0 0;
-          height: 70px;
-          background: linear-gradient(to top,
-            rgba(10,5,3,0.90) 0%,
-            rgba(10,5,3,0.30) 50%,
-            rgba(10,5,3,0.00) 100%);
-          z-index: 1;
-          pointer-events: none;
+        .fade-3 {
+          animation-delay: 180ms !important;
         }
 
-        /* FIX 2: Bottom always shows all content, no hidden state */
-        .tp-card__bottom {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 12px 14px 14px;
-          background: linear-gradient(180deg,
-            rgba(10,5,3,0.84) 0%,
-            rgba(8,4,2,0.97) 40%,
-            rgba(6,3,1,1.00) 100%);
-          min-height: 0;
+        .fade-4 {
+          animation-delay: 250ms !important;
         }
 
-        .tp-card__title {
-          font-size: 12.5px;
-          line-height: 1.2;
-          color: rgba(255, 255, 255, 0.95);
-          letter-spacing: 0.01em;
-          min-height: 30px;
+        .fade-5 {
+          animation-delay: 320ms !important;
         }
 
-        .tp-card__price {
-          margin-top: 5px;
-          font-size: 12.5px;
-          font-weight: 700;
-          color: #e0b97a;
-          letter-spacing: 0.03em;
+        .card-stage {
+          opacity: 0;
+          transform-origin: center center;
         }
 
-        /* FIX 2: Buy Now — always visible, full width */
-        .tp-card__buy {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          margin-top: 10px;
-          height: 34px;
-          flex-shrink: 0;
-          border-radius: 9999px;
-          background: #d0824d;
-          color: #fff;
-          font-size: 7.5px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          transition: background 220ms ease, transform 220ms ease;
-        }
-        .tp-card__buy:hover {
-          background: #c3723d;
-          transform: translateY(-1px);
+        .scene.active .card-stage {
+          animation: cardEnter 760ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
-        /* FIX 2: View Item — always visible, full width */
-        .tp-card__view {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          margin-top: 5px;
-          height: 32px;
-          flex-shrink: 0;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.70);
-          font-size: 7.5px;
-          font-weight: 600;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
-        }
-        .tp-card__view:hover {
-          background: rgba(255, 255, 255, 0.10);
-          color: rgba(255, 255, 255, 0.94);
-          border-color: rgba(255, 255, 255, 0.24);
+        .scene.prev .card-stage {
+          animation: cardExit 400ms ease-in forwards;
         }
 
-        /* ── Story Card ──────────────────────────────────────────────── */
-        .tp-story-card {
-          width: 320px;
-          height: 450px;
-          overflow: hidden;
-          border-radius: 30px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
-          backdrop-filter: blur(6px);
-          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        .scene.active .card-1 {
+          animation-delay: 180ms;
         }
-        .tp-story-card__image {
-          position: relative;
-          height: 64%;
-          background: #efebe5;
-        }
-        .tp-story-card__bottom {
-          display: flex;
-          height: 36%;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 20px 18px 18px;
-          background: linear-gradient(180deg,
-            rgba(255,255,255,0.02) 0%,
-            rgba(19,9,5,0.84) 18%,
-            rgba(14,7,4,0.98) 100%);
-          color: white;
-        }
-        .tp-story-card__title { font-size: 20px; line-height: 1.1; }
-        .tp-story-card__meta {
-          margin-top: 8px;
-          font-size: 11px;
-          font-style: italic;
-          color: rgba(255, 255, 255, 0.56);
-        }
-        .tp-story-card__button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-top: 18px;
-          width: fit-content;
-          min-width: 120px;
-          height: 42px;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.08);
-          padding: 0 18px;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: white;
-        }
-        .tp-story-card__button:hover { background: rgba(255, 255, 255, 0.14); }
 
-        /* ── Keyframes ───────────────────────────────────────────────── */
+        .scene.active .card-2 {
+          animation-delay: 300ms;
+        }
+
+        .scene.active .card-3 {
+          animation-delay: 420ms;
+        }
+
+        .scene.prev .card-3 {
+          animation-delay: 0ms;
+        }
+
+        .scene.prev .card-2 {
+          animation-delay: 120ms;
+        }
+
+        .scene.prev .card-1 {
+          animation-delay: 240ms;
+        }
+
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        /*
-         * FIX 1+2: cardIn uses translateX only.
-         * It does NOT end with transform:scale(1) or transform:rotate(0)
-         * which would overwrite any inline transform on the card element.
-         * This is what was killing the layout before.
-         */
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateX(24px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes cardEnter {
+          0% {
+            opacity: 0;
+            transform: translateX(55px) rotate(2deg);
+          }
+          55% {
+            opacity: 1;
+            transform: translateX(8px) rotate(0.4deg);
+          }
+          72% {
+            opacity: 1;
+            transform: translateX(-3px) rotate(-0.2deg);
+          }
+          100% {
+            opacity: 1;
+          }
         }
 
-        /* ── Reduced motion ──────────────────────────────────────────── */
+        @keyframes cardExit {
+          0% {
+            opacity: 1;
+          }
+          40% {
+            opacity: 1;
+            transform: translateX(-20px) rotate(-1deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-80px) rotate(-3deg);
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .scene,
           .fade-item,
-          .tp-card,
-          .tp-story-card,
+          .card-stage,
           .scene.active .fade-item {
             animation: none !important;
             transition: none !important;
           }
-          .scene { opacity: 0; transform: none !important; }
-          .scene.active { opacity: 1; }
+
+          .scene {
+            opacity: 0;
+            transform: none !important;
+          }
+
+          .scene.active {
+            opacity: 1;
+          }
+
           .fade-item,
-          .tp-card,
-          .tp-story-card { opacity: 1; transform: none !important; }
+          .card-stage {
+            opacity: 1;
+            transform: none !important;
+          }
         }
       `}</style>
     </main>
