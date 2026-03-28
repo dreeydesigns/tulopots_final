@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
@@ -38,6 +37,7 @@ const SLIDES = [
     featured: null,
     storyMode: false,
     potMode: false,
+    sideLabel: 'Nairobi studio selection',
     cardSlugs: [
       'ribbed-globe-peace-lily',
       'pedestal-bowl-succulents',
@@ -64,6 +64,7 @@ const SLIDES = [
     featured: { label: 'Featured Collection', stars: 5 },
     storyMode: false,
     potMode: false,
+    sideLabel: 'Indoor edit',
     cardSlugs: [
       'ribbed-globe-peace-lily',
       'pedestal-bowl-succulents',
@@ -90,6 +91,7 @@ const SLIDES = [
     featured: { label: 'Outdoor Selection', stars: 5 },
     storyMode: false,
     potMode: false,
+    sideLabel: 'Garden edit',
     cardSlugs: [
       'hut-sculpture-garden',
       'wide-rim-bougainvillea',
@@ -116,6 +118,7 @@ const SLIDES = [
     featured: { label: 'Pots Only', stars: 5 },
     storyMode: false,
     potMode: true,
+    sideLabel: 'Terracotta forms',
     cardSlugs: [],
   },
   {
@@ -138,6 +141,7 @@ const SLIDES = [
     featured: null,
     storyMode: true,
     potMode: false,
+    sideLabel: 'Since 2016',
     cardSlugs: [],
   },
 ] as const;
@@ -152,95 +156,127 @@ const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
   'studio-xl-deep-palm': imageByKey.outdoor1,
 };
 
-// BUG FIX 1: Removed all rotation. Cards are upright with clean vertical stagger only.
-const CARD_POSITIONS = [
-  { left: 0,   top: 10, zIndex: 24 },
-  { left: 200, top: 40, zIndex: 23 },
-  { left: 400, top: 70, zIndex: 22 },
-] as const;
+const CARD_WIDTHS = [210, 195, 180];
+const CARD_HEIGHTS = [290, 272, 255];
+const CARD_MARGINS = [0, 28, -8];
 
-function ProductCard({
-  product,
-  imageSrc,
-  style,
-  onBuyNow,
-}: {
-  product: (typeof products)[number];
-  imageSrc: string;
-  style?: CSSProperties;
-  onBuyNow: () => void;
-}) {
-  return (
-    <div className="tp-card" style={style}>
-      <div className="tp-card__image">
-        <Image
-          src={imageSrc}
-          alt={product.name}
-          fill
-          sizes="210px"
-          className="object-cover"
-        />
-        <div className="tp-card__image-fade" />
-      </div>
+type ThemePalette = {
+  sceneText: string;
+  sceneTextSoft: string;
+  sceneTextFaint: string;
+  sceneTextMuted: string;
+  statBorder: string;
+  primaryBtnBg: string;
+  primaryBtnText: string;
+  primaryBtnHover: string;
+  secondaryBtnBg: string;
+  secondaryBtnText: string;
+  secondaryBtnBorder: string;
+  secondaryBtnHover: string;
+  navBtnBg: string;
+  navBtnBorder: string;
+  navBtnText: string;
+  navBtnHover: string;
+  cardShell: string;
+  cardInfoBg: string;
+  cardTitle: string;
+  cardSecondaryText: string;
+  cardBorder: string;
+  cardSecondaryBg: string;
+  cardSecondaryHover: string;
+  storyOverlay: string;
+  storySecondaryBg: string;
+  storySecondaryBorder: string;
+  potPanelBg: string;
+  potPanelBorder: string;
+  potPanelText: string;
+  potPanelMuted: string;
+  potChipBg: string;
+  potChipBorder: string;
+};
 
-      <div className="tp-card__bottom">
-        <div
-          className="tp-card__title serif-display"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {product.name}
-        </div>
+function getPalette(isLight: boolean): ThemePalette {
+  if (isLight) {
+    return {
+      sceneText: '#231711',
+      sceneTextSoft: 'rgba(35,23,17,0.78)',
+      sceneTextFaint: 'rgba(35,23,17,0.58)',
+      sceneTextMuted: 'rgba(35,23,17,0.34)',
+      statBorder: 'rgba(35,23,17,0.12)',
+      primaryBtnBg: '#d0824d',
+      primaryBtnText: '#ffffff',
+      primaryBtnHover: '#c3723d',
+      secondaryBtnBg: 'rgba(247,242,234,0.72)',
+      secondaryBtnText: '#2a1b14',
+      secondaryBtnBorder: 'rgba(35,23,17,0.16)',
+      secondaryBtnHover: 'rgba(255,255,255,0.86)',
+      navBtnBg: 'rgba(247,242,234,0.34)',
+      navBtnBorder: 'rgba(35,23,17,0.14)',
+      navBtnText: '#231711',
+      navBtnHover: 'rgba(247,242,234,0.56)',
+      cardShell: '#f6efe6',
+      cardInfoBg: 'linear-gradient(180deg,rgba(248,244,239,0.98) 0%,rgba(241,231,219,0.98) 100%)',
+      cardTitle: '#20140f',
+      cardSecondaryText: 'rgba(32,20,15,0.72)',
+      cardBorder: 'rgba(35,23,17,0.10)',
+      cardSecondaryBg: 'rgba(255,255,255,0.60)',
+      cardSecondaryHover: 'rgba(255,255,255,0.88)',
+      storyOverlay: 'linear-gradient(to top, rgba(247,242,234,0.94) 0%, rgba(247,242,234,0.22) 56%, rgba(247,242,234,0.04) 100%)',
+      storySecondaryBg: 'rgba(255,255,255,0.62)',
+      storySecondaryBorder: 'rgba(35,23,17,0.12)',
+      potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.78) 0%,rgba(239,229,217,0.96) 100%)',
+      potPanelBorder: 'rgba(35,23,17,0.10)',
+      potPanelText: '#20140f',
+      potPanelMuted: 'rgba(32,20,15,0.68)',
+      potChipBg: 'rgba(255,255,255,0.64)',
+      potChipBorder: 'rgba(35,23,17,0.10)',
+    };
+  }
 
-        <div className="tp-card__price">KSh {Number(product.price).toLocaleString()}</div>
-
-        {/* BUG FIX 2: Buttons are always visible. Removed the hover-only show/hide pattern. */}
-        <button onClick={onBuyNow} className="tp-card__buy cursor-hover" type="button">
-          Buy Now
-        </button>
-
-        <Link href={`/product/${product.slug}`} className="tp-card__view cursor-hover">
-          View Item
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function StoryCard() {
-  return (
-    <div className="tp-story-card">
-      <div className="tp-story-card__image">
-        <Image
-          src={imageByKey.clay}
-          alt="TuloPots Studio"
-          fill
-          sizes="320px"
-          className="object-cover"
-        />
-      </div>
-
-      <div className="tp-story-card__bottom">
-        <div className="tp-story-card__title serif-display">TuloPots Studio</div>
-        <div className="tp-story-card__meta">Est. 2016 — Nairobi</div>
-        <Link href="/about" className="tp-story-card__button cursor-hover">
-          Read More
-        </Link>
-      </div>
-    </div>
-  );
+  return {
+    sceneText: '#ffffff',
+    sceneTextSoft: 'rgba(255,255,255,0.72)',
+    sceneTextFaint: 'rgba(255,255,255,0.58)',
+    sceneTextMuted: 'rgba(255,255,255,0.30)',
+    statBorder: 'rgba(255,255,255,0.10)',
+    primaryBtnBg: '#d0824d',
+    primaryBtnText: '#ffffff',
+    primaryBtnHover: '#c3723d',
+    secondaryBtnBg: 'rgba(0,0,0,0.14)',
+    secondaryBtnText: '#ffffff',
+    secondaryBtnBorder: 'rgba(255,255,255,0.18)',
+    secondaryBtnHover: 'rgba(255,255,255,0.10)',
+    navBtnBg: 'rgba(0,0,0,0.18)',
+    navBtnBorder: 'rgba(255,255,255,0.14)',
+    navBtnText: '#ffffff',
+    navBtnHover: 'rgba(255,255,255,0.10)',
+    cardShell: '#111',
+    cardInfoBg: 'linear-gradient(180deg,#0e0906 0%,#080503 100%)',
+    cardTitle: 'rgba(255,255,255,0.92)',
+    cardSecondaryText: 'rgba(255,255,255,0.78)',
+    cardBorder: 'rgba(255,255,255,0.08)',
+    cardSecondaryBg: 'rgba(255,255,255,0.05)',
+    cardSecondaryHover: 'rgba(255,255,255,0.10)',
+    storyOverlay: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 56%, rgba(0,0,0,0.04) 100%)',
+    storySecondaryBg: 'rgba(255,255,255,0.08)',
+    storySecondaryBorder: 'rgba(255,255,255,0.20)',
+    potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(22,10,6,0.94) 28%,rgba(16,9,5,0.98) 100%)',
+    potPanelBorder: 'rgba(255,255,255,0.14)',
+    potPanelText: '#ffffff',
+    potPanelMuted: 'rgba(255,255,255,0.62)',
+    potChipBg: 'rgba(255,255,255,0.08)',
+    potChipBorder: 'rgba(255,255,255,0.14)',
+  };
 }
 
 function MagneticPotScene({
   onBrowse,
   onContact,
+  palette,
 }: {
   onBrowse: () => void;
   onContact: () => void;
+  palette: ThemePalette;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -249,16 +285,10 @@ function MagneticPotScene({
   const onMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const el = wrapRef.current;
     if (!el) return;
-
     const rect = el.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setTilt({
-      x: -((py - 50) / 50) * 10,
-      y: ((px - 50) / 50) * 12,
-    });
-
+    setTilt({ x: -((py - 50) / 50) * 10, y: ((px - 50) / 50) * 12 });
     setGlow({ x: px, y: py });
   };
 
@@ -279,7 +309,7 @@ function MagneticPotScene({
         <div
           className="absolute left-[34%] top-[48%] h-[430px] w-[340px] -translate-x-1/2 -translate-y-1/2"
           style={{
-            transform: `translate(-50%, -50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transform: `translate(-50%,-50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
             transformStyle: 'preserve-3d',
             transition: 'transform 120ms ease-out',
             zIndex: 1,
@@ -292,9 +322,7 @@ function MagneticPotScene({
               filter: 'blur(2px)',
             }}
           />
-
           <div className="absolute inset-x-12 bottom-6 h-10 rounded-full bg-black/35 blur-2xl" />
-
           <div className="absolute inset-x-0 bottom-8 top-0 mx-auto flex w-[260px] items-end justify-center">
             <div className="relative h-[326px] w-[228px]">
               <div className="absolute left-1/2 top-[18px] z-20 h-[138px] w-[138px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_50%_40%,#5c8f52_0%,#395d34_58%,#213720_100%)] shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
@@ -309,8 +337,7 @@ function MagneticPotScene({
               <div
                 className="absolute bottom-[22px] left-1/2 z-10 h-[176px] w-[196px] -translate-x-1/2 rounded-b-[44%] rounded-t-[38%]"
                 style={{
-                  background:
-                    'linear-gradient(180deg, #d98956 0%, #b96b3d 28%, #9f5b34 58%, #7d4729 100%)',
+                  background: 'linear-gradient(180deg,#d98956 0%,#b96b3d 28%,#9f5b34 58%,#7d4729 100%)',
                   boxShadow:
                     'inset -16px -26px 32px rgba(71,36,18,0.32), inset 10px 10px 18px rgba(255,212,180,0.18), 0 24px 50px rgba(0,0,0,0.28)',
                 }}
@@ -324,30 +351,53 @@ function MagneticPotScene({
           </div>
         </div>
 
-        <div className="absolute right-[4%] top-[18%] z-20 w-[340px] rounded-[34px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(22,10,6,0.94)_28%,rgba(16,9,5,0.98)_100%)] p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md">
+        <div
+          className="absolute right-[4%] top-[18%] z-20 w-[340px] rounded-[34px] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md"
+          style={{
+            background: palette.potPanelBg,
+            border: `1px solid ${palette.potPanelBorder}`,
+            color: palette.potPanelText,
+          }}
+        >
           <div className="mb-3 flex items-center justify-between">
-            <div className="rounded-full border border-white/14 bg-white/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white">
+            <div
+              className="rounded-full px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]"
+              style={{
+                background: palette.potChipBg,
+                border: `1px solid ${palette.potChipBorder}`,
+                color: palette.potPanelText,
+              }}
+            >
               Interactive Pot
             </div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-white/46">
+            <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
               Move cursor
             </div>
           </div>
 
-          <div className="serif-display text-[26px] leading-none text-white">
+          <div className="serif-display text-[26px] leading-none" style={{ color: palette.potPanelText }}>
             Signature Clay Pot
           </div>
 
-          <p className="mt-4 text-[12px] leading-6 text-white/60">
-            Rotate the pot preview, feel the form, then move straight into purchase or browse the
-            full terracotta selection.
+          <p className="mt-4 text-[12px] leading-6" style={{ color: palette.potPanelMuted }}>
+            Rotate the pot preview, feel the form, then move straight into purchase or browse the full terracotta selection.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <button
               onClick={onBrowse}
               type="button"
-              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full bg-[#d0824d] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#c3723d]"
+              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] transition"
+              style={{
+                background: palette.primaryBtnBg,
+                color: palette.primaryBtnText,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = palette.primaryBtnHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = palette.primaryBtnBg;
+              }}
             >
               Shop Pots
             </button>
@@ -355,7 +405,18 @@ function MagneticPotScene({
             <button
               onClick={onContact}
               type="button"
-              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full border border-white/16 bg-white/8 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/14"
+              className="cursor-hover inline-flex h-11 items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] transition"
+              style={{
+                background: palette.secondaryBtnBg,
+                color: palette.secondaryBtnText,
+                border: `1px solid ${palette.secondaryBtnBorder}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = palette.secondaryBtnHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = palette.secondaryBtnBg;
+              }}
             >
               Contact Studio
             </button>
@@ -369,23 +430,22 @@ function MagneticPotScene({
 export default function LoggedInHome() {
   const { addToCart, theme } = useStore();
   const router = useRouter();
-
-  const productMap = useMemo(
-    () => Object.fromEntries(products.map((product) => [product.slug, product])),
-    []
-  );
+  const productMap = useMemo(() => Object.fromEntries(products.map((p) => [p.slug, p])), []);
 
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
   const touchStartY = useRef<number | null>(null);
+  const sceneRefs = useRef<(HTMLElement | null)[]>([]);
+
+  const isLight = theme === 'light';
+  const palette = getPalette(isLight);
 
   useEffect(() => {
     const html = document.documentElement;
     html.classList.add('page-fullscreen');
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-
     return () => {
       html.classList.remove('page-fullscreen');
       html.style.overflow = '';
@@ -393,17 +453,26 @@ export default function LoggedInHome() {
     };
   }, []);
 
-  const goTo = (nextIndex: number) => {
-    if (animating || nextIndex === current || nextIndex < 0 || nextIndex >= SLIDES.length) return;
+  const replaySceneAnimations = (idx: number) => {
+    const scene = sceneRefs.current[idx];
+    if (!scene) return;
+    scene.querySelectorAll<HTMLElement>('.replay').forEach((el) => {
+      el.style.animation = 'none';
+      void el.offsetHeight;
+      el.style.animation = '';
+    });
+  };
 
+  const goTo = (next: number) => {
+    if (animating || next === current || next < 0 || next >= SLIDES.length) return;
     setAnimating(true);
     setPrev(current);
-    setCurrent(nextIndex);
-
+    setCurrent(next);
+    window.setTimeout(() => replaySceneAnimations(next), 50);
     window.setTimeout(() => {
       setPrev(null);
       setAnimating(false);
-    }, 680);
+    }, 920);
   };
 
   const goNext = () => goTo(current + 1);
@@ -413,6 +482,10 @@ export default function LoggedInHome() {
     addToCart(product, { quantity: 1 });
     router.push('/cart');
   };
+
+  useEffect(() => {
+    replaySceneAnimations(0);
+  }, []);
 
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
@@ -439,15 +512,11 @@ export default function LoggedInHome() {
 
     const onTouchEnd = (e: TouchEvent) => {
       if (touchStartY.current === null) return;
-
-      const endY = e.changedTouches[0]?.clientY ?? touchStartY.current;
-      const delta = touchStartY.current - endY;
-
+      const delta = touchStartY.current - (e.changedTouches[0]?.clientY ?? touchStartY.current);
       if (Math.abs(delta) > 50) {
         if (delta > 0) goNext();
         else goPrev();
       }
-
       touchStartY.current = null;
     };
 
@@ -465,11 +534,7 @@ export default function LoggedInHome() {
   }, [animating, current]);
 
   return (
-    <main
-      className={`fixed inset-0 overflow-hidden ${
-        theme === 'light' ? 'tp-scene-light' : 'tp-scene-dark'
-      }`}
-    >
+    <main className={`fixed inset-0 overflow-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
@@ -477,6 +542,9 @@ export default function LoggedInHome() {
         return (
           <section
             key={slide.id}
+            ref={(el) => {
+              sceneRefs.current[index] = el;
+            }}
             className={`scene${isActive ? ' active' : ''}${isPrev ? ' prev' : ''}`}
           >
             <div className="absolute inset-0 z-0">
@@ -494,18 +562,21 @@ export default function LoggedInHome() {
 
             {slide.featured && (
               <div className="absolute right-10 top-[86px] z-30 hidden lg:block">
-                <div className="text-right text-[10px] font-medium uppercase tracking-[0.22em] text-white/45">
+                <div
+                  className="text-right text-[10px] font-medium uppercase tracking-[0.22em]"
+                  style={{ color: palette.sceneTextFaint }}
+                >
                   {slide.featured.label}
                 </div>
+
                 <div className="mt-2 flex justify-end gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
+                  {[1, 2, 3, 4, 5].map((s) => (
                     <Star
-                      key={star}
+                      key={s}
                       className={`h-3 w-3 ${
-                        star <= slide.featured.stars
-                          ? 'fill-[#e0b97a] text-[#e0b97a]'
-                          : 'text-white/20'
+                        s <= slide.featured.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : ''
                       }`}
+                      style={s <= slide.featured.stars ? undefined : { color: isLight ? 'rgba(35,23,17,0.18)' : 'rgba(255,255,255,0.20)' }}
                     />
                   ))}
                 </div>
@@ -514,9 +585,12 @@ export default function LoggedInHome() {
 
             <div className="relative z-20 mx-auto flex h-screen max-w-[1600px] items-center px-[4.5%] pb-[84px] pt-[84px]">
               <div className="grid w-full items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] xl:gap-20">
-                <div className="relative z-30 max-w-[430px] text-white">
+                <div className="relative z-30 max-w-[430px]">
                   {slide.kicker ? (
-                    <p className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                    <p
+                      className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em]"
+                      style={{ color: palette.sceneTextFaint }}
+                    >
                       {slide.kicker}
                     </p>
                   ) : (
@@ -524,8 +598,11 @@ export default function LoggedInHome() {
                   )}
 
                   <h1
-                    className="fade-item fade-2 serif-display leading-[0.92] text-white"
-                    style={{ fontSize: 'clamp(3.5rem, 6vw, 6.35rem)' }}
+                    className="fade-item fade-2 serif-display leading-[0.92]"
+                    style={{
+                      fontSize: 'clamp(3.5rem, 6vw, 6.35rem)',
+                      color: palette.sceneText,
+                    }}
                   >
                     {slide.titleTop}
                     {slide.titleAccent ? (
@@ -537,14 +614,27 @@ export default function LoggedInHome() {
                     {slide.titleBottom}
                   </h1>
 
-                  <p className="fade-item fade-3 mt-7 max-w-[340px] text-[14px] leading-[1.9] text-white/68 md:text-[15px]">
+                  <p
+                    className="fade-item fade-3 mt-7 max-w-[340px] text-[14px] leading-[1.9] md:text-[15px]"
+                    style={{ color: palette.sceneTextSoft }}
+                  >
                     {slide.description}
                   </p>
 
                   <div className="fade-item fade-4 mt-9 flex flex-wrap gap-3">
                     <Link
                       href={slide.primaryCta.href}
-                      className="cursor-hover inline-flex items-center gap-2 rounded-full bg-[#d0824d] px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_28px_rgba(208,130,77,0.28)] transition hover:-translate-y-0.5 hover:bg-[#c3723d]"
+                      className="cursor-hover inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-[0_12px_28px_rgba(208,130,77,0.28)] transition hover:-translate-y-0.5"
+                      style={{
+                        background: palette.primaryBtnBg,
+                        color: palette.primaryBtnText,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = palette.primaryBtnHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = palette.primaryBtnBg;
+                      }}
                     >
                       <ArrowRight className="h-3.5 w-3.5" />
                       {slide.primaryCta.label}
@@ -552,19 +642,39 @@ export default function LoggedInHome() {
 
                     <Link
                       href={slide.secondaryCta.href}
-                      className="cursor-hover inline-flex items-center rounded-full border border-white/18 bg-black/10 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10"
+                      className="cursor-hover inline-flex items-center rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition"
+                      style={{
+                        background: palette.secondaryBtnBg,
+                        color: palette.secondaryBtnText,
+                        border: `1px solid ${palette.secondaryBtnBorder}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = palette.secondaryBtnHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = palette.secondaryBtnBg;
+                      }}
                     >
                       {slide.secondaryCta.label}
                     </Link>
                   </div>
 
-                  <div className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 border-t border-white/10 pt-6">
+                  <div
+                    className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 pt-6"
+                    style={{ borderTop: `1px solid ${palette.statBorder}` }}
+                  >
                     {slide.stats.map((stat) => (
                       <div key={stat.label}>
-                        <div className="text-[1.75rem] font-semibold leading-none text-white">
+                        <div
+                          className="text-[1.75rem] font-semibold leading-none"
+                          style={{ color: palette.sceneText }}
+                        >
                           {stat.value}
                         </div>
-                        <div className="mt-2 text-[10px] uppercase tracking-[0.15em] text-white/38">
+                        <div
+                          className="mt-2 text-[10px] uppercase tracking-[0.15em]"
+                          style={{ color: palette.sceneTextMuted }}
+                        >
                           {stat.label}
                         </div>
                       </div>
@@ -572,52 +682,214 @@ export default function LoggedInHome() {
                   </div>
 
                   {slide.nextLabel ? (
-                    <div className="fade-item fade-5 mt-8 text-[13px] font-light text-white/22">
+                    <div
+                      className="fade-item fade-5 mt-8 text-[13px] font-light"
+                      style={{ color: palette.sceneTextMuted }}
+                    >
                       {slide.nextLabel}
                     </div>
                   ) : null}
                 </div>
 
-                <div className="relative z-20 hidden h-[580px] lg:block">
+                <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
                   {slide.storyMode ? (
-                    <div className="absolute left-[12%] top-[7%]">
-                      <StoryCard />
+                    <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
+                      <div
+                        className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
+                        style={{
+                          width: CARD_WIDTHS[0],
+                          height: CARD_HEIGHTS[0],
+                          background: palette.cardShell,
+                          border: `1px solid ${palette.cardBorder}`,
+                        }}
+                        onClick={() => router.push('/about')}
+                      >
+                        <div className="group relative h-full w-full">
+                          <Image
+                            src={imageByKey.clay}
+                            alt="TuloPots Studio"
+                            fill
+                            sizes="210px"
+                            className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                          />
+                          <div className="absolute inset-0" style={{ background: palette.storyOverlay }} />
+
+                          <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                            <div
+                              className="text-[12px] font-medium tracking-[0.04em]"
+                              style={{ color: palette.cardTitle }}
+                            >
+                              TuloPots Studio
+                            </div>
+                            <div className="text-[10px] italic" style={{ color: palette.cardSecondaryText }}>
+                              Est. 2016 — Nairobi
+                            </div>
+
+                            <div className="mt-2 grid grid-cols-2 gap-1.5">
+                              <Link
+                                href="/about"
+                                onClick={(e) => e.stopPropagation()}
+                                className="pointer-events-auto flex items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.14em] transition"
+                                style={{
+                                  background: palette.primaryBtnBg,
+                                  color: palette.primaryBtnText,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = palette.primaryBtnHover;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = palette.primaryBtnBg;
+                                }}
+                              >
+                                Read Story
+                              </Link>
+
+                              <Link
+                                href="/contact"
+                                onClick={(e) => e.stopPropagation()}
+                                className="pointer-events-auto flex items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.14em] transition"
+                                style={{
+                                  background: palette.storySecondaryBg,
+                                  color: palette.secondaryBtnText,
+                                  border: `1px solid ${palette.storySecondaryBorder}`,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = palette.secondaryBtnHover;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = palette.storySecondaryBg;
+                                }}
+                              >
+                                Contact
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ) : slide.potMode ? (
                     <MagneticPotScene
                       onBrowse={() => router.push('/pots')}
                       onContact={() => router.push('/contact')}
+                      palette={palette}
                     />
                   ) : (
-                    // BUG FIX 3: Container fits 3 × 210px cards with clean stagger
-                    <div className="absolute left-[5%] top-[2%] h-[560px] w-[680px]">
-                      {slide.cardSlugs.map((slug, cardIndex) => {
-                        const product = productMap[slug];
-                        if (!product) return null;
+                    <>
+                      <div className="replay fade-up delay-2 absolute left-[60px] top-[44px] z-30 flex gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-[#f2c94c] text-[#f2c94c]" />
+                        ))}
+                        <Star
+                          className="h-3.5 w-3.5"
+                          style={{ color: isLight ? 'rgba(35,23,17,0.24)' : 'rgba(255,255,255,0.28)' }}
+                        />
+                      </div>
 
-                        const position = CARD_POSITIONS[cardIndex];
-                        const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
+                      {slide.sideLabel && (
+                        <div className="replay fade-up delay-2 absolute left-[60px] top-[68px] z-30">
+                          <div
+                            className="text-[11px] uppercase tracking-[0.14em]"
+                            style={{ color: palette.sceneTextSoft }}
+                          >
+                            {slide.sideLabel}
+                          </div>
+                        </div>
+                      )}
 
-                        return (
-                          <ProductCard
-                            key={slug}
-                            product={product}
-                            imageSrc={imageSrc}
-                            onBuyNow={() => handleBuyNow(product)}
-                            style={{
-                              position: 'absolute',
-                              width: 210,
-                              height: 420,
-                              left: position.left,
-                              top: position.top,
-                              zIndex: position.zIndex,
-                              // NO rotation applied here
-                              animationDelay: `${140 + cardIndex * 90}ms`,
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
+                      <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
+                        {slide.cardSlugs.map((slug, ci) => {
+                          const product = productMap[slug];
+                          if (!product) return null;
+
+                          const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
+                          const imageHeight = Math.round(CARD_HEIGHTS[ci] * 0.65);
+
+                          return (
+                            <div
+                              key={slug}
+                              className={`replay card-stage card-${ci + 1} pointer-events-auto flex flex-col flex-shrink-0 overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]`}
+                              style={{
+                                width: CARD_WIDTHS[ci],
+                                height: CARD_HEIGHTS[ci],
+                                marginTop: CARD_MARGINS[ci],
+                                marginLeft: ci === 0 ? 0 : 12,
+                                zIndex: 30 - ci,
+                                background: palette.cardShell,
+                                border: `1px solid ${palette.cardBorder}`,
+                              }}
+                            >
+                              <div
+                                className="relative w-full flex-shrink-0 overflow-hidden"
+                                style={{ height: imageHeight }}
+                              >
+                                <Image
+                                  src={imageSrc}
+                                  alt={product.name}
+                                  fill
+                                  sizes="210px"
+                                  className="object-cover transition-transform duration-500 hover:scale-[1.06]"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                              </div>
+
+                              <div
+                                className="flex flex-1 flex-col justify-between px-3 pt-2.5 pb-3"
+                                style={{ background: palette.cardInfoBg }}
+                              >
+                                <div>
+                                  <div
+                                    className="line-clamp-1 text-[11px] font-medium tracking-[0.03em]"
+                                    style={{ color: palette.cardTitle }}
+                                  >
+                                    {product.name}
+                                  </div>
+                                  <div className="mt-0.5 font-serif text-[13px] font-semibold text-[#e0b97a]">
+                                    KSh {Number(product.price).toLocaleString()}
+                                  </div>
+                                </div>
+
+                                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                                  <button
+                                    onClick={() => handleBuyNow(product)}
+                                    className="flex min-w-0 items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-bold uppercase tracking-[0.12em] transition"
+                                    style={{
+                                      background: palette.primaryBtnBg,
+                                      color: palette.primaryBtnText,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = palette.primaryBtnHover;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = palette.primaryBtnBg;
+                                    }}
+                                  >
+                                    Buy Now
+                                  </button>
+
+                                  <Link
+                                    href={`/product/${product.slug}`}
+                                    className="flex min-w-0 items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.12em] transition"
+                                    style={{
+                                      background: palette.cardSecondaryBg,
+                                      color: palette.cardSecondaryText,
+                                      border: `1px solid ${palette.secondaryBtnBorder}`,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = palette.cardSecondaryHover;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = palette.cardSecondaryBg;
+                                    }}
+                                  >
+                                    View Item
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -630,21 +902,47 @@ export default function LoggedInHome() {
         <button
           onClick={goPrev}
           type="button"
-          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
+          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition"
+          style={{
+            background: palette.navBtnBg,
+            border: `1px solid ${palette.navBtnBorder}`,
+            color: palette.navBtnText,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = palette.navBtnHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = palette.navBtnBg;
+          }}
         >
           <ArrowUp className="h-3.5 w-3.5" />
         </button>
+
         <button
           onClick={goNext}
           type="button"
-          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/18 text-white backdrop-blur-sm transition hover:bg-white/10"
+          className="cursor-hover flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition"
+          style={{
+            background: palette.navBtnBg,
+            border: `1px solid ${palette.navBtnBorder}`,
+            color: palette.navBtnText,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = palette.navBtnHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = palette.navBtnBg;
+          }}
         >
           <ArrowDown className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      <div className="absolute bottom-7 left-7 z-40 hidden items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-white/28 md:flex">
-        <div className="h-px w-10 bg-white/16" />
+      <div
+        className="absolute bottom-7 left-7 z-40 hidden items-center gap-3 text-[10px] uppercase tracking-[0.18em] md:flex"
+        style={{ color: palette.sceneTextMuted }}
+      >
+        <div className="h-px w-10" style={{ background: palette.statBorder }} />
         Scroll to explore
       </div>
 
@@ -654,15 +952,21 @@ export default function LoggedInHome() {
             key={slide.id}
             onClick={() => goTo(index)}
             type="button"
-            className={`cursor-hover rounded-full transition-all duration-300 ${
-              index === current ? 'h-1.5 w-7 bg-white' : 'h-1.5 w-1.5 bg-white/28 hover:bg-white/48'
-            }`}
+            className="cursor-hover rounded-full transition-all duration-300"
+            style={{
+              height: '6px',
+              width: index === current ? '28px' : '6px',
+              background: index === current ? palette.sceneText : palette.sceneTextMuted,
+            }}
           />
         ))}
       </div>
 
-      <div className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] text-white/30 md:right-28">
-        <span className="text-white/76">{String(current + 1).padStart(2, '0')}</span> /{' '}
+      <div
+        className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] md:right-28"
+        style={{ color: palette.sceneTextMuted }}
+      >
+        <span style={{ color: palette.sceneTextSoft }}>{String(current + 1).padStart(2, '0')}</span> /{' '}
         {String(SLIDES.length).padStart(2, '0')}
       </div>
 
@@ -672,292 +976,214 @@ export default function LoggedInHome() {
           overflow: hidden !important;
           height: 100% !important;
           max-height: 100vh !important;
+          overscroll-behavior: none;
         }
       `}</style>
 
       <style jsx>{`
-        /* ── Scene transitions ───────────────────────────────────────── */
         .scene {
           position: fixed;
           inset: 0;
           opacity: 0;
-          transform: translateY(26px);
+          transform: translateY(60px);
           pointer-events: none;
           transition:
-            opacity 680ms ease,
-            transform 680ms cubic-bezier(0.22, 0.61, 0.36, 1);
+            transform 920ms cubic-bezier(0.22, 0.61, 0.36, 1),
+            opacity 920ms ease;
         }
+
         .scene.active {
           opacity: 1;
           transform: translateY(0);
-          pointer-events: auto;
           z-index: 20;
+          pointer-events: auto;
         }
+
         .scene.prev {
           opacity: 0;
-          transform: translateY(-24px);
-          pointer-events: none;
+          transform: translateY(-60px);
           z-index: 10;
+          pointer-events: none;
         }
 
-        /* ── Theme overlays ──────────────────────────────────────────── */
-        .tp-scene-light { background: #f7f2ea; }
-        .tp-scene-dark  { background: #140c08; }
+        .tp-scene-light {
+          background: #f7f2ea;
+        }
+
+        .tp-scene-dark {
+          background: #140c08;
+        }
 
         .tp-scene-light .tp-scene-overlay-a {
-          background: linear-gradient(90deg,
-            rgba(24,16,12,0.50) 0%, rgba(24,16,12,0.34) 28%,
-            rgba(24,16,12,0.10) 56%, rgba(24,16,12,0.04) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(247, 242, 234, 0.54) 0%,
+            rgba(247, 242, 234, 0.34) 28%,
+            rgba(247, 242, 234, 0.12) 56%,
+            rgba(247, 242, 234, 0.04) 100%
+          );
         }
+
         .tp-scene-light .tp-scene-overlay-b {
-          background: linear-gradient(to top,
-            rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 38%, rgba(0,0,0,0.02) 100%);
+          background: linear-gradient(
+            to top,
+            rgba(255, 248, 240, 0.22) 0%,
+            rgba(255, 248, 240, 0.08) 38%,
+            rgba(255, 248, 240, 0.02) 100%
+          );
         }
+
         .tp-scene-dark .tp-scene-overlay-a {
-          background: linear-gradient(90deg,
-            rgba(16,10,7,0.82) 0%, rgba(16,10,7,0.60) 28%,
-            rgba(16,10,7,0.24) 56%, rgba(16,10,7,0.10) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(16, 10, 7, 0.82) 0%,
+            rgba(16, 10, 7, 0.6) 28%,
+            rgba(16, 10, 7, 0.24) 56%,
+            rgba(16, 10, 7, 0.1) 100%
+          );
         }
+
         .tp-scene-dark .tp-scene-overlay-b {
-          background: linear-gradient(to top,
-            rgba(0,0,0,0.36) 0%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.04) 100%);
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.36) 0%,
+            rgba(0, 0, 0, 0.1) 38%,
+            rgba(0, 0, 0, 0.04) 100%
+          );
         }
 
-        /* ── Text fade-up animations ─────────────────────────────────── */
-        .fade-item { opacity: 0; transform: translateY(16px); }
-        .scene.active .fade-item { animation: fadeUp 620ms ease forwards; }
-        .fade-1 { animation-delay:  40ms !important; }
-        .fade-2 { animation-delay: 110ms !important; }
-        .fade-3 { animation-delay: 180ms !important; }
-        .fade-4 { animation-delay: 250ms !important; }
-        .fade-5 { animation-delay: 320ms !important; }
-
-        /* ══════════════════════════════════════════════════════════════
-           PRODUCT CARD — 3 bugs fixed:
-           1. No rotation (removed from CARD_POSITIONS + no inline transform)
-           2. Buttons always visible (no max-height:0 / opacity:0 trick)
-           3. Image 60% height — enough room for name + price + 2 buttons
-           4. cardIn animates translateX only — never fights inline styles
-        ══════════════════════════════════════════════════════════════ */
-        .tp-card {
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          border-radius: 22px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(10, 5, 3, 0.72);
-          box-shadow:
-            0 30px 80px rgba(0, 0, 0, 0.52),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(10px);
+        .fade-item {
           opacity: 0;
-          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-          transition: transform 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
+          transform: translateY(16px);
         }
 
-        .tp-card:hover {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow:
-            0 44px 100px rgba(0, 0, 0, 0.60),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
-          border-color: rgba(255, 255, 255, 0.20);
+        .scene.active .fade-item {
+          animation: fadeUp 620ms ease forwards;
         }
 
-        /* FIX 3: 60% image — leaves 40% for all content */
-        .tp-card__image {
-          position: relative;
-          height: 60%;
-          flex-shrink: 0;
-          overflow: hidden;
-          background: #e8dfd5;
-          border-radius: 22px 22px 0 0;
+        .fade-1 {
+          animation-delay: 40ms !important;
         }
 
-        .tp-card__image :global(img) {
-          transition: transform 440ms ease;
-        }
-        .tp-card:hover .tp-card__image :global(img) {
-          transform: scale(1.06);
+        .fade-2 {
+          animation-delay: 110ms !important;
         }
 
-        .tp-card__image-fade {
-          position: absolute;
-          inset: auto 0 0 0;
-          height: 70px;
-          background: linear-gradient(to top,
-            rgba(10,5,3,0.90) 0%,
-            rgba(10,5,3,0.30) 50%,
-            rgba(10,5,3,0.00) 100%);
-          z-index: 1;
-          pointer-events: none;
+        .fade-3 {
+          animation-delay: 180ms !important;
         }
 
-        /* FIX 2: Bottom always shows all content, no hidden state */
-        .tp-card__bottom {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 12px 14px 14px;
-          background: linear-gradient(180deg,
-            rgba(10,5,3,0.84) 0%,
-            rgba(8,4,2,0.97) 40%,
-            rgba(6,3,1,1.00) 100%);
-          min-height: 0;
+        .fade-4 {
+          animation-delay: 250ms !important;
         }
 
-        .tp-card__title {
-          font-size: 12.5px;
-          line-height: 1.2;
-          color: rgba(255, 255, 255, 0.95);
-          letter-spacing: 0.01em;
-          min-height: 30px;
+        .fade-5 {
+          animation-delay: 320ms !important;
         }
 
-        .tp-card__price {
-          margin-top: 5px;
-          font-size: 12.5px;
-          font-weight: 700;
-          color: #e0b97a;
-          letter-spacing: 0.03em;
+        .card-stage {
+          opacity: 0;
+          transform-origin: center center;
         }
 
-        /* FIX 2: Buy Now — always visible, full width */
-        .tp-card__buy {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          margin-top: 10px;
-          height: 34px;
-          flex-shrink: 0;
-          border-radius: 9999px;
-          background: #d0824d;
-          color: #fff;
-          font-size: 7.5px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          transition: background 220ms ease, transform 220ms ease;
-        }
-        .tp-card__buy:hover {
-          background: #c3723d;
-          transform: translateY(-1px);
+        .scene.active .card-stage {
+          animation: cardEnter 760ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
-        /* FIX 2: View Item — always visible, full width */
-        .tp-card__view {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          margin-top: 5px;
-          height: 32px;
-          flex-shrink: 0;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.70);
-          font-size: 7.5px;
-          font-weight: 600;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
-        }
-        .tp-card__view:hover {
-          background: rgba(255, 255, 255, 0.10);
-          color: rgba(255, 255, 255, 0.94);
-          border-color: rgba(255, 255, 255, 0.24);
+        .scene.prev .card-stage {
+          animation: cardExit 400ms ease-in forwards;
         }
 
-        /* ── Story Card ──────────────────────────────────────────────── */
-        .tp-story-card {
-          width: 320px;
-          height: 450px;
-          overflow: hidden;
-          border-radius: 30px;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
-          backdrop-filter: blur(6px);
-          animation: cardIn 700ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        .scene.active .card-1 {
+          animation-delay: 180ms;
         }
-        .tp-story-card__image {
-          position: relative;
-          height: 64%;
-          background: #efebe5;
-        }
-        .tp-story-card__bottom {
-          display: flex;
-          height: 36%;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 20px 18px 18px;
-          background: linear-gradient(180deg,
-            rgba(255,255,255,0.02) 0%,
-            rgba(19,9,5,0.84) 18%,
-            rgba(14,7,4,0.98) 100%);
-          color: white;
-        }
-        .tp-story-card__title { font-size: 20px; line-height: 1.1; }
-        .tp-story-card__meta {
-          margin-top: 8px;
-          font-size: 11px;
-          font-style: italic;
-          color: rgba(255, 255, 255, 0.56);
-        }
-        .tp-story-card__button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-top: 18px;
-          width: fit-content;
-          min-width: 120px;
-          height: 42px;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.08);
-          padding: 0 18px;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: white;
-        }
-        .tp-story-card__button:hover { background: rgba(255, 255, 255, 0.14); }
 
-        /* ── Keyframes ───────────────────────────────────────────────── */
+        .scene.active .card-2 {
+          animation-delay: 300ms;
+        }
+
+        .scene.active .card-3 {
+          animation-delay: 420ms;
+        }
+
+        .scene.prev .card-3 {
+          animation-delay: 0ms;
+        }
+
+        .scene.prev .card-2 {
+          animation-delay: 120ms;
+        }
+
+        .scene.prev .card-1 {
+          animation-delay: 240ms;
+        }
+
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        /*
-         * FIX 1+2: cardIn uses translateX only.
-         * It does NOT end with transform:scale(1) or transform:rotate(0)
-         * which would overwrite any inline transform on the card element.
-         * This is what was killing the layout before.
-         */
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateX(24px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes cardEnter {
+          0% {
+            opacity: 0;
+            transform: translateX(55px) rotate(2deg);
+          }
+          55% {
+            opacity: 1;
+            transform: translateX(8px) rotate(0.4deg);
+          }
+          72% {
+            opacity: 1;
+            transform: translateX(-3px) rotate(-0.2deg);
+          }
+          100% {
+            opacity: 1;
+          }
         }
 
-        /* ── Reduced motion ──────────────────────────────────────────── */
+        @keyframes cardExit {
+          0% {
+            opacity: 1;
+          }
+          40% {
+            opacity: 1;
+            transform: translateX(-20px) rotate(-1deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-80px) rotate(-3deg);
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .scene,
           .fade-item,
-          .tp-card,
-          .tp-story-card,
+          .card-stage,
           .scene.active .fade-item {
             animation: none !important;
             transition: none !important;
           }
-          .scene { opacity: 0; transform: none !important; }
-          .scene.active { opacity: 1; }
+
+          .scene {
+            opacity: 0;
+            transform: none !important;
+          }
+
+          .scene.active {
+            opacity: 1;
+          }
+
           .fade-item,
-          .tp-card,
-          .tp-story-card { opacity: 1; transform: none !important; }
+          .card-stage {
+            opacity: 1;
+            transform: none !important;
+          }
         }
       `}</style>
     </main>
