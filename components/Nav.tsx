@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from 'next/link';
 import {
@@ -64,54 +64,50 @@ export function Nav() {
   }, [pathname]);
 
   let headerClass = '';
-
   if (isLoggedOutHome) {
     headerClass = isScrolled
-      ? 'border-b border-[#e8dccf] bg-[#F7F2EA]/95 backdrop-blur-md'
-      : 'border-transparent bg-[#F7F2EA]/72 backdrop-blur-sm';
+      ? 'border-b tp-nav-surface backdrop-blur-md'
+      : 'border-transparent tp-nav-surface backdrop-blur-sm';
   } else if (isLoggedInHome) {
     headerClass = isScrolled
-      ? 'border-transparent bg-[#222222]/40 backdrop-blur-md'
+      ? 'border-transparent tp-nav-surface backdrop-blur-md'
       : 'border-transparent bg-transparent';
   } else if (isInternalPage) {
-    headerClass = 'border-b border-[#e8dccf] bg-[#F7F2EA]/95 backdrop-blur-md';
+    headerClass = 'border-b tp-nav-surface backdrop-blur-md';
   }
 
   const isLightSurface = isLoggedOutHome || isInternalPage;
 
-  const brandClass = isLightSurface ? 'text-[#5A3422]' : 'text-white';
-  const accentClass = isLightSurface ? 'text-[#B66A3C]' : 'text-[#d8c0a8]';
+  const brandClass = isLightSurface ? 'tp-heading' : 'text-white';
+  const accentClass = 'tp-accent';
 
   const navLinkClass = (href: string) => {
     if (isLightSurface) {
       return pathname === href
-        ? 'text-[#5A3422]'
-        : 'text-[#8b7b6e] hover:text-[#5A3422]';
+        ? 'tp-heading'
+        : 'tp-text-muted hover:tp-heading';
     }
-
     return pathname === href
       ? 'text-white'
       : 'text-white/70 hover:text-white';
   };
 
   const iconButtonClass = isLightSurface
-    ? 'border-[#dcc9b6] bg-white text-[#5A3422] hover:bg-[#f5ede4]'
+    ? 'tp-border tp-surface tp-text hover:opacity-90'
     : 'border-white/20 bg-white/10 text-white hover:bg-white/20';
 
-  const signInClass = isLightSurface
-    ? 'bg-[#5A3422] text-white hover:opacity-90'
-    : 'bg-white/15 text-white backdrop-blur-md hover:bg-white/25';
-
-  const menuButtonClass = isLightSurface
-    ? 'bg-[#5A3422] text-white hover:opacity-90'
-    : 'border border-white/20 bg-white/10 text-white hover:bg-white/20';
+  const signInClass = 'tp-btn-primary';
+  const menuButtonClass = 'tp-btn-primary';
 
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ${headerClass}`}
     >
       <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4 md:px-10">
-        <Link href="/" className={`serif-display text-3xl tracking-tight transition ${brandClass}`}>
+        <Link
+          href="/"
+          className={`serif-display text-3xl tracking-tight transition ${brandClass}`}
+        >
           Tulo<span className={accentClass}>Pots</span>
         </Link>
 
@@ -135,7 +131,11 @@ export function Nav() {
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             className={`cursor-hover rounded-full border p-2.5 transition ${iconButtonClass}`}
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === 'dark' ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
           </button>
 
           <Link
@@ -174,12 +174,12 @@ export function Nav() {
               </button>
 
               {open && (
-                <div className="absolute right-0 mt-3 w-60 overflow-hidden rounded-3xl border border-[#eaded3] bg-white shadow-2xl">
-                  <div className="border-b border-[#f0e6df] bg-[#fdf9f5] px-5 py-4">
-                    <div className="text-sm font-semibold text-[#3d2a20]">
+                <div className="absolute right-0 mt-3 w-60 overflow-hidden rounded-3xl border tp-border tp-card shadow-2xl">
+                  <div className="border-b tp-border tp-surface px-5 py-4">
+                    <div className="text-sm font-semibold tp-text">
                       {user?.name || 'Account'}
                     </div>
-                    <div className="truncate text-xs text-[#9a8a80]">{user?.email}</div>
+                    <div className="truncate text-xs tp-text-muted">{user?.email}</div>
 
                     {user?.isAdmin && (
                       <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#5A3422] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
@@ -191,7 +191,7 @@ export function Nav() {
                   <Link
                     href="/profile"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-5 py-3.5 text-sm text-[#5a4a3f] hover:bg-[#F7F2EA]"
+                    className="flex items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
                   >
                     <User className="h-4 w-4" /> Profile
                   </Link>
@@ -199,7 +199,7 @@ export function Nav() {
                   <Link
                     href="/settings"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-5 py-3.5 text-sm text-[#5a4a3f] hover:bg-[#F7F2EA]"
+                    className="flex items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
                   >
                     <Settings className="h-4 w-4" /> Settings
                   </Link>
@@ -208,7 +208,7 @@ export function Nav() {
                     <Link
                       href="/admin"
                       onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 border-t border-[#f0e6df] px-5 py-3.5 text-sm font-semibold text-[#5A3422] hover:bg-[#F7F2EA]"
+                      className="flex items-center gap-3 border-t tp-border px-5 py-3.5 text-sm font-semibold tp-accent hover:opacity-90"
                     >
                       <Shield className="h-4 w-4" /> Admin Dashboard
                     </Link>
@@ -219,7 +219,7 @@ export function Nav() {
                       setIsLoggedIn(false);
                       setOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 border-t border-[#f0e6df] px-5 py-3.5 text-sm text-[#5a4a3f] hover:bg-[#F7F2EA]"
+                    className="flex w-full items-center gap-3 border-t tp-border px-5 py-3.5 text-sm tp-text hover:opacity-90"
                   >
                     <LogOut className="h-4 w-4" /> Log Out
                   </button>

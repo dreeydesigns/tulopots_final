@@ -304,14 +304,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           overflow-x: hidden;
         }
 
-        html[data-theme='light'] body {
-          background: #f7f2ea;
-          color: #222222;
-        }
-
+        html[data-theme='light'] body,
         html[data-theme='dark'] body {
-          background: #140c08;
-          color: #f4ede4;
+          background: var(--tp-bg);
+          color: var(--tp-text);
         }
 
         body {

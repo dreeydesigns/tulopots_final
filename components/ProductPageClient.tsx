@@ -13,6 +13,7 @@ import {
   Leaf,
   Shield,
   Truck,
+  Check,
 } from 'lucide-react';
 import { Product, products, sizeOptionsFor } from '@/lib/products';
 import { money } from '@/lib/utils';
@@ -34,6 +35,7 @@ export function ProductPageClient({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [careOpen, setCareOpen] = useState(!!product.plantGuide);
+  const [justAdded, setJustAdded] = useState(false);
 
   const gallery = [product.image, product.image, product.image, product.image];
   const [activeImage, setActiveImage] = useState(gallery[0]);
@@ -51,6 +53,23 @@ export function ProductPageClient({ product }: { product: Product }) {
 
   const canToggleModes = !product.forcePotOnly && !product.decorative && !!product.potOnly;
   const reviewGate = true;
+
+  const sizeSummary =
+    mode === 'plant'
+      ? `${size.label} · styled ready for display`
+      : `${size.label} · pot-only option`;
+
+  function handleAddToCart() {
+    addToCart(product, {
+      mode,
+      quantity: qty,
+      unitPrice: unit,
+      sizeLabel: size.label,
+    });
+
+    setJustAdded(true);
+    window.setTimeout(() => setJustAdded(false), 2200);
+  }
 
   return (
     <main className="container-shell py-10 md:py-16">
@@ -71,7 +90,7 @@ export function ProductPageClient({ product }: { product: Product }) {
 
       <Link
         href={`/${product.category}`}
-        className="mt-8 inline-flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-[#8b7c6f] transition hover:text-[#5A3422]"
+        className="mt-8 inline-flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-[var(--tp-text)]/65 transition hover:text-[var(--tp-heading)]"
       >
         <ChevronLeft className="h-4 w-4" />
         Back to {product.category}
@@ -80,7 +99,7 @@ export function ProductPageClient({ product }: { product: Product }) {
       <section className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_1fr]">
         {/* LEFT */}
         <div>
-          <div className="relative overflow-hidden rounded-[2rem] bg-[#efe3d6] shadow-[0_18px_50px_rgba(90,52,34,0.08)]">
+          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] shadow-[0_18px_50px_rgba(90,52,34,0.08)]">
             {product.badge && (
               <span className="absolute left-4 top-4 z-10 rounded-full bg-[#e9f3ea] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#5b6f60]">
                 {product.badge}
@@ -89,7 +108,8 @@ export function ProductPageClient({ product }: { product: Product }) {
 
             <button
               onClick={() => (isLoggedIn ? toggleWishlist(product.slug) : setIsLoggedIn(true))}
-              className="absolute right-4 top-4 z-10 rounded-full bg-white p-3 shadow-md transition hover:scale-110"
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/95 p-3 shadow-md transition hover:scale-110"
+              aria-label="Add to wishlist"
             >
               <Heart
                 className={`h-5 w-5 ${
@@ -120,7 +140,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                 className={`overflow-hidden rounded-[1.25rem] border transition ${
                   activeImage === img
                     ? 'border-[#B66A3C] shadow-[0_10px_25px_rgba(182,106,60,0.16)]'
-                    : 'border-[#eaded3] hover:border-[#c9b8aa]'
+                    : 'border-[var(--tp-border)] hover:border-[#c9b8aa]'
                 }`}
               >
                 <Image
@@ -136,18 +156,18 @@ export function ProductPageClient({ product }: { product: Product }) {
         </div>
 
         {/* RIGHT */}
-        <div className="lg:sticky lg:top-28 h-fit">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[#9a8a7d]">
+        <div className="h-fit lg:sticky lg:top-28">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--tp-text)]/60">
             {product.sku}
           </div>
 
-          <h1 className="mt-4 serif-display text-5xl leading-[0.95] text-[#4a3428] md:text-6xl">
+          <h1 className="mt-4 serif-display text-5xl leading-[0.95] text-[var(--tp-heading)] md:text-6xl">
             {product.name}
           </h1>
 
-          <div className="mt-4 text-base italic text-[#B66A3C]">{product.short}</div>
+          <div className="mt-4 max-w-xl text-base italic text-[#B66A3C]">{product.short}</div>
 
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
@@ -160,25 +180,34 @@ export function ProductPageClient({ product }: { product: Product }) {
                 />
               ))}
             </div>
-            <div className="text-sm text-[#8a7a6d]">
+            <div className="text-sm text-[var(--tp-text)]/65">
               {product.rating.toFixed(1)} ({product.reviews} reviews)
+            </div>
+            <div className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text)]/70">
+              Handmade in Kenya
             </div>
           </div>
 
           <div className="mt-7 flex items-end gap-3">
-            <div className="serif-display text-5xl text-[#3d2a20]">{money(unit)}</div>
+            <div className="serif-display text-5xl text-[var(--tp-heading)]">{money(unit)}</div>
             {canToggleModes && mode === 'plant' && product.potOnly && (
-              <div className="pb-1 text-sm text-[#9a8a7d]">
+              <div className="pb-1 text-sm text-[var(--tp-text)]/60">
                 Pot only: {money(Math.round(product.potOnly * size.multiplier))}
               </div>
             )}
           </div>
 
-          <p className="mt-7 max-w-xl text-sm leading-8 text-[#74665b]">{product.description}</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--tp-text)]/72">
+            {sizeSummary}
+          </p>
+
+          <p className="mt-7 max-w-xl text-sm leading-8 text-[var(--tp-text)]/75">
+            {product.description}
+          </p>
 
           {canToggleModes && (
             <div className="mt-8">
-              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7a6e]">
+              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
                 Purchase option
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -187,7 +216,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                   className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
                     mode === 'plant'
                       ? 'bg-[#cf7c47] text-white'
-                      : 'border border-[#eaded3] bg-white text-[#6f6157]'
+                      : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                   }`}
                 >
                   With Plant
@@ -197,7 +226,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                   className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
                     mode === 'pot'
                       ? 'bg-[#5A3422] text-white'
-                      : 'border border-[#eaded3] bg-white text-[#6f6157]'
+                      : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                   }`}
                 >
                   Pot Only
@@ -207,130 +236,178 @@ export function ProductPageClient({ product }: { product: Product }) {
           )}
 
           <div className="mt-8">
-            <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b7a6e]">
+            <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
               Pot size
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {sizes.map((s) => (
+              {sizes.map((s) => {
+                const previewPrice = Math.round(
+                  (mode === 'plant' ? product.price : product.potOnly || product.price) * s.multiplier
+                );
+
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setSelected(s.key)}
+                    className={`rounded-[1rem] border px-4 py-3 text-left transition ${
+                      selected === s.key
+                        ? 'border-[#B66A3C] bg-[#fff7f0] shadow-[0_10px_22px_rgba(182,106,60,0.08)]'
+                        : 'border-[var(--tp-border)] bg-[var(--tp-card)] hover:border-[#cfb39e]'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-[var(--tp-heading)]">{s.label}</div>
+                    <div className="mt-1 text-xs text-[var(--tp-text)]/55">{s.helper}</div>
+                    <div className="mt-2 text-xs font-semibold text-[#B66A3C]">
+                      {money(previewPrice)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-8 rounded-[1.75rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5 shadow-[0_10px_28px_rgba(90,52,34,0.06)]">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center">
+              <div className="inline-flex items-center self-start rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)]">
                 <button
-                  key={s.key}
-                  onClick={() => setSelected(s.key)}
-                  className={`rounded-[1rem] border px-4 py-3 text-left transition ${
-                    selected === s.key
-                      ? 'border-[#B66A3C] bg-[#fff7f0] shadow-[0_10px_22px_rgba(182,106,60,0.08)]'
-                      : 'border-[#eaded3] bg-white hover:border-[#cfb39e]'
-                  }`}
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  className="px-4 py-3 text-[var(--tp-text)]/70 transition hover:text-[var(--tp-heading)]"
+                  aria-label="Decrease quantity"
                 >
-                  <div className="text-sm font-semibold text-[#3d2a20]">{s.label}</div>
-                  <div className="mt-1 text-xs text-[#9a8a7d]">{s.helper}</div>
+                  <Minus className="h-4 w-4" />
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 flex items-center gap-4">
-            <div className="inline-flex items-center rounded-full border border-[#e6d9cd] bg-white">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-4 py-3 text-[#7f6d60] transition hover:text-[#3d2a20]"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <div className="min-w-[3rem] text-center text-sm font-medium text-[#3d2a20]">
-                {qty}
+                <div className="min-w-[3rem] text-center text-sm font-medium text-[var(--tp-heading)]">
+                  {qty}
+                </div>
+                <button
+                  onClick={() => setQty((q) => q + 1)}
+                  className="px-4 py-3 text-[var(--tp-text)]/70 transition hover:text-[var(--tp-heading)]"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="px-4 py-3 text-[#7f6d60] transition hover:text-[#3d2a20]"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+
+              <div className="flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/55">
+                  Total
+                </div>
+                <div className="mt-1 serif-display text-3xl text-[var(--tp-heading)]">
+                  {money(total)}
+                </div>
+              </div>
             </div>
 
-            <button
-              onClick={() =>
-                addToCart(product, {
-                  mode,
-                  quantity: qty,
-                  unitPrice: unit,
-                  sizeLabel: size.label,
-                })
-              }
-              className="flex-1 rounded-full bg-[#4a2d1f] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#5A3422] hover:scale-[1.01]"
-            >
-              Add to Cart — {money(total)}
-            </button>
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <button
+                onClick={handleAddToCart}
+                className="rounded-full bg-[#4a2d1f] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:scale-[1.01] hover:bg-[#5A3422]"
+              >
+                {justAdded ? 'Added to Cart' : `Add to Cart — ${money(total)}`}
+              </button>
+
+              <Link
+                href="/cart"
+                className="inline-flex items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tp-heading)] transition hover:border-[#c9b8aa] hover:bg-[var(--tp-card)]"
+              >
+                View Cart
+              </Link>
+            </div>
+
+            {justAdded && (
+              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#f3ede6] px-4 py-3 text-sm text-[#5f5147]">
+                <Check className="h-4 w-4 text-[#B66A3C]" />
+                Added successfully. Your selection is ready in cart.
+              </div>
+            )}
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-6 border-t border-[#eaded3] pt-6 text-sm text-[#7a6e64]">
+          <div className="mt-7 flex flex-wrap gap-6 border-t border-[var(--tp-border)] pt-6 text-sm text-[var(--tp-text)]/72">
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4 text-[#B66A3C]" />
-              Free delivery in Nairobi
+              Free delivery in Nairobi over KES 5,000
             </div>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-[#B66A3C]" />
-              30-day guarantee
+              Secure checkout
             </div>
             <div className="flex items-center gap-2">
               <Leaf className="h-4 w-4 text-[#B66A3C]" />
-              Handcrafted
+              Handcrafted terracotta
             </div>
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-[#eaded3] bg-white">
+          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
+              Why customers choose this
+            </div>
+            <div className="mt-4 grid gap-3 text-sm text-[var(--tp-text)]/75 sm:grid-cols-3">
+              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
+                Editorial finish that elevates interiors instantly
+              </div>
+              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
+                Crafted to feel warm, weighty, and authentically handmade
+              </div>
+              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
+                Flexible choice between full styling or pot-only purchase
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
             <button
               onClick={() => setDetailsOpen((s) => !s)}
               className="flex w-full items-center justify-between px-5 py-4 text-left"
             >
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5f5147]">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
                 Product Details
               </span>
               <ChevronDown
-                className={`h-4 w-4 text-[#7f6d60] transition ${
+                className={`h-4 w-4 text-[var(--tp-text)]/65 transition ${
                   detailsOpen ? 'rotate-180' : ''
                 }`}
               />
             </button>
 
             {detailsOpen && (
-              <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[#f2e8df] px-5 py-5 text-sm">
-                <div className="text-[#9a8a7d]">Material</div>
-                <div>100% Natural Kenyan Clay</div>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--tp-border)] px-5 py-5 text-sm">
+                <div className="text-[var(--tp-text)]/55">Material</div>
+                <div className="text-[var(--tp-heading)]">100% Natural Kenyan Clay</div>
 
-                <div className="text-[#9a8a7d]">Shape</div>
-                <div>{size.label}</div>
+                <div className="text-[var(--tp-text)]/55">Shape</div>
+                <div className="text-[var(--tp-heading)]">{size.label}</div>
 
-                <div className="text-[#9a8a7d]">SKU</div>
-                <div>{product.sku}</div>
+                <div className="text-[var(--tp-text)]/55">SKU</div>
+                <div className="text-[var(--tp-heading)]">{product.sku}</div>
 
-                <div className="text-[#9a8a7d]">Finish</div>
-                <div>Natural Terracotta</div>
+                <div className="text-[var(--tp-text)]/55">Finish</div>
+                <div className="text-[var(--tp-heading)]">Natural Terracotta</div>
               </div>
             )}
           </div>
 
           {!!product.plantGuide && (
-            <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-[#eaded3] bg-white">
+            <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
               <button
                 onClick={() => setCareOpen((s) => !s)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5f5147]">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
                   Plant Care Guide
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 text-[#7f6d60] transition ${
+                  className={`h-4 w-4 text-[var(--tp-text)]/65 transition ${
                     careOpen ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
               {careOpen && (
-                <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[#f2e8df] px-5 py-5 text-sm">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--tp-border)] px-5 py-5 text-sm">
                   {Object.entries(product.plantGuide).map(([k, v]) => (
                     <div key={k} className="contents">
-                      <div className="capitalize text-[#9a8a7d]">{k}</div>
-                      <div>{String(v)}</div>
+                      <div className="capitalize text-[var(--tp-text)]/55">{k}</div>
+                      <div className="text-[var(--tp-heading)]">{String(v)}</div>
                     </div>
                   ))}
                 </div>
@@ -338,22 +415,22 @@ export function ProductPageClient({ product }: { product: Product }) {
             </div>
           )}
 
-          <div className="mt-8 rounded-[1.75rem] border border-[#eaded3] bg-white p-6">
-            <div className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[#8b7a6e]">
+          <div className="mt-8 rounded-[1.75rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6">
+            <div className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
               Reviews
             </div>
 
             {reviewGate ? (
               isLoggedIn ? (
                 <div className="space-y-3">
-                  <div className="rounded-2xl bg-[#F7F2EA] p-4 text-sm leading-7 text-[#6b5d53]">
+                  <div className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75">
                     Beautiful weight and finish. It feels handmade in the best way.
                   </div>
-                  <div className="rounded-2xl bg-[#F7F2EA] p-4 text-sm leading-7 text-[#6b5d53]">
+                  <div className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75">
                     The clay tone is even richer in person and the plant pairing was spot on.
                   </div>
                   <textarea
-                    className="mt-2 min-h-[110px] w-full rounded-3xl border border-[#e6d9cd] bg-[#fffdfb] p-4 outline-none"
+                    className="mt-2 min-h-[110px] w-full rounded-3xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4 text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
                     placeholder="Leave a review"
                   />
                   <button className="rounded-full bg-[#5A3422] px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white">
@@ -361,12 +438,12 @@ export function ProductPageClient({ product }: { product: Product }) {
                   </button>
                 </div>
               ) : (
-                <div className="text-sm leading-7 text-[#716257]">
+                <div className="text-sm leading-7 text-[var(--tp-text)]/75">
                   Sign in to read and leave reviews on this product.
                 </div>
               )
             ) : (
-              <div className="text-sm leading-7 text-[#716257]">
+              <div className="text-sm leading-7 text-[var(--tp-text)]/75">
                 Reviews are currently disabled by admin settings.
               </div>
             )}
@@ -376,8 +453,8 @@ export function ProductPageClient({ product }: { product: Product }) {
 
       <section className="mt-20">
         <div className="text-center">
-          <h2 className="serif-display text-5xl text-[#4a3428]">You May Also Like</h2>
-          <p className="mt-3 text-sm text-[#8a7a6d]">
+          <h2 className="serif-display text-5xl text-[var(--tp-heading)]">You May Also Like</h2>
+          <p className="mt-3 text-sm text-[var(--tp-text)]/65">
             Handpicked pots that complement your selection
           </p>
         </div>
