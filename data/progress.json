@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-29T20:10:44.329Z",
+  "lastUpdated": "2026-03-29T20:34:30.521Z",
   "phases": [
     {
       "id": "admin",
@@ -31,12 +31,12 @@
     {
       "id": "content",
       "label": "Content Management",
-      "status": "in_progress",
-      "percent": 67,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
         { "label": "SiteSection Prisma model", "done": true },
         { "label": "Admin content tab", "done": true },
-        { "label": "Frontend respects visibility flags", "done": false }
+        { "label": "Frontend respects visibility flags", "done": true }
       ]
     },
     {
@@ -79,12 +79,12 @@
       "id": "reviews",
       "label": "Reviews & Trust System",
       "status": "in_progress",
-      "percent": 25,
+      "percent": 75,
       "tasks": [
         { "label": "Review Prisma model", "done": true },
-        { "label": "Review form on product pages", "done": false },
+        { "label": "Review form on product pages", "done": true },
         { "label": "Admin moderation", "done": false },
-        { "label": "Display on product pages", "done": false }
+        { "label": "Display on product pages", "done": true }
       ]
     },
     {
