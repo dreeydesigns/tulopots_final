@@ -91,6 +91,15 @@ model StudioBrief {
   updatedAt     DateTime          @updatedAt
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now())
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
