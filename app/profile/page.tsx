@@ -1,7 +1,8 @@
-'use client';
-import { useState } from 'react';
-import { products } from '@/lib/products';
-import { useStore } from '@/components/Providers';
-import { ProductCard } from '@/components/ProductCard';
-import Link from 'next/link';
-export default function Page(){ const { isLoggedIn, wishlist, cart } = useStore(); const [tab,setTab]=useState('wishlist'); if(!isLoggedIn) return <main className="container-shell py-16 text-center"><div className="serif-display text-5xl text-[#4b3428]">Please sign in</div><p className="mt-4 text-[#76675c]">Sign in to see your wishlist, saved cart items, studio briefs, and account settings.</p></main>; const wished = products.filter((p)=>wishlist.includes(p.slug)); return <main className="container-shell py-12 md:py-16"><div className="flex flex-wrap items-center justify-between gap-4"><div><div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#B66A3C]">Account</div><h1 className="mt-4 serif-display text-6xl text-[#3d2a20]">Your Profile</h1></div><Link href="/studio" className="btn-primary">Open Studio Collection</Link></div><div className="mt-8 flex flex-wrap gap-3">{['wishlist','cart','settings'].map((t)=><button key={t} onClick={()=>setTab(t)} className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${tab===t?'bg-[#5A3422] text-white':'border border-[#ded1c5] bg-white text-[#8a7a6d]'}`}>{t}</button>)}</div>{tab==='wishlist' && <div className="mt-8 grid gap-6 md:grid-cols-3">{wished.length ? wished.map((p)=><ProductCard key={p.slug} product={p} collection />) : <div className="rounded-[2rem] border border-[#e6d9cd] bg-white p-8 text-[#76675c]">No saved favourites yet.</div>}</div>}{tab==='cart' && <div className="mt-8 rounded-[2rem] border border-[#e6d9cd] bg-white p-8 text-[#76675c]">{cart.length ? `${cart.length} saved cart line items available in your active session.` : 'Your saved cart is currently empty.'}</div>}{tab==='settings' && <div className="mt-8 rounded-[2rem] border border-[#e6d9cd] bg-white p-8"><div className="serif-display text-4xl text-[#4b3428]">Account settings</div><p className="mt-3 max-w-2xl text-sm leading-7 text-[#76675c]">Backend-ready profile area for reviews, wishlist, checkout history, and studio requests.</p></div>}</main>}
+import { ProfilePageClient } from '@/components/ProfilePageClient';
+import { getCatalogProducts } from '@/lib/catalog';
+
+export default async function ProfilePage() {
+  const products = await getCatalogProducts({ visibleOnly: true });
+
+  return <ProfilePageClient products={products} />;
+}

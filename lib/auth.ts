@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { AuthScope, User } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { CURRENT_POLICY_VERSION, hasAcceptedPolicies } from '@/lib/policies';
+import { hasAcceptedPolicies } from '@/lib/policies';
 
 export const SESSION_COOKIE = 'tp_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -39,9 +39,6 @@ export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | nul
     return null;
   }
 
-  const acceptedPolicyVersion =
-    user.acceptedPolicyVersion || CURRENT_POLICY_VERSION;
-
   return {
     id: user.id,
     name: user.name || user.email.split('@')[0],
@@ -50,7 +47,7 @@ export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | nul
     isAdmin: user.isAdmin,
     avatar: user.avatar || undefined,
     marketingConsent: user.marketingConsent,
-    acceptedPolicyVersion,
+    acceptedPolicyVersion: user.acceptedPolicyVersion || undefined,
     hasAcceptedPolicies: hasAcceptedPolicies({
       acceptedTermsAt: user.acceptedTermsAt,
       acceptedPrivacyAt: user.acceptedPrivacyAt,

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 import { isSiteSectionVisible } from '@/lib/catalog';
+import { ContactForm } from '@/components/ContactForm';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 
@@ -94,76 +95,7 @@ export default async function Page() {
               Fill out the form and our team will get back to you within 24 hours.
             </p>
 
-            <form action="/api/contact" method="post" className="mt-7 space-y-4">
-              <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
-                    Name
-                  </label>
-                  <input
-                    name="name"
-                    placeholder="Your name"
-                    className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
-                    style={{ borderWidth: '1px' }}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
-                    Email
-                  </label>
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
-                    style={{ borderWidth: '1px' }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
-                  Subject
-                </label>
-                <select
-                  name="subject"
-                  className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
-                  style={{ borderWidth: '1px', color: 'var(--tp-text)' }}
-                >
-                  <option>General Inquiry</option>
-                  <option>Custom Order</option>
-                  <option>Plant Care Help</option>
-                  <option>Wholesale</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
-                  Message
-                </label>
-                <textarea
-                  name="message"
-                  placeholder="Tell us what you need..."
-                  className="tp-input min-h-[140px] resize-none rounded-2xl px-5 py-4 text-sm outline-none transition"
-                  style={{ borderWidth: '1px' }}
-                />
-              </div>
-
-              <button className="btn-primary block w-full text-center">
-                Send Message
-              </button>
-
-              <p className="text-xs leading-6 tp-text-muted">
-                By sending a message, you agree to our{' '}
-                <a href="/privacy-policy" className="tp-accent underline">
-                  Privacy Policy
-                </a>
-                . We only use your details to respond and support your request.
-              </p>
-            </form>
+            <ContactForm />
           </div>
 
           <div className="overflow-hidden rounded-[1.5rem] tp-card">

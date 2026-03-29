@@ -619,7 +619,7 @@ export default function CartPage() {
                           statusType === 'error'
                             ? 'color-mix(in srgb, var(--tp-accent) 10%, var(--tp-card) 90%)'
                             : statusType === 'success'
-                            ? 'color-mix(in srgb, #6a8f5c 12%, var(--tp-card) 88%)'
+                            ? 'color-mix(in srgb, var(--tp-success) 12%, var(--tp-card) 88%)'
                             : 'var(--tp-surface)',
                         color:
                           statusType === 'error'

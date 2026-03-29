@@ -1,6 +1,8 @@
-'use client';
-import { Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { products } from '@/lib/products';
-import { ProductCard } from '@/components/ProductCard';
-export default function Page(){ const [query,setQuery]=useState(''); const results = useMemo(()=>{ const q=query.trim().toLowerCase(); if(!q) return []; return products.filter((p)=>[p.name,p.category,p.short,p.sku,p.details?.shape].join(' ').toLowerCase().includes(q)); },[query]); return <main className="container-shell py-12 md:py-16"><div className="mx-auto max-w-5xl text-center"><div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#B66A3C]">Find Your Pot</div><h1 className="mt-4 serif-display text-6xl text-[#3d2a20]">Search</h1><div className="relative mx-auto mt-8 max-w-2xl"><Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8b7a6e]" /><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search pots, plants, styles..." className="w-full rounded-full border border-[#e6d9cd] bg-white py-5 pl-14 pr-5 shadow-sm outline-none" /></div><p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-[#8a7a6d]">{query ? `${results.length} results for “${query}”` : 'Start typing to search across all our pots and plants.'}</p></div><div className="mt-10">{!query ? <div className="rounded-[2rem] border border-[#e6d9cd] bg-white p-10 text-center text-[#76675c]">Search for ribbed globe, indoor, Monstera, or a SKU like TP-GLOBE-SM-001.</div> : results.length ? <div className="grid gap-6 md:grid-cols-3">{results.map((product)=><ProductCard key={product.slug} product={product} collection />)}</div> : <div className="rounded-[2rem] border border-[#e6d9cd] bg-white p-10 text-center"><div className="serif-display text-4xl text-[#4b3428]">No results yet</div><p className="mt-4 text-[#76675c]">Try another product name, plant type, shape, or category.</p></div>}</div></main>}
+import { SearchPageClient } from '@/components/SearchPageClient';
+import { getCatalogProducts } from '@/lib/catalog';
+
+export default async function SearchPage() {
+  const products = await getCatalogProducts({ visibleOnly: true });
+
+  return <SearchPageClient products={products} />;
+}

@@ -44,7 +44,7 @@ function sanitizeValue(
   }
 
   if (value === null) {
-    return null;
+    return undefined;
   }
 
   if (

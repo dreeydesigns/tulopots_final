@@ -1,11 +1,50 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { LEGAL_ROUTES } from '@/lib/policies';
 import { useStore } from './Providers';
 
 export function Footer() {
   const { isSectionVisible } = useStore();
+  const [newsletterState, setNewsletterState] = useState('');
+  const [newsletterTone, setNewsletterTone] = useState<'idle' | 'error' | 'success'>('idle');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleNewsletterSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setNewsletterState('');
+    setNewsletterTone('idle');
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Unable to join right now.');
+      }
+
+      form.reset();
+      setNewsletterTone('success');
+      setNewsletterState(data.message || 'You are subscribed.');
+    } catch (error: any) {
+      setNewsletterTone('error');
+      setNewsletterState(error?.message || 'Unable to join right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <footer
@@ -81,19 +120,22 @@ export function Footer() {
           <p className="mt-4 text-sm leading-7 text-white/55">
             Get care tips, new arrivals and exclusive offers.
           </p>
-          <form action="/api/newsletter" method="post" className="mt-5 flex gap-2">
+          <form onSubmit={handleNewsletterSubmit} className="mt-5 flex gap-2">
             <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
             <input
               name="email"
               type="email"
               placeholder="Your email"
               className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
+              required
             />
             <button
+              type="submit"
+              disabled={isSubmitting}
               className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
               style={{ background: 'var(--tp-accent)' }}
             >
-              Join
+              {isSubmitting ? 'Joining...' : 'Join'}
             </button>
           </form>
           <p className="mt-3 text-xs leading-6 text-white/35">
@@ -103,6 +145,23 @@ export function Footer() {
             </Link>{' '}
             and can unsubscribe at any time.
           </p>
+          {newsletterState ? (
+            <div
+              className="mt-3 rounded-2xl px-4 py-3 text-xs leading-6"
+              style={{
+                background:
+                  newsletterTone === 'error'
+                    ? 'rgba(208, 138, 87, 0.14)'
+                    : 'rgba(255,255,255,0.08)',
+                color:
+                  newsletterTone === 'error'
+                    ? 'var(--tp-accent)'
+                    : 'rgba(255,255,255,0.82)',
+              }}
+            >
+              {newsletterState}
+            </div>
+          ) : null}
         </div>
       </div>
 
