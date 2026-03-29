@@ -6,6 +6,8 @@ export const BRAND = {
   emailSecondary: 'tulopots@outlook.com'
 };
 
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tulopots.com';
+
 export const imageByKey = {
   hero: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1400&auto=format&fit=crop',
   indoor1: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1200&auto=format&fit=crop',

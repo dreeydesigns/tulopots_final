@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   MessageCircle,
 } from 'lucide-react';
+import { useStore } from '@/components/Providers';
 
 type OrderData = {
   id: string;
@@ -25,6 +26,7 @@ type OrderData = {
   shippingCity?: string;
   createdAt: string;
   items: Array<{
+    productSlug?: string;
     name: string;
     mode: string;
     quantity: number;
@@ -41,11 +43,13 @@ function money(amount: number) {
 
 function OrderConfirmationInner() {
   const params = useSearchParams();
+  const { clearPurchasedItems } = useStore();
   const orderId = params.get('order');
   const paymentStatus = params.get('payment');
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [clearedOrderId, setClearedOrderId] = useState<string | null>(null);
 
   const isCancelled = paymentStatus === 'cancelled';
   const isPaid = order?.status === 'PAID';
@@ -123,6 +127,32 @@ function OrderConfirmationInner() {
       window.clearInterval(interval);
     };
   }, [isPolling, orderId]);
+
+  useEffect(() => {
+    if (!orderId) {
+      setClearedOrderId(null);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!isPaid || !order || clearedOrderId === order.id) {
+      return;
+    }
+
+    const purchasedItems = order.items
+      .filter((item) => item.productSlug)
+      .map((item) => ({
+        slug: item.productSlug as string,
+        mode: item.mode as 'plant' | 'pot',
+        sizeLabel: item.sizeLabel || null,
+      }));
+
+    if (purchasedItems.length) {
+      clearPurchasedItems(purchasedItems);
+    }
+
+    setClearedOrderId(order.id);
+  }, [clearPurchasedItems, clearedOrderId, isPaid, order]);
 
   if (loading) {
     return (

@@ -10,7 +10,9 @@ import {
   Star,
   ChevronDown,
   ChevronLeft,
+  Link2,
   Leaf,
+  MessageCircle,
   Shield,
   Truck,
   Check,
@@ -69,6 +71,20 @@ function getReasonBlocks(product: Product, mode: 'plant' | 'pot') {
   ];
 }
 
+function getCategoryLabel(category: Product['category']) {
+  if (category === 'indoor') return 'For Interior Spaces';
+  if (category === 'outdoor') return 'For Open Spaces';
+  return 'Clay Forms';
+}
+
+function formatReviewDate(value: string) {
+  return new Date(value).toLocaleDateString('en-KE', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function ProductPageClient({
   product,
   relatedProducts,
@@ -102,6 +118,7 @@ export function ProductPageClient({
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewFeedback, setReviewFeedback] = useState('');
   const [reviewError, setReviewError] = useState('');
+  const [shareFeedback, setShareFeedback] = useState('');
 
   const size = sizes.find((option) => option.key === selected) || sizes[0];
   const unit = Math.round(
@@ -113,6 +130,21 @@ export function ProductPageClient({
 
   const placementCue = getPlacementCue(product);
   const reasonBlocks = getReasonBlocks(product, mode);
+  const categoryLabel = getCategoryLabel(product.category);
+  const trustSignals = [
+    {
+      label: 'Material',
+      value: product.details.material || '100% Natural Kenyan Clay',
+    },
+    {
+      label: 'Finish',
+      value: product.details.finish || 'Natural Terracotta',
+    },
+    {
+      label: 'Care',
+      value: product.plantGuide ? 'Plant care guide included' : 'Easy to pair with your own plant',
+    },
+  ];
 
   const modeLabel =
     mode === 'plant'
@@ -231,17 +263,39 @@ export function ProductPageClient({
     }
   }
 
+  async function handleCopyLink() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareFeedback('Link copied. You can share this piece anywhere.');
+    } catch {
+      setShareFeedback('Copy was blocked on this browser. Use the WhatsApp share instead.');
+    }
+  }
+
+  function handleWhatsappShare() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const message = `Take a look at ${product.name} from TuloPots: ${window.location.href}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  }
+
   return (
     <main className="container-shell py-10 md:py-16">
       <Breadcrumbs
         items={[
           ['Home', '/'],
           [
-            product.category === 'indoor'
-              ? 'Indoor Plants'
-              : product.category === 'outdoor'
-              ? 'Outdoor Plants'
-              : 'Pots Only',
+            categoryLabel,
             `/${product.category}`,
           ],
           [product.name, `/product/${product.slug}`],
@@ -444,6 +498,50 @@ export function ProductPageClient({
             </div>
           </div>
 
+          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
+              Rooted in Craft
+            </div>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+              {trustSignals.map((signal) => (
+                <div key={signal.label} className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/55">
+                    {signal.label}
+                  </div>
+                  <div className="mt-2 leading-6 text-[var(--tp-heading)]">{signal.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
+              Share This Piece
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]"
+              >
+                <Link2 className="h-4 w-4 text-[var(--tp-accent)]" />
+                Copy Link
+              </button>
+              <button
+                type="button"
+                onClick={handleWhatsappShare}
+                className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                style={{ background: 'var(--tp-accent)' }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Share
+              </button>
+            </div>
+            {shareFeedback ? (
+              <div className="mt-3 text-sm text-[var(--tp-text)]/68">{shareFeedback}</div>
+            ) : null}
+          </div>
+
           <div className="mt-8 rounded-[1.75rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5 shadow-[0_10px_28px_rgba(90,52,34,0.06)]">
             <div className="flex flex-col gap-5 md:flex-row md:items-center">
               <div className="inline-flex items-center self-start rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)]">
@@ -597,20 +695,30 @@ export function ProductPageClient({
                     className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75"
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <div className="font-semibold text-[var(--tp-heading)]">
-                        {review.name}
+                      <div>
+                        <div className="font-semibold text-[var(--tp-heading)]">{review.name}</div>
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--tp-text)]/50">
+                          {formatReviewDate(review.createdAt)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={`${review.id}-${star}`}
-                            className={`h-3.5 w-3.5 ${
-                              star <= review.rating
-                                ? 'fill-[#f0b400] text-[#f0b400]'
-                                : 'text-[#dfd2c8]'
-                            }`}
-                          />
-                        ))}
+                      <div className="flex flex-col items-end gap-2">
+                        {review.featured ? (
+                          <div className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-accent)]">
+                            Featured
+                          </div>
+                        ) : null}
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={`${review.id}-${star}`}
+                              className={`h-3.5 w-3.5 ${
+                                star <= review.rating
+                                  ? 'fill-[#f0b400] text-[#f0b400]'
+                                  : 'text-[#dfd2c8]'
+                              }`}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                     <p className="mt-2">{review.body}</p>

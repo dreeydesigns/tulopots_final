@@ -65,6 +65,9 @@ type Store = {
   ) => void;
   updateQty: (key: string, delta: number) => void;
   removeItem: (key: string) => void;
+  clearPurchasedItems: (
+    items: Array<{ slug: string; mode: 'plant' | 'pot'; sizeLabel?: string | null }>
+  ) => void;
 };
 
 type ThemeTransitionState = {
@@ -308,6 +311,16 @@ export function Providers({
   const removeItem = (key: string) =>
     setCart((cur) => cur.filter((item) => item.key !== key));
 
+  const clearPurchasedItems: Store['clearPurchasedItems'] = (items) => {
+    const purchasedKeys = new Set(
+      items.map((item) => `${item.slug}-${item.mode}-${item.sizeLabel || 'default'}`)
+    );
+
+    setCart((current) =>
+      current.filter((item) => !purchasedKeys.has(item.key))
+    );
+  };
+
   const value = useMemo(
     () => ({
       isLoggedIn,
@@ -327,6 +340,7 @@ export function Providers({
       addToCart,
       updateQty,
       removeItem,
+      clearPurchasedItems,
     }),
     [isLoggedIn, user, showAuthModal, theme, wishlist, cart, siteSections]
   );

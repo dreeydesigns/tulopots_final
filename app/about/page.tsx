@@ -1,5 +1,22 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
-import { imageByKey } from '@/lib/site';
+import { imageByKey, BRAND, SITE_URL } from '@/lib/site';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'Learn about the TuloPots studio in Nairobi, Kenya, and the clay-first philosophy behind its handcrafted terracotta forms.',
+  alternates: {
+    canonical: '/about',
+  },
+  openGraph: {
+    title: `About ${BRAND.name}`,
+    description:
+      'The clay-first philosophy and Nairobi studio story behind TuloPots handcrafted terracotta forms.',
+    url: `${SITE_URL}/about`,
+    images: [imageByKey.clay],
+  },
+};
 
 export default function Page() {
   return (
@@ -13,17 +30,16 @@ export default function Page() {
             Clay, patience, and the warmth of handmade living.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 tp-text-soft">
-            TuloPots is a Nairobi-based terracotta studio creating pieces that
-            feel grounded, tactile, and quietly beautiful. We work with
-            natural Kenyan clay and shape each pot to feel as good in the
-            hand as it looks in a room or garden.
+            TuloPots is a Nairobi-based terracotta studio creating forms that feel grounded,
+            tactile, and quietly beautiful. We work with natural Kenyan clay and shape each piece
+            to hold warmth, balance, and calm in the spaces people live with every day.
           </p>
         </div>
 
         <div className="overflow-hidden rounded-[2rem]">
           <Image
             src={imageByKey.clay}
-            alt="Workshop"
+            alt="Clay work in the TuloPots Nairobi studio"
             width={1200}
             height={900}
             className="h-full w-full object-cover"
@@ -34,16 +50,16 @@ export default function Page() {
       <section className="mt-16 grid gap-8 md:grid-cols-3">
         {[
           [
-            'Craftsmanship',
-            'Every piece is formed slowly, with care for proportion, balance, and texture.',
+            'Rooted in craft',
+            'Every piece is formed slowly, with care for proportion, balance, and the quiet character of clay.',
           ],
           [
             'Material honesty',
-            'We let terracotta speak through visible clay character and warm natural finish.',
+            'We let terracotta speak through visible clay texture, breathable surfaces, and restrained finish.',
           ],
           [
-            'Design-led living',
-            'Our forms are made for modern homes, gardens, studios, and thoughtful everyday styling.',
+            'Crafted for living',
+            'Our forms are made for interior spaces, open spaces, studios, and the rhythms of everyday placement.',
           ],
         ].map(([title, body]) => (
           <div key={title as string} className="rounded-[2rem] tp-card p-8">

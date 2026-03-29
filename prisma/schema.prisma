@@ -8,21 +8,28 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  name         String?
-  email        String?       @unique
-  phone        String?       @unique
-  provider     String?
-  googleId     String?       @unique
-  appleId      String?       @unique
-  passwordHash String?
-  avatar       String?
-  isAdmin      Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  orders       Order[]
-  reviews      Review[]
-  sessions     AuthSession[]
+  id                    String           @id @default(cuid())
+  name                  String?
+  email                 String?          @unique
+  phone                 String?          @unique
+  provider              String?
+  googleId              String?          @unique
+  appleId               String?          @unique
+  passwordHash          String?
+  avatar                String?
+  isAdmin               Boolean          @default(false)
+  acceptedTermsAt       DateTime?
+  acceptedPrivacyAt     DateTime?
+  acceptedPolicyVersion String?
+  marketingConsent      Boolean          @default(false)
+  marketingConsentAt    DateTime?
+  lastSignInAt          DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @default(now()) @updatedAt
+  orders                Order[]
+  reviews               Review[]
+  sessions              AuthSession[]
+  analyticsEvents       AnalyticsEvent[]
 }
 
 model AuthSession {
@@ -180,6 +187,19 @@ model Review {
   updatedAt DateTime @default(now()) @updatedAt
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model AnalyticsEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  sessionKey   String?
+  eventName    String
+  path         String?
+  source       String?
+  consentLevel String
+  payload      Json?
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 enum AuthScope {

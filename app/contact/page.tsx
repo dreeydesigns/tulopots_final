@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
-import { BRAND } from '@/lib/site';
+import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 import { isSiteSectionVisible } from '@/lib/catalog';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import type { Metadata } from 'next';
 
 function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -20,10 +21,20 @@ function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export const metadata = {
-  title: 'Contact Us | TuloPots',
+export const metadata: Metadata = {
+  title: 'Contact Us',
   description:
-    'Contact TuloPots in Nairobi for pots, plants, studio commissions, and wholesale inquiries.',
+    'Contact TuloPots in Nairobi, Kenya for handcrafted terracotta forms, Studio commissions, plant guidance, and wholesale conversations.',
+  alternates: {
+    canonical: '/contact',
+  },
+  openGraph: {
+    title: 'Contact Us | TuloPots',
+    description:
+      'Contact TuloPots in Nairobi for handcrafted terracotta forms, Studio commissions, and wholesale conversations.',
+    url: `${SITE_URL}/contact`,
+    images: [imageByKey.contact],
+  },
 };
 
 const INFO = [

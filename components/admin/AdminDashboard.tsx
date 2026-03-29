@@ -11,6 +11,7 @@ import {
   PanelsTopLeft,
   RefreshCw,
   Sparkles,
+  Star,
   SquarePen,
   Trash2,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ type Tab =
   | 'products'
   | 'orders'
   | 'studio'
+  | 'reviews'
   | 'contact'
   | 'newsletter'
   | 'content';
@@ -32,6 +34,8 @@ type DashboardData = {
     studioBriefs: number;
     contactMessages: number;
     newsletterSubscribers: number;
+    reviews: number;
+    pendingReviews: number;
   };
   activity: Array<{
     id: string;
@@ -119,6 +123,20 @@ type DashboardData = {
     route: string | null;
     visible: boolean;
   }>;
+  reviews: Array<{
+    id: string;
+    name: string;
+    rating: number;
+    body: string;
+    approved: boolean;
+    featured: boolean;
+    createdAt: string;
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 };
 
 type DashboardResponse = {
@@ -166,6 +184,7 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'products', label: 'Products', icon: PackagePlus },
   { id: 'orders', label: 'Orders', icon: ClipboardList },
   { id: 'studio', label: 'Studio', icon: Sparkles },
+  { id: 'reviews', label: 'Reviews', icon: Star },
   { id: 'contact', label: 'Contact', icon: Mail },
   { id: 'newsletter', label: 'Newsletter', icon: Boxes },
   { id: 'content', label: 'Content', icon: PanelsTopLeft },
@@ -235,6 +254,7 @@ export function AdminDashboard({ user }: { user: User }) {
   const [briefStatus, setBriefStatus] = useState('RECEIVED');
   const [briefNotes, setBriefNotes] = useState('');
 
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
 
   async function loadDashboard() {
@@ -260,6 +280,10 @@ export function AdminDashboard({ user }: { user: User }) {
 
       if (!selectedBriefId && data.dashboard.studioBriefs.length) {
         setSelectedBriefId(data.dashboard.studioBriefs[0].id);
+      }
+
+      if (!selectedReviewId && data.dashboard.reviews.length) {
+        setSelectedReviewId(data.dashboard.reviews[0].id);
       }
 
       if (!selectedContactId && data.dashboard.contactMessages.length) {
@@ -290,6 +314,11 @@ export function AdminDashboard({ user }: { user: User }) {
     () =>
       dashboard?.contactMessages.find((message) => message.id === selectedContactId) || null,
     [dashboard, selectedContactId]
+  );
+
+  const selectedReview = useMemo(
+    () => dashboard?.reviews.find((review) => review.id === selectedReviewId) || null,
+    [dashboard, selectedReviewId]
   );
 
   useEffect(() => {
@@ -488,6 +517,35 @@ export function AdminDashboard({ user }: { user: User }) {
     }
   }
 
+  async function updateReview(
+    id: string,
+    nextFields: {
+      approved?: boolean;
+      featured?: boolean;
+    }
+  ) {
+    try {
+      setPendingKey(`review:${id}`);
+      const response = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextFields),
+      });
+      const data = (await response.json()) as { ok: boolean; error?: string };
+
+      if (!response.ok || !data.ok) {
+        setError(data.error || 'Unable to update review.');
+        return;
+      }
+
+      await loadDashboard();
+    } catch {
+      setError('Unable to update review.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
   async function toggleSection(key: string, visible: boolean) {
     try {
       setPendingKey(`section:${key}`);
@@ -652,13 +710,14 @@ export function AdminDashboard({ user }: { user: User }) {
               <>
                 {tab === 'overview' ? (
                   <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                       {[
                         ['Products', dashboard.counts.products],
                         ['Orders', dashboard.counts.orders],
                         ['Studio Briefs', dashboard.counts.studioBriefs],
                         ['Contacts', dashboard.counts.contactMessages],
                         ['Newsletter', dashboard.counts.newsletterSubscribers],
+                        ['Review Queue', dashboard.counts.pendingReviews],
                       ].map(([label, value]) => (
                         <MetricCard key={label} label={String(label)} value={String(value)} />
                       ))}
@@ -707,6 +766,7 @@ export function AdminDashboard({ user }: { user: User }) {
                             ['Add a product', 'products'],
                             ['Review newest order', 'orders'],
                             ['Respond to Studio brief', 'studio'],
+                            ['Moderate newest review', 'reviews'],
                             ['Triage contact message', 'contact'],
                             ['Export newsletter list', 'newsletter'],
                           ].map(([label, nextTab]) => (
@@ -957,6 +1017,140 @@ export function AdminDashboard({ user }: { user: User }) {
                           <button type="button" onClick={() => void saveBrief()} disabled={pendingKey === `brief:${selectedBrief.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
                             {pendingKey === `brief:${selectedBrief.id}` ? 'Saving…' : 'Save Brief'}
                           </button>
+                        </div>
+                      ) : null
+                    }
+                  />
+                ) : null}
+
+                {tab === 'reviews' ? (
+                  <SplitPanel
+                    title="Review moderation"
+                    subtitle="Approve customer feedback, feature standout testimonials, and keep product trust signals current."
+                    list={dashboard.reviews.map((review) => ({
+                      id: review.id,
+                      title: `${review.name} · ${review.product.name}`,
+                      body: `${review.rating} stars · ${review.approved ? 'Approved' : 'Pending moderation'}${review.featured ? ' · Featured' : ''}`,
+                      meta: formatDate(review.createdAt),
+                    }))}
+                    selectedId={selectedReviewId}
+                    onSelect={setSelectedReviewId}
+                    detail={
+                      selectedReview ? (
+                        <div className="space-y-5">
+                          <DetailIntro
+                            title={selectedReview.name}
+                            subtitle={`${selectedReview.product.name} · ${selectedReview.rating} stars`}
+                          />
+                          <div className="grid gap-4 md:grid-cols-3">
+                            <DetailStat
+                              label="Status"
+                              value={
+                                selectedReview.approved ? 'Approved' : 'Pending moderation'
+                              }
+                            />
+                            <DetailStat
+                              label="Feature"
+                              value={selectedReview.featured ? 'Featured' : 'Standard'}
+                            />
+                            <DetailStat
+                              label="Created"
+                              value={formatDate(selectedReview.createdAt)}
+                            />
+                          </div>
+                          <div
+                            className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-card)',
+                            }}
+                          >
+                            {selectedReview.body}
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void updateReview(selectedReview.id, {
+                                  approved: true,
+                                })
+                              }
+                              disabled={pendingKey === `review:${selectedReview.id}`}
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                              style={{
+                                background: selectedReview.approved
+                                  ? 'var(--tp-accent)'
+                                  : 'var(--tp-surface)',
+                                color: selectedReview.approved ? '#ffffff' : 'var(--tp-heading)',
+                              }}
+                            >
+                              {selectedReview.approved ? 'Approved' : 'Approve Review'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void updateReview(selectedReview.id, {
+                                  approved: false,
+                                  featured: false,
+                                })
+                              }
+                              disabled={pendingKey === `review:${selectedReview.id}`}
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                              style={{
+                                background: !selectedReview.approved
+                                  ? 'var(--tp-accent)'
+                                  : 'var(--tp-surface)',
+                                color: !selectedReview.approved
+                                  ? '#ffffff'
+                                  : 'var(--tp-heading)',
+                              }}
+                            >
+                              Hold Back
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void updateReview(selectedReview.id, {
+                                  approved: true,
+                                  featured: !selectedReview.featured,
+                                })
+                              }
+                              disabled={pendingKey === `review:${selectedReview.id}`}
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                              style={{
+                                background: selectedReview.featured
+                                  ? 'var(--tp-accent)'
+                                  : 'var(--tp-surface)',
+                                color: selectedReview.featured
+                                  ? '#ffffff'
+                                  : 'var(--tp-heading)',
+                              }}
+                            >
+                              {selectedReview.featured ? 'Remove Feature' : 'Feature Review'}
+                            </button>
+                            <Link
+                              href={`/product/${selectedReview.product.slug}`}
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                              style={{
+                                background: 'transparent',
+                                color: 'var(--tp-heading)',
+                                border: '1px solid var(--tp-border)',
+                              }}
+                            >
+                              Open Product
+                            </Link>
+                          </div>
+                          <div
+                            className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-surface)',
+                              color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)',
+                            }}
+                          >
+                            Featured reviews appear first on the product page. Unapproved reviews
+                            stay hidden from the storefront until they are approved.
+                          </div>
                         </div>
                       ) : null
                     }

@@ -59,18 +59,27 @@ export async function getAdminDashboardData() {
     studioCount,
     contactCount,
     newsletterCount,
+    reviewCount,
+    pendingReviewCount,
     products,
     orders,
     studioBriefs,
     contactMessages,
     newsletterSubscribers,
     siteSections,
+    reviews,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count(),
     prisma.studioBrief.count(),
     prisma.contactMessage.count(),
     prisma.newsletterSubscriber.count(),
+    prisma.review.count(),
+    prisma.review.count({
+      where: {
+        approved: false,
+      },
+    }),
     prisma.product.findMany({
       orderBy: { updatedAt: 'desc' },
       take: 60,
@@ -94,6 +103,19 @@ export async function getAdminDashboardData() {
     }),
     prisma.siteSection.findMany({
       orderBy: { createdAt: 'asc' },
+    }),
+    prisma.review.findMany({
+      orderBy: [{ approved: 'asc' }, { createdAt: 'desc' }],
+      take: 40,
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
     }),
   ]);
 
@@ -126,6 +148,13 @@ export async function getAdminDashboardData() {
       detail: subscriber.email,
       createdAt: subscriber.createdAt.toISOString(),
     })),
+    ...reviews.slice(0, 4).map((review) => ({
+      id: `review:${review.id}`,
+      type: 'review',
+      title: `Review from ${review.name}`,
+      detail: `${review.product.name} · ${review.approved ? 'Approved' : 'Awaiting approval'}`,
+      createdAt: review.createdAt.toISOString(),
+    })),
   ]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
@@ -137,6 +166,8 @@ export async function getAdminDashboardData() {
       studioBriefs: studioCount,
       contactMessages: contactCount,
       newsletterSubscribers: newsletterCount,
+      reviews: reviewCount,
+      pendingReviews: pendingReviewCount,
     },
     activity,
     products: products.map((product) => ({
@@ -217,6 +248,20 @@ export async function getAdminDashboardData() {
       label: section.label,
       route: section.route,
       visible: section.visible,
+    })),
+    reviews: reviews.map((review) => ({
+      id: review.id,
+      name: review.name,
+      rating: review.rating,
+      body: review.body,
+      approved: review.approved,
+      featured: review.featured,
+      createdAt: review.createdAt.toISOString(),
+      product: {
+        id: review.product.id,
+        name: review.product.name,
+        slug: review.product.slug,
+      },
     })),
   };
 }

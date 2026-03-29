@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       summary: {
-        rating,
-        reviewCount,
+        rating: product.rating || rating,
+        reviewCount: product.reviewCount || reviewCount,
       },
       reviews: reviews.map((review) => ({
         id: review.id,

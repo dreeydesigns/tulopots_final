@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-29T20:34:30.521Z",
+  "lastUpdated": "2026-03-30T00:18:30.8409380+03:00",
   "phases": [
     {
       "id": "admin",
@@ -54,48 +54,48 @@
     {
       "id": "conversion",
       "label": "Conversion Improvement",
-      "status": "in_progress",
-      "percent": 25,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
-        { "label": "Product page persuasion layer", "done": false },
-        { "label": "Cart hardening", "done": false },
+        { "label": "Product page persuasion layer", "done": true },
+        { "label": "Cart hardening", "done": true },
         { "label": "Checkout flow stability", "done": true },
-        { "label": "Trust signals", "done": false }
+        { "label": "Trust signals", "done": true }
       ]
     },
     {
       "id": "seo",
       "label": "SEO System",
-      "status": "not_started",
-      "percent": 0,
+      "status": "in_progress",
+      "percent": 50,
       "tasks": [
         { "label": "Dynamic metadata all pages", "done": false },
-        { "label": "Open Graph tags", "done": false },
-        { "label": "Structured data (JSON-LD)", "done": false },
+        { "label": "Open Graph tags", "done": true },
+        { "label": "Structured data (JSON-LD)", "done": true },
         { "label": "Image alt attributes", "done": false }
       ]
     },
     {
       "id": "reviews",
       "label": "Reviews & Trust System",
-      "status": "in_progress",
-      "percent": 75,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
         { "label": "Review Prisma model", "done": true },
         { "label": "Review form on product pages", "done": true },
-        { "label": "Admin moderation", "done": false },
+        { "label": "Admin moderation", "done": true },
         { "label": "Display on product pages", "done": true }
       ]
     },
     {
       "id": "social",
       "label": "Social & Brand Integration",
-      "status": "not_started",
-      "percent": 0,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
-        { "label": "Share buttons", "done": false },
-        { "label": "OG images per product", "done": false },
-        { "label": "Campaign route stubs", "done": false }
+        { "label": "Share buttons", "done": true },
+        { "label": "OG images per product", "done": true },
+        { "label": "Campaign route stubs", "done": true }
       ]
     },
     {

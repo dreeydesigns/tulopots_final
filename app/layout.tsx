@@ -10,17 +10,53 @@ import { AuthModal } from '../components/AuthModal';
 import { Chatbot } from '../components/Chatbot';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteSections } from '@/lib/catalog';
+import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'TuloPots - Handcrafted Terracotta from Kenya',
-  description: 'Premium handcrafted terracotta pots, plant pairings, and custom studio commissions from Nairobi.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${BRAND.name} | ${BRAND.tagline}`,
+    template: `%s | ${BRAND.name}`,
+  },
+  description:
+    'Editorial terracotta forms, plant pairings, and Studio commissions from Nairobi, Kenya. Crafted for living with warmth, restraint, and calm presence.',
+  keywords: [
+    'terracotta Kenya',
+    'terracotta pots Nairobi',
+    'handcrafted clay pots Kenya',
+    'clay forms Nairobi',
+    'interior styling Kenya',
+    'open space planters Kenya',
+    'handcrafted decor Nairobi',
+  ],
+  openGraph: {
+    title: `${BRAND.name} | ${BRAND.tagline}`,
+    description:
+      'Editorial terracotta forms, plant pairings, and Studio commissions from Nairobi, Kenya.',
+    url: SITE_URL,
+    siteName: BRAND.name,
+    images: [
+      {
+        url: imageByKey.hero,
+        width: 1400,
+        height: 933,
+        alt: `${BRAND.name} handcrafted terracotta forms from Nairobi, Kenya`,
+      },
+    ],
+    locale: 'en_KE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${BRAND.name} | ${BRAND.tagline}`,
+    description:
+      'Editorial terracotta forms, plant pairings, and Studio commissions from Nairobi, Kenya.',
+    images: [imageByKey.hero],
+  },
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [user, siteSections] = await Promise.all([
-    getCurrentUser(),
-    getSiteSections(),
-  ]);
+  const [user, siteSections] = await Promise.all([getCurrentUser(), getSiteSections()]);
 
   return (
     <html lang="en">

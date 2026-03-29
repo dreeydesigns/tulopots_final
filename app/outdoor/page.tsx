@@ -1,10 +1,37 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CollectionTemplate } from '@/components/Templates';
 import { getCatalogProducts, isSiteSectionVisible } from '@/lib/catalog';
+import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
-export const metadata = {
-  title: 'Outdoor Plants | TuloPots',
-  description: 'Weather-ready outdoor terracotta pots with curated hardy plant pairings.',
+export const metadata: Metadata = {
+  title: 'For Open Spaces',
+  description:
+    'Weather-ready terracotta forms from Nairobi, Kenya, selected for patios, balconies, gardens, and open spaces that still ask for restraint.',
+  alternates: {
+    canonical: '/outdoor',
+  },
+  openGraph: {
+    title: `For Open Spaces | ${BRAND.name}`,
+    description:
+      'Weather-ready terracotta forms from Nairobi, Kenya, shaped for patios, balconies, and open spaces.',
+    url: `${SITE_URL}/outdoor`,
+    images: [
+      {
+        url: imageByKey.outdoor1,
+        width: 1200,
+        height: 1200,
+        alt: `${BRAND.name} terracotta collection for open spaces`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `For Open Spaces | ${BRAND.name}`,
+    description:
+      'Weather-ready terracotta forms from Nairobi, Kenya, shaped for patios, balconies, and open spaces.',
+    images: [imageByKey.outdoor1],
+  },
 };
 
 export default async function Page() {
@@ -19,8 +46,8 @@ export default async function Page() {
   return (
     <CollectionTemplate
       route="outdoor"
-      title="Outdoor Plants"
-      intro="Robust terracotta forms built for patios, balconies, and open spaces where craft should still feel calm and composed."
+      title="For Open Spaces"
+      intro="Robust terracotta forms for patios, balconies, and garden edges where craft should feel grounded, calm, and visually composed."
       facts={['Weather-ready', 'Double-fired clay', 'Nairobi crafted']}
       filters={['all', 'medium', 'large', 'decorative', 'new arrivals']}
       products={products}

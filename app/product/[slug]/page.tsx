@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductPageClient } from '@/components/ProductPageClient';
 import {
@@ -5,40 +6,51 @@ import {
   getCatalogProducts,
   getCatalogSlugs,
 } from '@/lib/catalog';
+import { BRAND, SITE_URL } from '@/lib/site';
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+function getCategoryLabel(category: 'indoor' | 'outdoor' | 'pots') {
+  if (category === 'indoor') return 'For Interior Spaces';
+  if (category === 'outdoor') return 'For Open Spaces';
+  return 'Clay Forms';
+}
 
 export async function generateStaticParams() {
   const slugs = await getCatalogSlugs();
   return slugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: ProductPageProps) {
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getCatalogProductBySlug(slug);
 
   if (!product) return {};
 
-  const title = `${product.name} | Handcrafted Terracotta | TuloPots Kenya`;
-  const description = `${product.name} — handcrafted terracotta piece designed for interior spaces, patios, balconies, and modern home styling. Shop premium clay forms in Kenya.`;
+  const categoryLabel = getCategoryLabel(product.category);
+  const title = `${product.name} · ${categoryLabel}`;
+  const description = `${product.name} by ${BRAND.name}. Handcrafted terracotta form from Nairobi, Kenya, shaped for calm placement, lasting presence, and thoughtful living.`;
   const image = product.image;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: `/product/${slug}`,
+    },
     openGraph: {
       title,
       description,
-      url: `https://tulopots.com/product/${slug}`,
-      siteName: 'TuloPots',
+      url: `${SITE_URL}/product/${slug}`,
+      siteName: BRAND.name,
       images: [
         {
           url: image,
           width: 1200,
           height: 1200,
-          alt: `${product.name} handcrafted terracotta pot for interior and outdoor spaces`,
+          alt: `${product.name} handcrafted terracotta form by ${BRAND.name}`,
         },
       ],
       locale: 'en_KE',
@@ -51,17 +63,14 @@ export async function generateMetadata({ params }: ProductPageProps) {
       images: [image],
     },
     keywords: [
-      'terracotta pots Kenya',
+      'terracotta Kenya',
       'handcrafted clay pots Nairobi',
-      'indoor plant pots Kenya',
-      'outdoor planters Kenya',
-      'clay decor pieces',
-      'terracotta planters for patio',
-      'balcony planters Kenya',
-      'home decor Kenya',
-      'artisan pottery Kenya',
-      'landscape clay planters',
+      'clay forms Kenya',
+      'interior decor Kenya',
+      'open space planters Kenya',
+      'terracotta planters Nairobi',
       product.name.toLowerCase(),
+      categoryLabel.toLowerCase(),
     ],
   };
 }
@@ -76,5 +85,44 @@ export default async function Page({ params }: ProductPageProps) {
     .filter((item) => item.slug !== product.slug)
     .slice(0, 2);
 
-  return <ProductPageClient product={product} relatedProducts={relatedProducts} />;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    image: [product.image],
+    sku: product.sku,
+    brand: {
+      '@type': 'Brand',
+      name: BRAND.name,
+    },
+    category: getCategoryLabel(product.category),
+    aggregateRating:
+      product.reviews > 0
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: Number(product.rating.toFixed(1)),
+            reviewCount: product.reviews,
+          }
+        : undefined,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'KES',
+      price: product.price,
+      url: `${SITE_URL}/product/${product.slug}`,
+      availability: 'https://schema.org/InStock',
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <ProductPageClient product={product} relatedProducts={relatedProducts} />
+    </>
+  );
 }

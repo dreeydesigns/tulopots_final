@@ -22,6 +22,29 @@ type CheckoutOrder = {
   totalAmount: number;
 };
 
+type FieldErrors = Partial<
+  Record<'customerName' | 'customerEmail' | 'customerPhone' | 'shippingCity', string>
+>;
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value: string) {
+  return /^\+?[0-9]{10,15}$/.test(value);
+}
+
+const activeMethodStyle = {
+  background: 'var(--tp-accent)',
+  color: '#ffffff',
+};
+
+const inactiveMethodStyle = {
+  background: 'var(--tp-surface)',
+  color: 'color-mix(in srgb, var(--tp-text) 78%, transparent 22%)',
+  border: '1px solid var(--tp-border)',
+};
+
 export default function CartPage() {
   const { cart, updateQty, removeItem, isLoggedIn, setShowAuthModal, user } = useStore();
 
@@ -32,6 +55,7 @@ export default function CartPage() {
   const [customerPhone, setCustomerPhone] = useState('+254');
   const [shippingAddr1, setShippingAddr1] = useState('');
   const [shippingCity, setShippingCity] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     if (user) {
@@ -93,7 +117,7 @@ export default function CartPage() {
           });
         }
       } catch {
-        const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+        const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
         const deliveryFee = subtotal >= 5000 ? 0 : 350;
 
         if (active) {
@@ -108,12 +132,35 @@ export default function CartPage() {
       }
     }
 
-    recalc();
+    void recalc();
 
     return () => {
       active = false;
     };
   }, [cart, checkoutItems, hasItems]);
+
+  function validateCheckout() {
+    const nextErrors: FieldErrors = {};
+
+    if (!customerName.trim()) {
+      nextErrors.customerName = 'Enter the customer name for this order.';
+    }
+
+    if (!isValidEmail(customerEmail.trim())) {
+      nextErrors.customerEmail = 'Enter a valid email address.';
+    }
+
+    if (!isValidPhone(customerPhone.trim())) {
+      nextErrors.customerPhone = 'Use a valid phone number, for example +254700000000.';
+    }
+
+    if (!shippingCity.trim()) {
+      nextErrors.shippingCity = 'Add the delivery city so we can route the order.';
+    }
+
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
 
   async function createOrder(): Promise<CheckoutOrder> {
     const res = await fetch('/api/checkout', {
@@ -135,7 +182,29 @@ export default function CartPage() {
     return data.order as CheckoutOrder;
   }
 
+  function ensureReadyForCheckout() {
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return false;
+    }
+
+    setStatusMsg('');
+    setStatusType('info');
+
+    if (!validateCheckout()) {
+      setStatusMsg('Complete the required details before starting payment.');
+      setStatusType('error');
+      return false;
+    }
+
+    return true;
+  }
+
   async function handleMpesaCheckout() {
+    if (!ensureReadyForCheckout()) {
+      return;
+    }
+
     setIsPaying(true);
     setStatusMsg('');
 
@@ -154,17 +223,21 @@ export default function CartPage() {
       setStatusMsg(payData?.message || 'M-Pesa request sent. Complete payment on your phone.');
       setStatusType('success');
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         window.location.href = `/order-confirmation?order=${order.id}&payment=mpesa`;
-      }, 2000);
-    } catch (e: any) {
-      setStatusMsg(e?.message || 'M-Pesa checkout failed');
+      }, 1800);
+    } catch (error: any) {
+      setStatusMsg(error?.message || 'M-Pesa checkout failed');
       setStatusType('error');
       setIsPaying(false);
     }
   }
 
   async function handleCardCheckout() {
+    if (!ensureReadyForCheckout()) {
+      return;
+    }
+
     setIsPaying(true);
     setStatusMsg('');
 
@@ -184,8 +257,8 @@ export default function CartPage() {
       if (!checkoutUrl) throw new Error('Stripe checkout URL not returned');
 
       window.location.href = checkoutUrl;
-    } catch (e: any) {
-      setStatusMsg(e?.message || 'Card checkout failed');
+    } catch (error: any) {
+      setStatusMsg(error?.message || 'Card checkout failed');
       setStatusType('error');
       setIsPaying(false);
     }
@@ -196,29 +269,31 @@ export default function CartPage() {
   return (
     <main className="container-shell py-12 md:py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#B66A3C]">
-          Shopping
+        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tp-accent)]">
+          Crafted for Living
         </div>
         <h1 className="mt-4 serif-display text-5xl text-[var(--tp-heading)] md:text-6xl">
           Your Cart
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--tp-text)]/72">
-          Review your selections, confirm delivery details, and complete checkout with confidence.
+          Review your chosen forms, confirm delivery details, and move into payment with
+          clarity.
         </p>
 
         {!hasItems ? (
           <div className="mt-14 rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-8 py-20 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-surface)]">
-              <ShoppingCart className="h-8 w-8 text-[#B66A3C]" />
+              <ShoppingCart className="h-8 w-8 text-[var(--tp-accent)]" />
             </div>
             <div className="mt-6 serif-display text-4xl text-[var(--tp-heading)]">
               Your cart is empty
             </div>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--tp-text)]/72">
-              Looks like you haven&apos;t added any pots yet. Start exploring our collection.
+              There are no clay forms in your cart yet. Explore the collection and return when a
+              piece feels right for your space.
             </p>
-            <Link href="/indoor" className="btn-primary mt-6 inline-flex">
-              Browse Collection
+            <Link href="/pots" className="btn-primary mt-6 inline-flex">
+              Browse Clay Forms
             </Link>
           </div>
         ) : (
@@ -236,8 +311,8 @@ export default function CartPage() {
                   </div>
 
                   <Link
-                    href="/indoor"
-                    className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#B66A3C] transition hover:opacity-80"
+                    href="/pots"
+                    className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent)] transition hover:opacity-80"
                   >
                     Continue Shopping
                     <ChevronRight className="h-4 w-4" />
@@ -273,15 +348,16 @@ export default function CartPage() {
                       {item.name}
                     </div>
                     <div className="mt-2 text-sm text-[var(--tp-text)]/72">
-                      {item.mode === 'plant' ? 'With Plant' : 'Pot Only'}
+                      {item.mode === 'plant' ? 'Pot + Plant' : 'Pot Only'}
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
                     </div>
                     <div className="mt-2 text-sm font-medium text-[var(--tp-text)]/75">
                       {money(item.unitPrice)}
                     </div>
                     <button
+                      type="button"
                       onClick={() => removeItem(item.key)}
-                      className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#B66A3C]"
+                      className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent)]"
                     >
                       Remove
                     </button>
@@ -290,6 +366,7 @@ export default function CartPage() {
                   <div>
                     <div className="flex items-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-3 py-2">
                       <button
+                        type="button"
                         onClick={() => updateQty(item.key, -1)}
                         className="rounded-full p-3 text-[var(--tp-text)]/75"
                         aria-label="Decrease quantity"
@@ -300,6 +377,7 @@ export default function CartPage() {
                         {item.quantity}
                       </span>
                       <button
+                        type="button"
                         onClick={() => updateQty(item.key, 1)}
                         className="rounded-full p-3 text-[var(--tp-text)]/75"
                         aria-label="Increase quantity"
@@ -341,21 +419,22 @@ export default function CartPage() {
 
               <div className="mt-6 grid gap-3 text-sm text-[var(--tp-text)]/72">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-[#B66A3C]" />
+                  <Shield className="h-4 w-4 text-[var(--tp-accent)]" />
                   Secure payment flow
                 </div>
                 <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-[#B66A3C]" />
-                  Delivery confirmed during checkout
+                  <Truck className="h-4 w-4 text-[var(--tp-accent)]" />
+                  Delivery confirmed after order placement
                 </div>
               </div>
 
               {!isLoggedIn ? (
                 <div className="mt-8 rounded-[1.5rem] bg-[var(--tp-surface)] p-5 text-center">
                   <p className="text-sm text-[var(--tp-text)]/72">
-                    Sign in to complete your purchase and keep your order details saved.
+                    Sign in to continue with checkout and keep your order details saved.
                   </p>
                   <button
+                    type="button"
                     onClick={() => setShowAuthModal(true)}
                     className="btn-primary mt-4 w-full justify-center"
                   >
@@ -369,37 +448,94 @@ export default function CartPage() {
                       Your Details
                     </div>
                     <div className="mt-2 text-sm text-[var(--tp-text)]/68">
-                      Complete these fields to move into payment.
+                      These details are used for delivery and payment confirmation.
                     </div>
                   </div>
 
-                  <input
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Full Name *"
-                    className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
-                  />
+                  <div>
+                    <input
+                      value={customerName}
+                      onChange={(event) => {
+                        setCustomerName(event.target.value);
+                        setFieldErrors((current) => ({ ...current, customerName: undefined }));
+                      }}
+                      placeholder="Full Name *"
+                      autoComplete="name"
+                      className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                    />
+                    {fieldErrors.customerName ? (
+                      <p className="mt-2 text-xs text-[var(--tp-accent)]">
+                        {fieldErrors.customerName}
+                      </p>
+                    ) : null}
+                  </div>
 
-                  <input
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Email *"
-                    className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
-                  />
+                  <div>
+                    <input
+                      value={customerEmail}
+                      onChange={(event) => {
+                        setCustomerEmail(event.target.value);
+                        setFieldErrors((current) => ({ ...current, customerEmail: undefined }));
+                      }}
+                      placeholder="Email *"
+                      autoComplete="email"
+                      className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                    />
+                    {fieldErrors.customerEmail ? (
+                      <p className="mt-2 text-xs text-[var(--tp-accent)]">
+                        {fieldErrors.customerEmail}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <input
+                      value={customerPhone}
+                      onChange={(event) => {
+                        setCustomerPhone(event.target.value);
+                        setFieldErrors((current) => ({ ...current, customerPhone: undefined }));
+                      }}
+                      placeholder="Phone * e.g. +254700000000"
+                      autoComplete="tel"
+                      className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                    />
+                    <p className="mt-2 text-xs text-[var(--tp-text)]/55">
+                      {method === 'mpesa'
+                        ? 'We use this number for delivery updates and your M-Pesa payment prompt.'
+                        : 'We use this number for delivery updates and order follow-up.'}
+                    </p>
+                    {fieldErrors.customerPhone ? (
+                      <p className="mt-2 text-xs text-[var(--tp-accent)]">
+                        {fieldErrors.customerPhone}
+                      </p>
+                    ) : null}
+                  </div>
 
                   <input
                     value={shippingAddr1}
-                    onChange={(e) => setShippingAddr1(e.target.value)}
-                    placeholder="Street address"
-                    className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
+                    onChange={(event) => setShippingAddr1(event.target.value)}
+                    placeholder="Building, estate, or street"
+                    autoComplete="address-line1"
+                    className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
                   />
 
-                  <input
-                    value={shippingCity}
-                    onChange={(e) => setShippingCity(e.target.value)}
-                    placeholder="City (e.g. Nairobi)"
-                    className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
-                  />
+                  <div>
+                    <input
+                      value={shippingCity}
+                      onChange={(event) => {
+                        setShippingCity(event.target.value);
+                        setFieldErrors((current) => ({ ...current, shippingCity: undefined }));
+                      }}
+                      placeholder="City *"
+                      autoComplete="address-level2"
+                      className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                    />
+                    {fieldErrors.shippingCity ? (
+                      <p className="mt-2 text-xs text-[var(--tp-accent)]">
+                        {fieldErrors.shippingCity}
+                      </p>
+                    ) : null}
+                  </div>
 
                   <div className="pt-1">
                     <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tp-text)]/55">
@@ -408,24 +544,20 @@ export default function CartPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <button
+                        type="button"
                         onClick={() => setMethod('mpesa')}
-                        className={`flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
-                          method === 'mpesa'
-                            ? 'bg-[#5A3422] text-white'
-                            : 'border border-[var(--tp-border)] bg-[var(--tp-surface)] text-[var(--tp-text)]/75'
-                        }`}
+                        className="flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition"
+                        style={method === 'mpesa' ? activeMethodStyle : inactiveMethodStyle}
                       >
                         <Smartphone className="h-3.5 w-3.5" />
                         M-Pesa
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => setMethod('card')}
-                        className={`flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
-                          method === 'card'
-                            ? 'bg-[#5A3422] text-white'
-                            : 'border border-[var(--tp-border)] bg-[var(--tp-surface)] text-[var(--tp-text)]/75'
-                        }`}
+                        className="flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition"
+                        style={method === 'card' ? activeMethodStyle : inactiveMethodStyle}
                       >
                         <CreditCard className="h-3.5 w-3.5" />
                         Card
@@ -434,48 +566,54 @@ export default function CartPage() {
                   </div>
 
                   {method === 'mpesa' ? (
-                    <div className="space-y-3">
-                      <input
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="M-Pesa phone e.g. +254700000000"
-                        className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
-                      />
-                      <button
-                        onClick={handleMpesaCheckout}
-                        disabled={isPaying || isLoadingSummary}
-                        className="w-full rounded-full bg-[#D67C45] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90 disabled:opacity-60"
-                      >
-                        {isPaying ? 'Sending STK Push…' : `Pay via M-Pesa — ${money(summary.total)}`}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleMpesaCheckout}
+                      disabled={isPaying || isLoadingSummary}
+                      className="w-full rounded-full px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90 disabled:opacity-60"
+                      style={{ background: 'var(--tp-accent)' }}
+                    >
+                      {isPaying ? 'Sending STK Push…' : `Pay via M-Pesa — ${money(summary.total)}`}
+                    </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={handleCardCheckout}
                       disabled={isPaying || isLoadingSummary}
-                      className="w-full rounded-full bg-[#5A3422] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90 disabled:opacity-60"
+                      className="w-full rounded-full px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90 disabled:opacity-60"
+                      style={{
+                        background:
+                          'color-mix(in srgb, var(--tp-heading) 82%, var(--tp-accent) 18%)',
+                      }}
                     >
                       {isPaying ? 'Redirecting to Stripe…' : `Pay by Card — ${money(summary.total)}`}
                     </button>
                   )}
 
-                  {statusMsg && (
+                  {statusMsg ? (
                     <div
-                      className={`rounded-2xl px-4 py-3 text-xs leading-6 ${
-                        statusType === 'error'
-                          ? 'border border-red-100 bg-red-50 text-red-600'
-                          : statusType === 'success'
-                          ? 'border border-green-100 bg-green-50 text-green-700'
-                          : 'bg-[var(--tp-surface)] text-[var(--tp-text)]/75'
-                      }`}
+                      className="rounded-2xl px-4 py-3 text-xs leading-6"
+                      style={{
+                        border: '1px solid var(--tp-border)',
+                        background:
+                          statusType === 'error'
+                            ? 'color-mix(in srgb, var(--tp-accent) 10%, var(--tp-card) 90%)'
+                            : statusType === 'success'
+                            ? 'color-mix(in srgb, #6a8f5c 12%, var(--tp-card) 88%)'
+                            : 'var(--tp-surface)',
+                        color:
+                          statusType === 'error'
+                            ? 'var(--tp-accent)'
+                            : 'color-mix(in srgb, var(--tp-heading) 86%, transparent 14%)',
+                      }}
                     >
                       {statusMsg}
                     </div>
-                  )}
+                  ) : null}
 
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/52">
-                    Card payments are processed in USD via Stripe. M-Pesa payments are in KES.
-                    Free delivery on orders over KES 5,000.
+                    Card payments are processed through Stripe. M-Pesa orders use an STK push to
+                    the number above. Free delivery applies on orders over KES 5,000.
                   </p>
                 </div>
               )}

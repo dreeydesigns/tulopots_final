@@ -47,6 +47,7 @@ export async function GET(
       shippingCity: order.shippingCity || undefined,
       createdAt: order.createdAt.toISOString(),
       items: order.items.map((item) => ({
+        productSlug: item.productSlug,
         name: item.name,
         mode: item.mode,
         quantity: item.quantity,
