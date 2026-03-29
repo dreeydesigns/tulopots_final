@@ -1,89 +1,199 @@
-import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-type StudioImage = {
-  id: string;
-  title: string;
-  url: string;
-  createdAt: string;
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-const imagesStore: StudioImage[] = [
-  {
-    id: '1',
-    title: 'Clay Studio Inspiration',
-    url: 'https://images.unsplash.com/photo-1610705267928-1b9f2fa7f1c8?auto=format&fit=crop&w=1200&q=80',
-    createdAt: new Date().toISOString(),
-  },
-];
+const prisma = new PrismaClient();
 
-export async function GET() {
-  return NextResponse.json({ ok: true, images: imagesStore });
+function cleanText(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
-export async function POST(req: Request) {
-  const contentType = req.headers.get('content-type') || '';
+function cleanUrl(value: unknown) {
+  const url = cleanText(value);
 
-  if (contentType.includes('application/json')) {
-    const body = await req.json();
-    const title = String(body?.title || '').trim();
-    const url = String(body?.url || '').trim();
+  if (!url) return '';
 
-    if (!title || !url) {
-      return NextResponse.json(
-        { ok: false, error: 'title and url are required' },
+  try {
+    const parsed = new URL(url);
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
+function buildSummary(input: {
+  message: string;
+  imageFileName: string;
+  referenceLink: string;
+  space: string;
+  helpType: string;
+  extraNote: string;
+}) {
+  const lines: string[] = [];
+
+  if (input.message) lines.push(`What they shared: ${input.message}`);
+  if (input.space) lines.push(`Space: ${input.space}`);
+  if (input.helpType) lines.push(`Help needed: ${input.helpType}`);
+  if (input.referenceLink) lines.push(`Reference link: ${input.referenceLink}`);
+  if (input.imageFileName) lines.push(`Uploaded image: ${input.imageFileName}`);
+  if (input.extraNote) lines.push(`Additional note: ${input.extraNote}`);
+
+  return lines.join('\n');
+}
+
+function createReferenceCode() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `STUDIO-${stamp}-${rand}`;
+}
+
+export async function GET() {
+  try {
+    const briefs = await prisma.studioBrief.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 20,
+    });
+
+    return Response.json(
+      {
+        ok: true,
+        count: briefs.length,
+        briefs: briefs.map((brief) => ({
+          id: brief.referenceCode,
+          createdAt: brief.createdAt,
+          status: brief.status,
+          space: brief.space,
+          helpType: brief.helpType,
+          summary: brief.summary,
+        })),
+      },
+      { status: 200 }
+    );
+  } catch {
+    return Response.json(
+      {
+        ok: false,
+        error: 'Unable to load studio briefs right now.',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const message = cleanText(body.message);
+    const imageFileName = cleanText(body.imageFileName);
+    const imagePreview = cleanText(body.imagePreview);
+    const referenceLink = cleanUrl(body.referenceLink);
+    const space = cleanText(body.space);
+    const helpType = cleanText(body.helpType);
+    const extraNote = cleanText(body.extraNote);
+
+    const hasExpression = Boolean(message || imageFileName || referenceLink);
+
+    if (!hasExpression) {
+      return Response.json(
+        {
+          ok: false,
+          error: 'Please share at least a thought, an image, or a reference link.',
+        },
         { status: 400 }
       );
     }
 
-    const image: StudioImage = {
-      id: crypto.randomUUID(),
-      title,
-      url,
-      createdAt: new Date().toISOString(),
-    };
+    if (!space) {
+      return Response.json(
+        {
+          ok: false,
+          error: 'Please tell us where this lives.',
+        },
+        { status: 400 }
+      );
+    }
 
-    imagesStore.unshift(image);
-    return NextResponse.json({ ok: true, image }, { status: 201 });
-  }
+    if (!helpType) {
+      return Response.json(
+        {
+          ok: false,
+          error: 'Please tell us what you need help with.',
+        },
+        { status: 400 }
+      );
+    }
 
-  const data = await req.formData();
-  return NextResponse.json({
-    ok: true,
-    summary: `Studio brief saved for ${data.get('contact')}`,
-  });
-}
+    const referenceCode = createReferenceCode();
 
-export async function PUT(req: Request) {
-  const body = await req.json();
-  const id = String(body?.id || '');
-  const title = String(body?.title || '').trim();
-  const url = String(body?.url || '').trim();
+    const summary = buildSummary({
+      message,
+      imageFileName,
+      referenceLink,
+      space,
+      helpType,
+      extraNote,
+    });
 
-  const idx = imagesStore.findIndex((img) => img.id === id);
-  if (idx < 0) {
-    return NextResponse.json({ ok: false, error: 'Image not found' }, { status: 404 });
-  }
+    const record = await prisma.studioBrief.create({
+      data: {
+        referenceCode,
+        message,
+        imageFileName,
+        imagePreview,
+        referenceLink,
+        space,
+        helpType,
+        extraNote,
+        summary,
+      },
+    });
 
-  if (!title || !url) {
-    return NextResponse.json(
-      { ok: false, error: 'title and url are required' },
-      { status: 400 }
+    return Response.json(
+      {
+        ok: true,
+        brief: {
+          id: record.referenceCode,
+          createdAt: record.createdAt,
+          status: record.status,
+          summary: record.summary,
+        },
+        message: 'Your studio brief has been received.',
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Studio POST error:', error);
+
+    return Response.json(
+      {
+        ok: false,
+        error: 'We could not save your studio brief right now.',
+      },
+      { status: 500 }
     );
   }
-
-  imagesStore[idx] = { ...imagesStore[idx], title, url };
-  return NextResponse.json({ ok: true, image: imagesStore[idx] });
 }
 
-export async function DELETE(req: Request) {
-  const body = await req.json();
-  const id = String(body?.id || '');
+export async function PUT() {
+  return Response.json(
+    {
+      ok: false,
+      error: 'This route only supports viewing and creating studio briefs.',
+    },
+    { status: 405 }
+  );
+}
 
-  const idx = imagesStore.findIndex((img) => img.id === id);
-  if (idx < 0) {
-    return NextResponse.json({ ok: false, error: 'Image not found' }, { status: 404 });
-  }
-
-  imagesStore.splice(idx, 1);
-  return NextResponse.json({ ok: true });
+export async function DELETE() {
+  return Response.json(
+    {
+      ok: false,
+      error: 'This route only supports viewing and creating studio briefs.',
+    },
+    { status: 405 }
+  );
 }

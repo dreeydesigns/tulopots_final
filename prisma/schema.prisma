@@ -1,14 +1,10 @@
 // TuloPots Prisma Schema
-// Local dev: SQLite
-// Railway production: PostgreSQL (change provider + DATABASE_URL)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  // For Railway: change "sqlite" to "postgresql"
-  // and set DATABASE_URL in Railway Variables
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
@@ -80,6 +76,26 @@ model Payment {
   updatedAt           DateTime        @updatedAt
 }
 
+model StudioBrief {
+  id            String            @id @default(cuid())
+  referenceCode String            @unique
+  status        StudioBriefStatus @default(RECEIVED)
+  source        String            @default("studio")
+
+  message       String            @db.Text
+  imageFileName String?
+  imagePreview  String?           @db.Text
+  referenceLink String?           @db.Text
+
+  space         String
+  helpType      String
+  extraNote     String?           @db.Text
+  summary       String            @db.Text
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -103,4 +119,11 @@ enum PaymentStatus {
   INITIATED
   SUCCESS
   FAILED
+}
+
+enum StudioBriefStatus {
+  RECEIVED
+  REVIEWING
+  RESPONDED
+  CLOSED
 }
