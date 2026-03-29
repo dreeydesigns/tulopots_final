@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       mocked: stk.mocked,
       payment: {
@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
         ? 'M-Pesa credentials are not loaded here, so a mock STK request was returned.'
         : 'M-Pesa STK push sent. Complete payment on your phone.',
     });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error: any) {
     console.error('[mpesa] error:', error);
     return NextResponse.json(

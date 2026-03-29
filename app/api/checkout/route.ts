@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       order: {
         id: order.id,
@@ -166,6 +166,8 @@ export async function POST(req: NextRequest) {
         items: order.items,
       },
     });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || 'Failed to create order.' },

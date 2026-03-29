@@ -414,3 +414,20 @@ html[data-theme='dark'] .scene-bg {
 html[data-theme='light'] .scene-bg {
   filter: saturate(1.02) brightness(0.98);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .theme-wash-overlay,
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+}

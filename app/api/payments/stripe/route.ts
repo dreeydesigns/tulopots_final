@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       payment: {
         id: payment.id,
@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
         checkoutUrl: payment.checkoutUrl,
       },
     });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error: any) {
     console.error('[stripe] error:', error);
     return NextResponse.json(

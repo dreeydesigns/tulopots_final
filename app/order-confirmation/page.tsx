@@ -11,6 +11,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useStore } from '@/components/Providers';
+import { trackEvent } from '@/lib/tracking';
 
 type OrderData = {
   id: string;
@@ -50,6 +51,7 @@ function OrderConfirmationInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [clearedOrderId, setClearedOrderId] = useState<string | null>(null);
+  const [trackedPurchaseId, setTrackedPurchaseId] = useState<string | null>(null);
 
   const isCancelled = paymentStatus === 'cancelled';
   const isPaid = order?.status === 'PAID';
@@ -131,6 +133,7 @@ function OrderConfirmationInner() {
   useEffect(() => {
     if (!orderId) {
       setClearedOrderId(null);
+      setTrackedPurchaseId(null);
     }
   }, [orderId]);
 
@@ -153,6 +156,24 @@ function OrderConfirmationInner() {
 
     setClearedOrderId(order.id);
   }, [clearPurchasedItems, clearedOrderId, isPaid, order]);
+
+  useEffect(() => {
+    if (!isPaid || !order || trackedPurchaseId === order.id) {
+      return;
+    }
+
+    void trackEvent(
+      'purchase',
+      {
+        orderNumber: order.orderNumber,
+        paymentMethod: order.paymentMethod,
+        value: order.totalAmount,
+        itemCount: order.items.length,
+      },
+      'analytics'
+    );
+    setTrackedPurchaseId(order.id);
+  }, [isPaid, order, trackedPurchaseId]);
 
   if (loading) {
     return (

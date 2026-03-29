@@ -58,10 +58,12 @@ export async function GET(
       })),
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       order: responseOrder,
     });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error) {
     console.error('[api/orders/[orderId]] error fetching order:', error);
 

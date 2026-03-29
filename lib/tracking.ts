@@ -124,6 +124,18 @@ export function readAttribution() {
   }
 }
 
+function getReferrerSource() {
+  if (!isBrowser() || !document.referrer) {
+    return 'direct';
+  }
+
+  try {
+    return new URL(document.referrer).hostname;
+  } catch {
+    return 'direct';
+  }
+}
+
 export async function trackEvent(
   eventName: string,
   payload: TrackingPayload = {},
@@ -142,9 +154,7 @@ export async function trackEvent(
   const body = {
     eventName,
     path: `${window.location.pathname}${window.location.search}`,
-    source:
-      attribution?.source ||
-      (document.referrer ? new URL(document.referrer).hostname : 'direct'),
+    source: attribution?.source || getReferrerSource(),
     consentLevel,
     sessionKey: getTrackingSessionKey(),
     payload: {
