@@ -16,110 +16,197 @@ import { products } from '../../lib/products';
 import { imageByKey } from '../../lib/site';
 import { useStore } from '../Providers';
 
-const SLIDES = [
+type SlideCardItem = {
+  slug: string;
+};
+
+type Slide = {
+  id: string;
+  kicker: string;
+  titleTop: string;
+  titleAccent?: string;
+  titleBottom: string;
+  description: string;
+  primaryCta: { label: string; href: string };
+  secondaryCta: { label: string; href: string };
+  stats: Array<{ value: string; label: string }>;
+  nextLabel: string;
+  background: string;
+  featured: { label: string; stars: number } | null;
+  storyMode: boolean;
+  potMode: boolean;
+  sideLabel: string;
+  cardItems: SlideCardItem[];
+};
+
+const CARD_LIBRARY: Record<
+  string,
+  {
+    displayName: string;
+    image: string;
+  }
+> = {
+  'ribbed-globe-peace-lily': {
+    displayName: 'Ribbed Globe Form',
+    image: imageByKey.indoor1,
+  },
+  'pedestal-bowl-succulents': {
+    displayName: 'Pedestal Bowl Form',
+    image: imageByKey.indoor2,
+  },
+  'cylinder-vase-snake-plant': {
+    displayName: 'Cylinder Vase Form',
+    image: imageByKey.indoor3,
+  },
+  'jug-handle-pothos': {
+    displayName: 'Handled Clay Form',
+    image: imageByKey.indoor4,
+  },
+  'hut-sculpture-garden': {
+    displayName: 'Clay Sculpture Piece',
+    image: imageByKey.outdoor2,
+  },
+  'wide-rim-bougainvillea': {
+    displayName: 'Wide Rim Garden Form',
+    image: imageByKey.outdoor3,
+  },
+  'studio-xl-deep-palm': {
+    displayName: 'Studio XL Form',
+    image: imageByKey.outdoor1,
+  },
+};
+
+const SLIDES: Slide[] = [
   {
     id: 'hero',
-    kicker: '',
-    titleTop: 'Hand',
-    titleAccent: 'crafted',
-    titleBottom: 'Terracotta',
+    kicker: 'Handcrafted in Nairobi',
+    titleTop: 'Crafted',
+    titleAccent: '',
+    titleBottom: 'for Living',
     description:
-      'Each pot is hand-thrown by our artisans and paired with the perfect plant to bring natural beauty into your space.',
-    primaryCta: { label: 'Shop Indoor', href: '/indoor' },
-    secondaryCta: { label: 'Shop Outdoor', href: '/outdoor' },
+      'Objects shaped to bring warmth, texture, and quiet presence into everyday spaces.',
+    primaryCta: { label: 'Shop Collection', href: '/indoor' },
+    secondaryCta: { label: 'Explore Forms', href: '/pots' },
     stats: [
-      { value: '120+', label: 'Pot Styles' },
-      { value: '8yr', label: 'Craftsmanship' },
-      { value: '100%', label: 'Natural Clay' },
+      { value: '120+', label: 'Forms' },
+      { value: '8yr', label: 'Craft' },
+      { value: '100%', label: 'Terracotta' },
     ],
-    nextLabel: 'Indoor Plants',
+    nextLabel: 'Interior Spaces',
     background: imageByKey.workshop,
     featured: null,
     storyMode: false,
     potMode: false,
-    sideLabel: 'Nairobi studio selection',
-    cardSlugs: [
-      'ribbed-globe-peace-lily',
-      'pedestal-bowl-succulents',
-      'cylinder-vase-snake-plant',
+    sideLabel: 'Studio Selection',
+    cardItems: [
+      { slug: 'ribbed-globe-peace-lily' },
+      { slug: 'pedestal-bowl-succulents' },
+      { slug: 'cylinder-vase-snake-plant' },
     ],
   },
   {
     id: 'indoor',
-    kicker: 'Home Collection',
-    titleTop: 'Indoor',
+    kicker: 'Interior Collection',
+    titleTop: 'For',
     titleAccent: '',
-    titleBottom: 'Plants',
+    titleBottom: 'Interior Spaces',
     description:
-      'Terracotta pieces styled for living rooms, kitchens, bedrooms, and quiet corners. Warm, breathable clay made for everyday interiors.',
-    primaryCta: { label: 'Shop Indoor', href: '/indoor' },
-    secondaryCta: { label: 'View Pots Only', href: '/pots' },
+      'Forms for shelves, tables, corners, studios, and rooms that deserve character.',
+    primaryCta: { label: 'Shop Interior', href: '/indoor' },
+    secondaryCta: { label: 'View Forms', href: '/pots' },
     stats: [
-      { value: '36+', label: 'Indoor Pieces' },
+      { value: '36+', label: 'Selections' },
       { value: '4.8', label: 'Rated' },
       { value: 'Studio', label: 'Curated' },
     ],
-    nextLabel: 'Outdoor Plants',
+    nextLabel: 'Open Spaces',
     background: imageByKey.indoor1,
-    featured: { label: 'Featured Collection', stars: 5 },
+    featured: { label: 'Interior Selection', stars: 5 },
     storyMode: false,
     potMode: false,
-    sideLabel: 'Indoor edit',
-    cardSlugs: [
-      'ribbed-globe-peace-lily',
-      'pedestal-bowl-succulents',
-      'jug-handle-pothos',
+    sideLabel: 'Desk, Shelf, Corner',
+    cardItems: [
+      { slug: 'ribbed-globe-peace-lily' },
+      { slug: 'pedestal-bowl-succulents' },
+      { slug: 'jug-handle-pothos' },
     ],
   },
   {
     id: 'outdoor',
-    kicker: 'Garden Collection',
-    titleTop: 'Outdoor',
+    kicker: 'Outdoor Collection',
+    titleTop: 'For',
     titleAccent: '',
-    titleBottom: 'Plants',
+    titleBottom: 'Open Spaces',
     description:
-      'A stronger terracotta range for patios, balconies, gardens, and sunlit outdoor spaces. Handmade warmth that still feels rooted and refined.',
+      'Pieces designed for terraces, entrances, gardens, courtyards, and open-air living.',
     primaryCta: { label: 'Shop Outdoor', href: '/outdoor' },
-    secondaryCta: { label: 'Browse All Pots', href: '/pots' },
+    secondaryCta: { label: 'Browse Forms', href: '/pots' },
     stats: [
-      { value: '28+', label: 'Outdoor Pieces' },
-      { value: 'Clay', label: 'Natural' },
-      { value: 'Ready', label: 'Styled' },
+      { value: '28+', label: 'Selections' },
+      { value: 'Natural', label: 'Clay' },
+      { value: 'Ready', label: 'Placed' },
     ],
-    nextLabel: 'Pots Only',
+    nextLabel: 'Clay Forms',
     background: imageByKey.outdoor2,
     featured: { label: 'Outdoor Selection', stars: 5 },
     storyMode: false,
     potMode: false,
-    sideLabel: 'Garden edit',
-    cardSlugs: [
-      'hut-sculpture-garden',
-      'wide-rim-bougainvillea',
-      'studio-xl-deep-palm',
+    sideLabel: 'Patio, Balcony, Garden',
+    cardItems: [
+      { slug: 'hut-sculpture-garden' },
+      { slug: 'wide-rim-bougainvillea' },
+      { slug: 'studio-xl-deep-palm' },
     ],
   },
   {
     id: 'pots',
-    kicker: 'Essential Forms',
-    titleTop: 'Pots',
+    kicker: 'Essential Collection',
+    titleTop: 'Clay',
     titleAccent: '',
-    titleBottom: 'Only',
+    titleBottom: 'Forms',
     description:
-      'A clean way to shop the form itself. Choose your terracotta piece first, then style it with your own plant pairing.',
-    primaryCta: { label: 'Browse Pots', href: '/pots' },
+      'A curated selection of handmade forms where shape leads, styling follows, and presence matters.',
+    primaryCta: { label: 'Browse Forms', href: '/pots' },
     secondaryCta: { label: 'Contact Studio', href: '/contact' },
     stats: [
-      { value: '50+', label: 'Pot Forms' },
+      { value: '50+', label: 'Forms' },
       { value: 'Handmade', label: 'Studio' },
-      { value: 'Simple', label: 'Flexible' },
+      { value: 'Flexible', label: 'Use' },
     ],
-    nextLabel: 'Our Story',
+    nextLabel: 'Rooted in Craft',
     background: imageByKey.workshop,
-    featured: { label: 'Pots Only', stars: 5 },
+    featured: { label: 'Clay Forms', stars: 5 },
     storyMode: false,
     potMode: true,
-    sideLabel: 'Terracotta forms',
-    cardSlugs: [],
+    sideLabel: 'Shape First',
+    cardItems: [],
+  },
+  {
+    id: 'rooted',
+    kicker: 'Studio Process',
+    titleTop: 'Rooted',
+    titleAccent: '',
+    titleBottom: 'in Craft',
+    description:
+      'Made with patience, material honesty, and the tactile character that gives each piece its own life.',
+    primaryCta: { label: 'View Collection', href: '/pots' },
+    secondaryCta: { label: 'Contact Studio', href: '/contact' },
+    stats: [
+      { value: 'Handmade', label: 'Method' },
+      { value: 'Nairobi', label: 'Origin' },
+      { value: 'Small Batch', label: 'Approach' },
+    ],
+    nextLabel: 'Our Story',
+    background: imageByKey.clay,
+    featured: { label: 'Material & Process', stars: 5 },
+    storyMode: false,
+    potMode: false,
+    sideLabel: 'Material, Shape, Finish',
+    cardItems: [
+      { slug: 'pedestal-bowl-succulents' },
+      { slug: 'hut-sculpture-garden' },
+      { slug: 'wide-rim-bougainvillea' },
+    ],
   },
   {
     id: 'story',
@@ -128,12 +215,12 @@ const SLIDES = [
     titleAccent: '',
     titleBottom: 'Story',
     description:
-      'Started in a small Nairobi workshop, TuloPots continues to shape pieces with the same hands, the same wheel, and the same love for natural living.',
+      'Handcrafted terracotta from Nairobi — shaped through craft, not trend, and made to live beautifully over time.',
     primaryCta: { label: 'Read Our Story', href: '/about' },
     secondaryCta: { label: 'Contact Us', href: '/contact' },
     stats: [
       { value: '2016', label: 'Founded' },
-      { value: 'Nairobi', label: 'Rooted' },
+      { value: 'Nairobi', label: 'Origin' },
       { value: 'Handmade', label: 'Always' },
     ],
     nextLabel: '',
@@ -141,20 +228,10 @@ const SLIDES = [
     featured: null,
     storyMode: true,
     potMode: false,
-    sideLabel: 'Since 2016',
-    cardSlugs: [],
+    sideLabel: 'Our Studio',
+    cardItems: [],
   },
-] as const;
-
-const HERO_CARD_IMAGE_BY_SLUG: Record<string, string> = {
-  'ribbed-globe-peace-lily': imageByKey.indoor1,
-  'pedestal-bowl-succulents': imageByKey.indoor2,
-  'cylinder-vase-snake-plant': imageByKey.indoor3,
-  'jug-handle-pothos': imageByKey.indoor4,
-  'hut-sculpture-garden': imageByKey.outdoor2,
-  'wide-rim-bougainvillea': imageByKey.outdoor3,
-  'studio-xl-deep-palm': imageByKey.outdoor1,
-};
+];
 
 const CARD_WIDTHS = [210, 195, 180];
 const CARD_HEIGHTS = [290, 272, 255];
@@ -221,10 +298,12 @@ function getPalette(isLight: boolean): ThemePalette {
       cardBorder: 'rgba(35,23,17,0.10)',
       cardSecondaryBg: 'rgba(255,255,255,0.60)',
       cardSecondaryHover: 'rgba(255,255,255,0.88)',
-      storyOverlay: 'linear-gradient(to top, rgba(247,242,234,0.94) 0%, rgba(247,242,234,0.22) 56%, rgba(247,242,234,0.04) 100%)',
+      storyOverlay:
+        'linear-gradient(to top, rgba(247,242,234,0.94) 0%, rgba(247,242,234,0.22) 56%, rgba(247,242,234,0.04) 100%)',
       storySecondaryBg: 'rgba(255,255,255,0.62)',
       storySecondaryBorder: 'rgba(35,23,17,0.12)',
-      potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.78) 0%,rgba(239,229,217,0.96) 100%)',
+      potPanelBg:
+        'linear-gradient(180deg,rgba(255,255,255,0.78) 0%,rgba(239,229,217,0.96) 100%)',
       potPanelBorder: 'rgba(35,23,17,0.10)',
       potPanelText: '#20140f',
       potPanelMuted: 'rgba(32,20,15,0.68)',
@@ -257,10 +336,12 @@ function getPalette(isLight: boolean): ThemePalette {
     cardBorder: 'rgba(255,255,255,0.08)',
     cardSecondaryBg: 'rgba(255,255,255,0.05)',
     cardSecondaryHover: 'rgba(255,255,255,0.10)',
-    storyOverlay: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 56%, rgba(0,0,0,0.04) 100%)',
+    storyOverlay:
+      'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 56%, rgba(0,0,0,0.04) 100%)',
     storySecondaryBg: 'rgba(255,255,255,0.08)',
     storySecondaryBorder: 'rgba(255,255,255,0.20)',
-    potPanelBg: 'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(22,10,6,0.94) 28%,rgba(16,9,5,0.98) 100%)',
+    potPanelBg:
+      'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(22,10,6,0.94) 28%,rgba(16,9,5,0.98) 100%)',
     potPanelBorder: 'rgba(255,255,255,0.14)',
     potPanelText: '#ffffff',
     potPanelMuted: 'rgba(255,255,255,0.62)',
@@ -368,7 +449,7 @@ function MagneticPotScene({
                 color: palette.potPanelText,
               }}
             >
-              Interactive Pot
+              Form Focus
             </div>
             <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
               Move cursor
@@ -376,11 +457,11 @@ function MagneticPotScene({
           </div>
 
           <div className="serif-display text-[26px] leading-none" style={{ color: palette.potPanelText }}>
-            Signature Clay Pot
+            Signature Clay Form
           </div>
 
           <p className="mt-4 text-[12px] leading-6" style={{ color: palette.potPanelMuted }}>
-            Rotate the pot preview, feel the form, then move straight into purchase or browse the full terracotta selection.
+            Start with the shape, then decide where it belongs. Shelf, entry, table, terrace, or patio — the form comes first.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
@@ -399,7 +480,7 @@ function MagneticPotScene({
                 e.currentTarget.style.background = palette.primaryBtnBg;
               }}
             >
-              Shop Pots
+              Shop Forms
             </button>
 
             <button
@@ -574,9 +655,13 @@ export default function LoggedInHome() {
                     <Star
                       key={s}
                       className={`h-3 w-3 ${
-                        s <= slide.featured.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : ''
+                        s <= slide.featured!.stars ? 'fill-[#e0b97a] text-[#e0b97a]' : ''
                       }`}
-                      style={s <= slide.featured.stars ? undefined : { color: isLight ? 'rgba(35,23,17,0.18)' : 'rgba(255,255,255,0.20)' }}
+                      style={
+                        s <= slide.featured!.stars
+                          ? undefined
+                          : { color: isLight ? 'rgba(35,23,17,0.18)' : 'rgba(255,255,255,0.20)' }
+                      }
                     />
                   ))}
                 </div>
@@ -660,20 +745,24 @@ export default function LoggedInHome() {
                   </div>
 
                   <div
-                    className="fade-item fade-5 mt-11 grid max-w-[380px] grid-cols-3 gap-6 pt-6"
+                    className="fade-item fade-5 mt-11 grid max-w-[420px] grid-cols-3 gap-8 pt-6"
                     style={{ borderTop: `1px solid ${palette.statBorder}` }}
                   >
                     {slide.stats.map((stat) => (
-                      <div key={stat.label}>
+                      <div key={stat.label} className="min-w-0">
                         <div
-                          className="text-[1.75rem] font-semibold leading-none"
+                          className="text-[1.6rem] font-semibold leading-none md:text-[1.75rem]"
                           style={{ color: palette.sceneText }}
                         >
                           {stat.value}
                         </div>
                         <div
-                          className="mt-2 text-[10px] uppercase tracking-[0.15em]"
-                          style={{ color: palette.sceneTextMuted }}
+                          className="mt-2 text-[9px] uppercase tracking-[0.13em] leading-[1.5] md:text-[10px]"
+                          style={{
+                            color: palette.sceneTextMuted,
+                            wordBreak: 'keep-all',
+                            overflowWrap: 'break-word',
+                          }}
                         >
                           {stat.label}
                         </div>
@@ -693,7 +782,7 @@ export default function LoggedInHome() {
 
                 <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
                   {slide.storyMode ? (
-                    <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
+                    <div className="absolute right-0 top-1/2 flex w-full -translate-y-1/2 items-start pr-10">
                       <div
                         className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
                         style={{
@@ -796,18 +885,20 @@ export default function LoggedInHome() {
                         </div>
                       )}
 
-                      <div className="absolute top-1/2 right-0 flex w-full -translate-y-1/2 items-start pr-10">
-                        {slide.cardSlugs.map((slug, ci) => {
-                          const product = productMap[slug];
+                      <div className="absolute right-0 top-1/2 flex w-full -translate-y-1/2 items-start pr-10">
+                        {slide.cardItems.map((item, ci) => {
+                          const product = productMap[item.slug];
                           if (!product) return null;
 
-                          const imageSrc = HERO_CARD_IMAGE_BY_SLUG[slug] || product.image;
+                          const presentation = CARD_LIBRARY[item.slug];
+                          const imageSrc = presentation?.image || product.image;
+                          const displayName = presentation?.displayName || product.name;
                           const imageHeight = Math.round(CARD_HEIGHTS[ci] * 0.65);
 
                           return (
                             <div
-                              key={slug}
-                              className={`replay card-stage card-${ci + 1} pointer-events-auto flex flex-col flex-shrink-0 overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]`}
+                              key={item.slug}
+                              className={`replay card-stage card-${ci + 1} pointer-events-auto flex flex-shrink-0 flex-col overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]`}
                               style={{
                                 width: CARD_WIDTHS[ci],
                                 height: CARD_HEIGHTS[ci],
@@ -833,7 +924,7 @@ export default function LoggedInHome() {
                               </div>
 
                               <div
-                                className="flex flex-1 flex-col justify-between px-3 pt-2.5 pb-3"
+                                className="flex flex-1 flex-col justify-between px-3 pb-3 pt-2.5"
                                 style={{ background: palette.cardInfoBg }}
                               >
                                 <div>
@@ -841,7 +932,7 @@ export default function LoggedInHome() {
                                     className="line-clamp-1 text-[11px] font-medium tracking-[0.03em]"
                                     style={{ color: palette.cardTitle }}
                                   >
-                                    {product.name}
+                                    {displayName}
                                   </div>
                                   <div className="mt-0.5 font-serif text-[13px] font-semibold text-[#e0b97a]">
                                     KSh {Number(product.price).toLocaleString()}

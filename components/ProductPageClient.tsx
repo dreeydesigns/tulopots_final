@@ -21,6 +21,45 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { ProductCard } from './ProductCard';
 import { useStore } from './Providers';
 
+function getPlacementCue(product: Product) {
+  const text = `${product.name} ${product.short || ''}`.toLowerCase();
+
+  if (text.includes('peace lily')) return 'Best for desks, shelves, and calm corners.';
+  if (text.includes('snake plant')) return 'Made for clean corners, entries, and office spaces.';
+  if (text.includes('succulent')) return 'Easy on shelves, tables, and gifting moments.';
+  if (text.includes('pothos')) return 'A soft choice for shelves, ledges, and home styling.';
+  if (text.includes('bougainvillea')) return 'Strong for patios, balconies, and open outdoor spaces.';
+  if (text.includes('palm')) return 'A bold piece for patios, lounges, and larger corners.';
+  if (text.includes('hut')) return 'A strong outdoor piece with sculptural presence.';
+  if (product.category === 'outdoor') return 'Well placed on patios, balconies, and open spaces.';
+  if (product.category === 'pots') return 'Choose the form first, then style it your way.';
+  return 'A refined clay piece for spaces that need warmth and presence.';
+}
+
+function getReasonBlocks(product: Product, mode: 'plant' | 'pot') {
+  if (mode === 'plant') {
+    return [
+      'Complete look from the start',
+      'Easy to place at home or gift',
+      'Balanced pot and plant pairing',
+    ];
+  }
+
+  if (product.category === 'outdoor') {
+    return [
+      'Strong shape for open spaces',
+      'Easy to style later with your own plant',
+      'A lasting clay form with presence',
+    ];
+  }
+
+  return [
+    'A clean form you can style your way',
+    'Easy to pair with your own plant later',
+    'Works for gifting, shelves, desks, or corners',
+  ];
+}
+
 export function ProductPageClient({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, wishlist, isLoggedIn, setIsLoggedIn } = useStore();
 
@@ -47,17 +86,28 @@ export function ProductPageClient({ product }: { product: Product }) {
   const total = unit * qty;
 
   const related = useMemo(
-    () => products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 2),
+    () =>
+      products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 2),
     [product]
   );
 
   const canToggleModes = !product.forcePotOnly && !product.decorative && !!product.potOnly;
   const reviewGate = true;
 
-  const sizeSummary =
+  const placementCue = getPlacementCue(product);
+  const reasonBlocks = getReasonBlocks(product, mode);
+
+  const modeLabel =
     mode === 'plant'
-      ? `${size.label} · styled ready for display`
-      : `${size.label} · pot-only option`;
+      ? 'Pot + Plant'
+      : product.forcePotOnly || product.decorative
+      ? 'Clay Form'
+      : 'Pot Only';
+
+  const modeSupport =
+    mode === 'plant'
+      ? 'A complete piece, ready for the space you have in mind.'
+      : 'Choose the clay form now and style it with your own plant later.';
 
   function handleAddToCart() {
     addToCart(product, {
@@ -93,11 +143,10 @@ export function ProductPageClient({ product }: { product: Product }) {
         className="mt-8 inline-flex items-center gap-2 text-sm uppercase tracking-[0.16em] text-[var(--tp-text)]/65 transition hover:text-[var(--tp-heading)]"
       >
         <ChevronLeft className="h-4 w-4" />
-        Back to {product.category}
+        Back to collection
       </Link>
 
       <section className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_1fr]">
-        {/* LEFT */}
         <div>
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] shadow-[0_18px_50px_rgba(90,52,34,0.08)]">
             {product.badge && (
@@ -155,7 +204,6 @@ export function ProductPageClient({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* RIGHT */}
         <div className="h-fit lg:sticky lg:top-28">
           <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--tp-text)]/60">
             {product.sku}
@@ -184,7 +232,7 @@ export function ProductPageClient({ product }: { product: Product }) {
               {product.rating.toFixed(1)} ({product.reviews} reviews)
             </div>
             <div className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text)]/70">
-              Handmade in Kenya
+              Handcrafted in Kenya
             </div>
           </div>
 
@@ -197,9 +245,7 @@ export function ProductPageClient({ product }: { product: Product }) {
             )}
           </div>
 
-          <p className="mt-3 text-sm leading-7 text-[var(--tp-text)]/72">
-            {sizeSummary}
-          </p>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--tp-text)]/72">{placementCue}</p>
 
           <p className="mt-7 max-w-xl text-sm leading-8 text-[var(--tp-text)]/75">
             {product.description}
@@ -208,7 +254,7 @@ export function ProductPageClient({ product }: { product: Product }) {
           {canToggleModes && (
             <div className="mt-8">
               <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
-                Purchase option
+                Choose your order
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -219,7 +265,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                   }`}
                 >
-                  With Plant
+                  Pot + Plant
                 </button>
                 <button
                   onClick={() => setMode('pot')}
@@ -235,9 +281,17 @@ export function ProductPageClient({ product }: { product: Product }) {
             </div>
           )}
 
+          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/55">
+              Selected option
+            </div>
+            <div className="mt-2 text-xl font-semibold text-[var(--tp-heading)]">{modeLabel}</div>
+            <p className="mt-2 text-sm leading-7 text-[var(--tp-text)]/72">{modeSupport}</p>
+          </div>
+
           <div className="mt-8">
             <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
-              Pot size
+              Select size
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {sizes.map((s) => {
@@ -263,6 +317,19 @@ export function ProductPageClient({ product }: { product: Product }) {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
+              Why this works
+            </div>
+            <div className="mt-4 grid gap-3 text-sm text-[var(--tp-text)]/75 sm:grid-cols-3">
+              {reasonBlocks.map((reason) => (
+                <div key={reason} className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
+                  {reason}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -317,7 +384,7 @@ export function ProductPageClient({ product }: { product: Product }) {
             {justAdded && (
               <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#f3ede6] px-4 py-3 text-sm text-[#5f5147]">
                 <Check className="h-4 w-4 text-[#B66A3C]" />
-                Added successfully. Your selection is ready in cart.
+                Added successfully. You can review or checkout from cart.
               </div>
             )}
           </div>
@@ -333,24 +400,7 @@ export function ProductPageClient({ product }: { product: Product }) {
             </div>
             <div className="flex items-center gap-2">
               <Leaf className="h-4 w-4 text-[#B66A3C]" />
-              Handcrafted terracotta
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5">
-            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
-              Why customers choose this
-            </div>
-            <div className="mt-4 grid gap-3 text-sm text-[var(--tp-text)]/75 sm:grid-cols-3">
-              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
-                Editorial finish that elevates interiors instantly
-              </div>
-              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
-                Crafted to feel warm, weighty, and authentically handmade
-              </div>
-              <div className="rounded-2xl bg-[var(--tp-surface)] px-4 py-4">
-                Flexible choice between full styling or pot-only purchase
-              </div>
+              Crafted terracotta
             </div>
           </div>
 
@@ -374,7 +424,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                 <div className="text-[var(--tp-text)]/55">Material</div>
                 <div className="text-[var(--tp-heading)]">100% Natural Kenyan Clay</div>
 
-                <div className="text-[var(--tp-text)]/55">Shape</div>
+                <div className="text-[var(--tp-text)]/55">Selected size</div>
                 <div className="text-[var(--tp-heading)]">{size.label}</div>
 
                 <div className="text-[var(--tp-text)]/55">SKU</div>
@@ -455,7 +505,7 @@ export function ProductPageClient({ product }: { product: Product }) {
         <div className="text-center">
           <h2 className="serif-display text-5xl text-[var(--tp-heading)]">You May Also Like</h2>
           <p className="mt-3 text-sm text-[var(--tp-text)]/65">
-            Handpicked pots that complement your selection
+            More clay pieces selected to complement this choice
           </p>
         </div>
 
