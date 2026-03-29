@@ -9,6 +9,7 @@ import Cursor from '../components/Cursor';
 import { AuthModal } from '../components/AuthModal';
 import { Chatbot } from '../components/Chatbot';
 import { getCurrentUser } from '@/lib/auth';
+import { getSiteSections } from '@/lib/catalog';
 
 export const metadata: Metadata = {
   title: 'TuloPots - Handcrafted Terracotta from Kenya',
@@ -16,12 +17,15 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const user = await getCurrentUser();
+  const [user, siteSections] = await Promise.all([
+    getCurrentUser(),
+    getSiteSections(),
+  ]);
 
   return (
     <html lang="en">
       <body className="cursor-halo-on">
-        <Providers initialUser={user}>
+        <Providers initialUser={user} initialSiteSections={siteSections}>
           <Cursor />
           <Nav />
           <AuthModal />

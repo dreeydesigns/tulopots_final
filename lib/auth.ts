@@ -16,7 +16,9 @@ export type SessionUser = {
   avatar?: string;
 };
 
-function toSessionUser(user: Pick<User, 'id' | 'name' | 'email' | 'phone' | 'isAdmin' | 'avatar'>): SessionUser | null {
+function toSessionUser(
+  user: Pick<User, 'id' | 'name' | 'email' | 'phone' | 'isAdmin' | 'avatar'>
+): SessionUser | null {
   if (!user.email) {
     return null;
   }
@@ -54,7 +56,37 @@ export function verifyPassword(password: string, storedHash: string) {
   return timingSafeEqual(derivedKey, savedBuffer);
 }
 
-export async function createSession(userId: string, scope: AuthScope = 'CUSTOMER') {
+export function mergeAuthProviders(
+  existing: string | null | undefined,
+  next: string
+) {
+  const providers = new Set(
+    String(existing || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+
+  providers.add(next);
+  return Array.from(providers).join(',');
+}
+
+export function isAdminEmailAddress(email: string) {
+  const adminEmails = (
+    process.env.ADMIN_EMAILS ||
+    'andrew@tulopots.com,admin@tulopots.com,dreeydesigns@gmail.com'
+  )
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return adminEmails.includes(email.toLowerCase());
+}
+
+export async function createSession(
+  userId: string,
+  scope: AuthScope = 'CUSTOMER'
+) {
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
 
@@ -70,7 +102,11 @@ export async function createSession(userId: string, scope: AuthScope = 'CUSTOMER
   return { token, expiresAt };
 }
 
-export function attachSessionCookie(response: NextResponse, token: string, expiresAt: Date) {
+export function attachSessionCookie(
+  response: NextResponse,
+  token: string,
+  expiresAt: Date
+) {
   response.cookies.set({
     name: SESSION_COOKIE,
     value: token,
@@ -114,7 +150,9 @@ export async function getSessionRecord() {
   }
 
   if (session.expiresAt <= new Date()) {
-    await prisma.authSession.delete({ where: { id: session.id } }).catch(() => undefined);
+    await prisma.authSession
+      .delete({ where: { id: session.id } })
+      .catch(() => undefined);
     return null;
   }
 

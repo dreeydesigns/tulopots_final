@@ -23,6 +23,7 @@ export function Nav() {
     isLoggedIn,
     setIsLoggedIn,
     user,
+    isSectionVisible,
     setShowAuthModal,
     theme,
     setTheme,
@@ -39,12 +40,28 @@ export function Nav() {
   );
 
   const links = [
-    ['Home', '/'],
-    ['Indoor', '/indoor'],
-    ['Outdoor', '/outdoor'],
-    ['Pots Only', '/pots'],
-    ['About', '/about'],
-    ['Contact', '/contact'],
+    { label: 'Home', href: '/', visible: true },
+    {
+      label: 'Indoor',
+      href: '/indoor',
+      visible: isSectionVisible('collections.indoor'),
+    },
+    {
+      label: 'Outdoor',
+      href: '/outdoor',
+      visible: isSectionVisible('collections.outdoor'),
+    },
+    {
+      label: 'Pots Only',
+      href: '/pots',
+      visible: isSectionVisible('collections.pots'),
+    },
+    { label: 'About', href: '/about', visible: true },
+    {
+      label: 'Contact',
+      href: '/contact',
+      visible: isSectionVisible('contact.entry'),
+    },
   ] as const;
 
   const isHome = pathname === '/';
@@ -140,7 +157,7 @@ export function Nav() {
           </div>
 
           <nav className="hidden items-center gap-7 lg:flex">
-            {links.map(([label, href]) => (
+            {links.filter((link) => link.visible).map(({ label, href }) => (
               <Link
                 key={href}
                 href={href}
@@ -280,7 +297,7 @@ export function Nav() {
             </div>
 
             <nav className="flex flex-col pb-3">
-              {links.map(([label, href]) => (
+              {links.filter((link) => link.visible).map(({ label, href }) => (
                 <Link
                   key={href}
                   href={href}

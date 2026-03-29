@@ -3,19 +3,11 @@ import { prisma } from '@/lib/prisma';
 import {
   attachSessionCookie,
   createSession,
+  isAdminEmailAddress,
   isValidEmail,
   isValidPassword,
   verifyPassword,
 } from '@/lib/auth';
-
-function isAdminEmail(email: string) {
-  const adminEmails = (process.env.ADMIN_EMAILS || 'andrew@tulopots.com,admin@tulopots.com')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
-  return adminEmails.includes(email.toLowerCase());
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,11 +22,17 @@ export async function POST(request: NextRequest) {
     const scope = body.scope === 'admin' ? 'ADMIN' : 'CUSTOMER';
 
     if (!isValidEmail(email)) {
-      return NextResponse.json({ ok: false, error: 'Enter a valid email address.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Enter a valid email address.' },
+        { status: 400 }
+      );
     }
 
     if (!isValidPassword(password)) {
-      return NextResponse.json({ ok: false, error: 'Password must be at least 8 characters.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Password must be at least 8 characters.' },
+        { status: 400 }
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -42,10 +40,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
-      return NextResponse.json({ ok: false, error: 'Email or password is incorrect.' }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: 'Email or password is incorrect.' },
+        { status: 401 }
+      );
     }
 
-    if (isAdminEmail(email) && !user.isAdmin) {
+    if (isAdminEmailAddress(email) && !user.isAdmin) {
       await prisma.user.update({
         where: { id: user.id },
         data: { isAdmin: true },
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (scope === 'ADMIN' && !user.isAdmin) {
-      return NextResponse.json({ ok: false, error: 'This account does not have admin access.' }, { status: 403 });
+      return NextResponse.json(
+        { ok: false, error: 'This account does not have admin access.' },
+        { status: 403 }
+      );
     }
 
     const { token, expiresAt } = await createSession(user.id, scope);

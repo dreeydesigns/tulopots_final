@@ -1,9 +1,15 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, XCircle, Clock, ShoppingBag, MessageCircle } from 'lucide-react';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  ShoppingBag,
+  MessageCircle,
+} from 'lucide-react';
 
 type OrderData = {
   id: string;
@@ -29,18 +35,25 @@ type OrderData = {
   }>;
 };
 
-function money(n: number) {
-  return `KES ${n.toLocaleString('en-KE')}`;
+function money(amount: number) {
+  return `KES ${amount.toLocaleString('en-KE')}`;
 }
 
 function OrderConfirmationInner() {
   const params = useSearchParams();
   const orderId = params.get('order');
   const paymentStatus = params.get('payment');
-
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const isCancelled = paymentStatus === 'cancelled';
+  const isPaid = order?.status === 'PAID';
+  const isFailed = order?.status === 'FAILED';
+  const isPolling = useMemo(
+    () => Boolean(orderId && !isCancelled && order && !isPaid && !isFailed),
+    [isCancelled, isFailed, isPaid, order, orderId]
+  );
 
   useEffect(() => {
     if (!orderId) {
@@ -49,24 +62,75 @@ function OrderConfirmationInner() {
       return;
     }
 
-    fetch(`/api/orders/${orderId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.order) setOrder(data.order);
-        else setError('Order not found.');
-      })
-      .catch(() => setError('Could not load order details.'))
-      .finally(() => setLoading(false));
+    let active = true;
+
+    const loadOrder = async (showSpinner: boolean) => {
+      if (showSpinner && active) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch(`/api/orders/${orderId}`, {
+          cache: 'no-store',
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.order) {
+          throw new Error(data?.error || 'Order not found.');
+        }
+
+        if (active) {
+          setOrder(data.order);
+          setError('');
+        }
+      } catch (loadError: any) {
+        if (active) {
+          setError(loadError?.message || 'Could not load order details.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadOrder(true);
+
+    return () => {
+      active = false;
+    };
   }, [orderId]);
 
-  const isCancelled = paymentStatus === 'cancelled';
-  const isPaid = order?.status === 'PAID';
+  useEffect(() => {
+    if (!isPolling) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      fetch(`/api/orders/${orderId}`, {
+        cache: 'no-store',
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data?.order) {
+            setOrder(data.order);
+          }
+        })
+        .catch(() => undefined);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [isPolling, orderId]);
 
   if (loading) {
     return (
       <main className="container-shell py-32 text-center">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#e8dccf] border-t-[#B66A3C]" />
-        <p className="mt-4 text-sm text-[#9a8a80]">Loading your order…</p>
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[var(--tp-border)] border-t-[var(--tp-accent)]" />
+        <p className="mt-4 text-sm text-[var(--tp-text)]/65">
+          Loading your order...
+        </p>
       </main>
     );
   }
@@ -74,116 +138,147 @@ function OrderConfirmationInner() {
   if (error || isCancelled) {
     return (
       <main className="container-shell py-32 text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
-          <XCircle className="h-10 w-10 text-red-400" />
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+          <XCircle className="h-10 w-10 text-[var(--tp-accent)]" />
         </div>
-        <h1 className="mt-6 serif-display text-5xl text-[#3d2a20]">
+        <h1 className="mt-6 serif-display text-5xl text-[var(--tp-heading)]">
           {isCancelled ? 'Payment Cancelled' : 'Something went wrong'}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[#76675c]">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--tp-text)]/72">
           {isCancelled
-            ? 'Your payment was cancelled. Your cart is still saved — you can try again whenever you are ready.'
+            ? 'Your payment was cancelled. Your cart is still saved so you can try again whenever you are ready.'
             : error}
         </p>
         <div className="mt-8 flex justify-center gap-4">
-          <Link href="/cart" className="btn-primary">Back to Cart</Link>
-          <Link href="/" className="btn-secondary">Home</Link>
+          <Link href="/cart" className="btn-primary">
+            Back to Cart
+          </Link>
+          <Link href="/" className="btn-secondary">
+            Home
+          </Link>
         </div>
       </main>
     );
   }
 
-  if (!order) return null;
+  if (!order) {
+    return null;
+  }
+
+  const statusMessage = isPaid
+    ? 'Payment received. We are preparing your order now.'
+    : isFailed
+    ? 'Payment could not be completed. You can return to your cart and try again.'
+    : order.paymentMethod === 'MPESA'
+    ? 'We are waiting for your M-Pesa confirmation. Keep this page open while we refresh the status.'
+    : 'We are confirming your card payment with Stripe. This page refreshes automatically.';
 
   return (
-    <main className="min-h-screen bg-[#F7F2EA] pt-24 pb-16">
+    <main className="min-h-screen bg-[var(--tp-bg)] pb-16 pt-24">
       <div className="container-shell max-w-2xl">
-        <div className="text-center mb-10">
+        <div className="mb-10 text-center">
           {isPaid ? (
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
-              <CheckCircle className="h-10 w-10 text-green-500" />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+              <CheckCircle className="h-10 w-10 text-[var(--tp-accent)]" />
+            </div>
+          ) : isFailed ? (
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+              <XCircle className="h-10 w-10 text-[var(--tp-accent)]" />
             </div>
           ) : (
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fdf5ee]">
-              <Clock className="h-10 w-10 text-[#B66A3C]" />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-surface)]">
+              <Clock className="h-10 w-10 text-[var(--tp-accent)]" />
             </div>
           )}
 
-          <h1 className="mt-6 serif-display text-5xl text-[#3d2a20]">
-            {isPaid ? 'Order Confirmed!' : 'Order Received'}
-          </h1>
-          <p className="mt-2 text-sm text-[#9a8a80]">
+          <h1 className="mt-6 serif-display text-5xl text-[var(--tp-heading)]">
             {isPaid
-              ? 'Payment received — we will prepare your order shortly.'
-              : order.paymentMethod === 'MPESA'
-              ? 'We are waiting for your M-Pesa payment. Check your phone.'
-              : 'Processing your payment. This page will update automatically.'}
-          </p>
+              ? 'Order Confirmed'
+              : isFailed
+              ? 'Payment Needed'
+              : 'Order Received'}
+          </h1>
+          <p className="mt-2 text-sm text-[var(--tp-text)]/65">{statusMessage}</p>
 
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white border border-[#e8dccf] px-5 py-2.5 text-sm font-semibold text-[#3d2a20]">
-            <ShoppingBag className="h-4 w-4 text-[#B66A3C]" />
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-5 py-2.5 text-sm font-semibold text-[var(--tp-heading)]">
+            <ShoppingBag className="h-4 w-4 text-[var(--tp-accent)]" />
             {order.orderNumber}
           </div>
         </div>
 
-        <div className="rounded-[1.5rem] border border-[#e8dccf] bg-white p-6 space-y-6">
+        <div className="space-y-6 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a09a] mb-3">
+            <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--tp-text)]/45">
               Customer
             </div>
-            <div className="text-sm text-[#3d2a20] font-medium">{order.customerName}</div>
-            <div className="text-xs text-[#9a8a80]">{order.customerEmail}</div>
+            <div className="text-sm font-medium text-[var(--tp-heading)]">
+              {order.customerName}
+            </div>
+            <div className="text-xs text-[var(--tp-text)]/65">
+              {order.customerEmail}
+            </div>
             {order.shippingCity && (
-              <div className="text-xs text-[#9a8a80]">{order.shippingCity}</div>
+              <div className="text-xs text-[var(--tp-text)]/65">
+                {order.shippingCity}
+              </div>
             )}
           </div>
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b0a09a] mb-3">
+            <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--tp-text)]/45">
               Items
             </div>
             <div className="space-y-3">
-              {order.items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
+              {order.items.map((item, index) => (
+                <div
+                  key={`${item.name}-${index}`}
+                  className="flex items-center justify-between text-sm"
+                >
                   <div>
-                    <div className="font-medium text-[#3d2a20]">{item.name}</div>
-                    <div className="text-xs text-[#9a8a80]">
+                    <div className="font-medium text-[var(--tp-heading)]">
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-[var(--tp-text)]/65">
                       {item.mode === 'plant' ? 'With Plant' : 'Pot Only'}
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
-                      {' · '}Qty {item.quantity}
+                      {` · Qty ${item.quantity}`}
                     </div>
                   </div>
-                  <div className="font-medium text-[#3d2a20]">{money(item.lineTotal)}</div>
+                  <div className="font-medium text-[var(--tp-heading)]">
+                    {money(item.lineTotal)}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="border-t border-[#f0e6df] pt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between text-[#76675c]">
+          <div className="space-y-2 border-t border-[var(--tp-border)] pt-4 text-sm">
+            <div className="flex items-center justify-between text-[var(--tp-text)]/72">
               <span>Subtotal</span>
               <span>{money(order.subtotal)}</span>
             </div>
-            <div className="flex items-center justify-between text-[#76675c]">
+            <div className="flex items-center justify-between text-[var(--tp-text)]/72">
               <span>Delivery</span>
               <span>{money(order.deliveryFee)}</span>
             </div>
-            <div className="flex items-center justify-between font-semibold text-[#3d2a20] text-base">
+            <div className="flex items-center justify-between text-base font-semibold text-[var(--tp-heading)]">
               <span>Total</span>
               <span>{money(order.totalAmount)}</span>
             </div>
           </div>
 
-          {order.paymentMethod === 'MPESA' && !isPaid && (
-            <div className="rounded-2xl border border-[#B66A3C]/20 bg-[#fdf5ee] p-4 text-sm leading-6 text-[#76675c]">
-              <div className="font-semibold text-[#3d2a20] mb-1">Check your phone</div>
-              A payment prompt has been sent to your M-Pesa number. Enter your PIN to complete the
-              payment.
+          {order.paymentMethod === 'MPESA' && !isPaid && !isFailed && (
+            <div className="rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4 text-sm leading-6 text-[var(--tp-text)]/72">
+              <div className="mb-1 font-semibold text-[var(--tp-heading)]">
+                Check your phone
+              </div>
+              A payment prompt has been sent to your M-Pesa number. Enter your PIN
+              to complete the payment and this page will update automatically.
             </div>
           )}
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link href="/" className="btn-primary flex-1 text-center">
             Continue Shopping
           </Link>
@@ -193,14 +288,14 @@ function OrderConfirmationInner() {
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-secondary flex-1 text-center inline-flex items-center justify-center gap-2"
+            className="btn-secondary inline-flex flex-1 items-center justify-center gap-2 text-center"
           >
             <MessageCircle className="h-4 w-4" />
             WhatsApp Support
           </a>
         </div>
 
-        <p className="mt-6 text-center text-xs text-[#b0a09a]">
+        <p className="mt-6 text-center text-xs text-[var(--tp-text)]/45">
           A confirmation email will be sent to {order.customerEmail}
         </p>
       </div>
@@ -213,8 +308,10 @@ export default function OrderConfirmationPage() {
     <Suspense
       fallback={
         <main className="container-shell py-32 text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#e8dccf] border-t-[#B66A3C]" />
-          <p className="mt-4 text-sm text-[#9a8a80]">Loading order page…</p>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[var(--tp-border)] border-t-[var(--tp-accent)]" />
+          <p className="mt-4 text-sm text-[var(--tp-text)]/65">
+            Loading order page...
+          </p>
         </main>
       }
     >

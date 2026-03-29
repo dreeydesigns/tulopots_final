@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-29T16:35:00.000Z",
+  "lastUpdated": "2026-03-29T20:10:44.329Z",
   "phases": [
     {
       "id": "admin",
@@ -54,12 +54,12 @@
     {
       "id": "conversion",
       "label": "Conversion Improvement",
-      "status": "not_started",
-      "percent": 0,
+      "status": "in_progress",
+      "percent": 25,
       "tasks": [
         { "label": "Product page persuasion layer", "done": false },
         { "label": "Cart hardening", "done": false },
-        { "label": "Checkout flow stability", "done": false },
+        { "label": "Checkout flow stability", "done": true },
         { "label": "Trust signals", "done": false }
       ]
     },

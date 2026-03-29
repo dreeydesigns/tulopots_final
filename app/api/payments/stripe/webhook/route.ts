@@ -1,8 +1,4 @@
-// ─── Stripe Webhook Handler ────────────────────────────────────────────────────
-// Stripe calls this when a payment is completed or fails.
-// In Railway: add STRIPE_WEBHOOK_SECRET from your Stripe dashboard
-// Stripe CLI (local test): stripe listen --forward-to localhost:3000/api/payments/stripe/webhook
-// ─────────────────────────────────────────────────────────────────────────────
+import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -11,41 +7,35 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event: any;
-
   try {
     const rawBody = await req.text();
+    let event: Stripe.Event;
 
     if (webhookSecret) {
-      // Verify Stripe signature to prevent spoofed callbacks
-      const sig = req.headers.get('stripe-signature') || '';
+      const signature = req.headers.get('stripe-signature') || '';
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        apiVersion: '2026-02-25.clover' as any,
+      });
 
-      // Dynamically import stripe only when secret is present
-      // (avoids build errors if stripe npm package isn't installed)
-      try {
-        const Stripe = (await import('stripe')).default;
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-          apiVersion: '2024-06-20' as any,
-        });
-        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-      } catch (err: any) {
-        console.error('[stripe-webhook] signature verification failed:', err.message);
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-      }
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        webhookSecret
+      );
     } else {
-      // No secret — parse raw body directly (dev/sandbox mode)
-      event = JSON.parse(rawBody);
+      event = JSON.parse(rawBody) as Stripe.Event;
     }
 
-    console.log('[stripe-webhook] event type:', event.type);
-
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const orderId: string = session.metadata?.orderId;
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderId = session.metadata?.orderId;
 
       if (orderId) {
         await prisma.payment.updateMany({
-          where: { orderId, provider: 'STRIPE' },
+          where: {
+            provider: 'STRIPE',
+            OR: [{ externalRef: session.id }, { orderId }],
+          },
           data: {
             status: 'SUCCESS',
             providerResponseRaw: JSON.stringify(session),
@@ -56,19 +46,26 @@ export async function POST(req: NextRequest) {
           where: { id: orderId },
           data: { status: 'PAID' },
         });
-
-        console.log('[stripe-webhook] order PAID:', orderId);
       }
     }
 
-    if (event.type === 'checkout.session.expired') {
-      const session = event.data.object;
-      const orderId: string = session.metadata?.orderId;
+    if (
+      event.type === 'checkout.session.expired' ||
+      event.type === 'checkout.session.async_payment_failed'
+    ) {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderId = session.metadata?.orderId;
 
       if (orderId) {
         await prisma.payment.updateMany({
-          where: { orderId, provider: 'STRIPE' },
-          data: { status: 'FAILED' },
+          where: {
+            provider: 'STRIPE',
+            OR: [{ externalRef: session.id }, { orderId }],
+          },
+          data: {
+            status: 'FAILED',
+            providerResponseRaw: JSON.stringify(session),
+          },
         });
 
         await prisma.order.update({
@@ -81,6 +78,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error('[stripe-webhook] error:', error);
-    return NextResponse.json({ error: error?.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Stripe webhook failed.' },
+      { status: 500 }
+    );
   }
 }

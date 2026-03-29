@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -20,6 +20,15 @@ import { money } from '@/lib/utils';
 import { Breadcrumbs } from './Breadcrumbs';
 import { ProductCard } from './ProductCard';
 import { useStore } from './Providers';
+
+type ReviewItem = {
+  id: string;
+  name: string;
+  rating: number;
+  body: string;
+  featured: boolean;
+  createdAt: string;
+};
 
 function getPlacementCue(product: Product) {
   const text = `${product.name} ${product.short || ''}`.toLowerCase();
@@ -84,6 +93,15 @@ export function ProductPageClient({
 
   const gallery = [product.image, product.image, product.image, product.image];
   const [activeImage, setActiveImage] = useState(gallery[0]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewCount, setReviewCount] = useState(product.reviews);
+  const [reviewAverage, setReviewAverage] = useState(product.rating);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewFeedback, setReviewFeedback] = useState('');
+  const [reviewError, setReviewError] = useState('');
 
   const size = sizes.find((option) => option.key === selected) || sizes[0];
   const unit = Math.round(
@@ -92,7 +110,6 @@ export function ProductPageClient({
   const total = unit * qty;
 
   const canToggleModes = !product.forcePotOnly && !product.decorative && !!product.potOnly;
-  const reviewGate = true;
 
   const placementCue = getPlacementCue(product);
   const reasonBlocks = getReasonBlocks(product, mode);
@@ -109,6 +126,55 @@ export function ProductPageClient({
       ? 'A complete piece, ready for the space you have in mind.'
       : 'Choose the clay form now and style it with your own plant later.';
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadReviews() {
+      setReviewLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/reviews?slug=${encodeURIComponent(product.slug)}`,
+          { cache: 'no-store' }
+        );
+        const data = (await response.json()) as {
+          ok: boolean;
+          summary?: {
+            rating: number;
+            reviewCount: number;
+          };
+          reviews?: ReviewItem[];
+        };
+
+        if (!response.ok || !data.ok) {
+          throw new Error('Unable to load reviews.');
+        }
+
+        if (active) {
+          setReviews(data.reviews || []);
+          setReviewAverage(data.summary?.rating ?? product.rating);
+          setReviewCount(data.summary?.reviewCount ?? product.reviews);
+        }
+      } catch {
+        if (active) {
+          setReviews([]);
+          setReviewAverage(product.rating);
+          setReviewCount(product.reviews);
+        }
+      } finally {
+        if (active) {
+          setReviewLoading(false);
+        }
+      }
+    }
+
+    void loadReviews();
+
+    return () => {
+      active = false;
+    };
+  }, [product.rating, product.reviews, product.slug]);
+
   function handleAddToCart() {
     addToCart(product, {
       mode,
@@ -119,6 +185,50 @@ export function ProductPageClient({
 
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 2200);
+  }
+
+  async function handleReviewSubmit() {
+    if (!isLoggedIn) {
+      setIsLoggedIn(true);
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewError('');
+    setReviewFeedback('');
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          slug: product.slug,
+          rating: reviewRating,
+          review: reviewText,
+        }),
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Unable to submit your review.');
+      }
+
+      setReviewText('');
+      setReviewRating(5);
+      setReviewFeedback(
+        data.message || 'Your review has been received and is waiting for approval.'
+      );
+    } catch (error: any) {
+      setReviewError(error?.message || 'Unable to submit your review.');
+    } finally {
+      setReviewSubmitting(false);
+    }
   }
 
   return (
@@ -221,7 +331,7 @@ export function ProductPageClient({
                 <Star
                   key={star}
                   className={`h-4 w-4 ${
-                    star <= Math.round(product.rating)
+                    star <= Math.round(reviewAverage || product.rating)
                       ? 'fill-[#f0b400] text-[#f0b400]'
                       : 'text-[#dfd2c8]'
                   }`}
@@ -229,7 +339,7 @@ export function ProductPageClient({
               ))}
             </div>
             <div className="text-sm text-[var(--tp-text)]/65">
-              {product.rating.toFixed(1)} ({product.reviews} reviews)
+              {(reviewAverage || product.rating).toFixed(1)} ({reviewCount} reviews)
             </div>
             <div className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text)]/70">
               Handcrafted in Kenya
@@ -475,33 +585,102 @@ export function ProductPageClient({
               Reviews
             </div>
 
-            {reviewGate ? (
-              isLoggedIn ? (
-                <div className="space-y-3">
-                  <div className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75">
-                    Beautiful weight and finish. It feels handmade in the best way.
+            {reviewLoading ? (
+              <div className="text-sm leading-7 text-[var(--tp-text)]/72">
+                Loading reviews...
+              </div>
+            ) : reviews.length ? (
+              <div className="space-y-3">
+                {reviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="font-semibold text-[var(--tp-heading)]">
+                        {review.name}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={`${review.id}-${star}`}
+                            className={`h-3.5 w-3.5 ${
+                              star <= review.rating
+                                ? 'fill-[#f0b400] text-[#f0b400]'
+                                : 'text-[#dfd2c8]'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="mt-2">{review.body}</p>
                   </div>
-                  <div className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/75">
-                    The clay tone is even richer in person and the plant pairing was spot on.
-                  </div>
-                  <textarea
-                    className="mt-2 min-h-[110px] w-full rounded-3xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4 text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
-                    placeholder="Leave a review"
-                  />
-                  <button className="rounded-full bg-[#5A3422] px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                    Post Review
-                  </button>
-                </div>
-              ) : (
-                <div className="text-sm leading-7 text-[var(--tp-text)]/75">
-                  Sign in to read and leave reviews on this product.
-                </div>
-              )
+                ))}
+              </div>
             ) : (
-              <div className="text-sm leading-7 text-[var(--tp-text)]/75">
-                Reviews are currently disabled by admin settings.
+              <div className="rounded-2xl bg-[var(--tp-surface)] p-4 text-sm leading-7 text-[var(--tp-text)]/72">
+                No approved reviews yet. Be the first to share how this piece
+                lives in your space.
               </div>
             )}
+
+            <div className="mt-5 rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/55">
+                Share your experience
+              </div>
+              <div className="mt-3 flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] p-2 transition hover:border-[#cfb39e]"
+                    aria-label={`Rate ${star} stars`}
+                  >
+                    <Star
+                      className={`h-4 w-4 ${
+                        star <= reviewRating
+                          ? 'fill-[#f0b400] text-[#f0b400]'
+                          : 'text-[#dfd2c8]'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reviewText}
+                onChange={(event) => setReviewText(event.target.value)}
+                className="mt-3 min-h-[110px] w-full rounded-3xl border border-[var(--tp-border)] bg-[var(--tp-card)] p-4 text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
+                placeholder={
+                  isLoggedIn
+                    ? 'Share how the piece arrived, how it feels, or where it now lives.'
+                    : 'Sign in to leave a review.'
+                }
+              />
+              {reviewError ? (
+                <div className="mt-3 rounded-2xl bg-[var(--tp-card)] px-4 py-3 text-sm text-[var(--tp-accent)]">
+                  {reviewError}
+                </div>
+              ) : null}
+              {reviewFeedback ? (
+                <div className="mt-3 rounded-2xl bg-[var(--tp-card)] px-4 py-3 text-sm text-[var(--tp-heading)]">
+                  {reviewFeedback}
+                </div>
+              ) : null}
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-[var(--tp-text)]/60">
+                  Reviews are published after moderation.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReviewSubmit}
+                  disabled={reviewSubmitting}
+                  className="rounded-full bg-[#5A3422] px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white disabled:opacity-60"
+                >
+                  {reviewSubmitting ? 'Sending...' : isLoggedIn ? 'Post Review' : 'Sign In to Review'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

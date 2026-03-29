@@ -4,18 +4,11 @@ import {
   attachSessionCookie,
   createSession,
   hashPassword,
+  isAdminEmailAddress,
   isValidEmail,
   isValidPassword,
+  mergeAuthProviders,
 } from '@/lib/auth';
-
-function isAdminEmail(email: string) {
-  const adminEmails = (process.env.ADMIN_EMAILS || 'andrew@tulopots.com,admin@tulopots.com')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
-  return adminEmails.includes(email.toLowerCase());
-}
 
 function isValidPhone(phone: string) {
   return !phone || /^\+?[0-9]{10,15}$/.test(phone);
@@ -36,32 +29,44 @@ export async function POST(request: NextRequest) {
     const password = String(body.password || '');
 
     if (!name) {
-      return NextResponse.json({ ok: false, error: 'Full name is required.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Full name is required.' },
+        { status: 400 }
+      );
     }
 
     if (!isValidEmail(email)) {
-      return NextResponse.json({ ok: false, error: 'Enter a valid email address.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Enter a valid email address.' },
+        { status: 400 }
+      );
     }
 
     if (!isValidPhone(phone)) {
-      return NextResponse.json({ ok: false, error: 'Enter a valid phone number.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Enter a valid phone number.' },
+        { status: 400 }
+      );
     }
 
     if (!isValidPassword(password)) {
-      return NextResponse.json({ ok: false, error: 'Password must be at least 8 characters.' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: 'Password must be at least 8 characters.' },
+        { status: 400 }
+      );
     }
 
     const existing = await prisma.user.findFirst({
       where: {
-        OR: [
-          { email },
-          ...(phone ? [{ phone }] : []),
-        ],
+        OR: [{ email }, ...(phone ? [{ phone }] : [])],
       },
     });
 
     if (existing?.passwordHash) {
-      return NextResponse.json({ ok: false, error: 'An account with those details already exists.' }, { status: 409 });
+      return NextResponse.json(
+        { ok: false, error: 'An account with those details already exists.' },
+        { status: 409 }
+      );
     }
 
     const user = existing
@@ -72,7 +77,8 @@ export async function POST(request: NextRequest) {
             email,
             phone: phone || null,
             passwordHash: hashPassword(password),
-            isAdmin: existing.isAdmin || isAdminEmail(email),
+            provider: mergeAuthProviders(existing.provider, 'password'),
+            isAdmin: existing.isAdmin || isAdminEmailAddress(email),
           },
         })
       : await prisma.user.create({
@@ -81,11 +87,15 @@ export async function POST(request: NextRequest) {
             email,
             phone: phone || null,
             passwordHash: hashPassword(password),
-            isAdmin: isAdminEmail(email),
+            provider: 'password',
+            isAdmin: isAdminEmailAddress(email),
           },
         });
 
-    const { token, expiresAt } = await createSession(user.id, user.isAdmin ? 'ADMIN' : 'CUSTOMER');
+    const { token, expiresAt } = await createSession(
+      user.id,
+      user.isAdmin ? 'ADMIN' : 'CUSTOMER'
+    );
     const response = NextResponse.json({
       ok: true,
       user: {
@@ -102,7 +112,10 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: error?.message || 'Unable to create your account right now.' },
+      {
+        ok: false,
+        error: error?.message || 'Unable to create your account right now.',
+      },
       { status: 500 }
     );
   }

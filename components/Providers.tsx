@@ -32,12 +32,21 @@ export type User = {
 
 export type Theme = 'dark' | 'light';
 
+export type SiteSectionVisibility = {
+  key: string;
+  label: string;
+  route?: string;
+  visible: boolean;
+};
+
 type Store = {
   isLoggedIn: boolean;
   setIsLoggedIn: (value: boolean) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   refreshSession: () => Promise<void>;
+  siteSections: SiteSectionVisibility[];
+  isSectionVisible: (key: string) => boolean;
   showAuthModal: boolean;
   setShowAuthModal: (value: boolean) => void;
   theme: Theme;
@@ -80,12 +89,15 @@ const read = <T,>(key: string, fallback: T): T => {
 export function Providers({
   children,
   initialUser = null,
+  initialSiteSections = [],
 }: {
   children: React.ReactNode;
   initialUser?: User | null;
+  initialSiteSections?: SiteSectionVisibility[];
 }) {
   const [isLoggedIn, setIsLoggedInRaw] = useState(Boolean(initialUser));
   const [user, setUserRaw] = useState<User | null>(initialUser);
+  const [siteSections] = useState<SiteSectionVisibility[]>(initialSiteSections);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [theme, setThemeRaw] = useState<Theme>('dark');
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -205,6 +217,9 @@ export function Providers({
     setIsLoggedInRaw(!!nextUser);
   };
 
+  const isSectionVisible = (key: string) =>
+    siteSections.find((section) => section.key === key)?.visible ?? true;
+
   const setTheme = (nextTheme: Theme) => {
     if (nextTheme === theme) return;
 
@@ -300,6 +315,8 @@ export function Providers({
       user,
       setUser,
       refreshSession,
+      siteSections,
+      isSectionVisible,
       showAuthModal,
       setShowAuthModal,
       theme,
@@ -311,7 +328,7 @@ export function Providers({
       updateQty,
       removeItem,
     }),
-    [isLoggedIn, user, showAuthModal, theme, wishlist, cart]
+    [isLoggedIn, user, showAuthModal, theme, wishlist, cart, siteSections]
   );
 
   return (

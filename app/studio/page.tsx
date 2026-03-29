@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@/components/Providers';
 
 type StudioStep = 'welcome' | 'expression' | 'space' | 'help' | 'finish' | 'submitted';
@@ -58,7 +59,9 @@ const HELP_OPTIONS: HelpOption[] = [
 ];
 
 export default function StudioPage() {
-  const { isLoggedIn, setIsLoggedIn } = useStore();
+  const router = useRouter();
+  const { isLoggedIn, setIsLoggedIn, isSectionVisible } = useStore();
+  const isVisible = isSectionVisible('studio.entry');
 
   const [step, setStep] = useState<StudioStep>('welcome');
 
@@ -77,6 +80,12 @@ export default function StudioPage() {
   const [submittedSummary, setSubmittedSummary] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!isVisible) {
+      router.replace('/');
+    }
+  }, [isVisible, router]);
 
   useEffect(() => {
     const draft = sessionStorage.getItem('tulopots_studio_draft');
@@ -248,6 +257,10 @@ export default function StudioPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (!isVisible) {
+    return null;
   }
 
   if (!isLoggedIn) {

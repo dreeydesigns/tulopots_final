@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { initiateMpesaStkPush } from '@/lib/payments';
+import { getRequestOrigin } from '@/lib/request';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,10 +19,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (order.status === 'PAID') {
+      return NextResponse.json(
+        { error: 'This order has already been paid.' },
+        { status: 409 }
+      );
     }
 
     const stk = await initiateMpesaStkPush({
@@ -27,6 +39,7 @@ export async function POST(req: NextRequest) {
       orderNumber: order.orderNumber,
       amount: order.totalAmount,
       phone,
+      baseUrl: getRequestOrigin(req),
     });
 
     const payment = await prisma.payment.create({
@@ -52,13 +65,13 @@ export async function POST(req: NextRequest) {
         requestId: payment.providerRequestId,
       },
       message: stk.mocked
-        ? 'M-Pesa mock initiated (add MPESA_* env vars in Railway for live payments).'
+        ? 'M-Pesa credentials are not loaded here, so a mock STK request was returned.'
         : 'M-Pesa STK push sent. Complete payment on your phone.',
     });
   } catch (error: any) {
     console.error('[mpesa] error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to initiate M-Pesa payment' },
+      { error: error?.message || 'Failed to initiate M-Pesa payment.' },
       { status: 500 }
     );
   }
