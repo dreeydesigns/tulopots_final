@@ -5,9 +5,12 @@ import type { Metadata } from 'next';
 import { Nav } from '../components/Nav';
 import { Footer } from '../components/Footer';
 import { Providers } from '../components/Providers';
+import { CookieBanner } from '../components/CookieBanner';
 import Cursor from '../components/Cursor';
 import { AuthModal } from '../components/AuthModal';
 import { Chatbot } from '../components/Chatbot';
+import { PolicyGate } from '../components/PolicyGate';
+import { TrackingProvider } from '../components/TrackingProvider';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteSections } from '@/lib/catalog';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
@@ -53,6 +56,10 @@ export const metadata: Metadata = {
       'Editorial terracotta forms, plant pairings, and Studio commissions from Nairobi, Kenya.',
     images: [imageByKey.hero],
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -62,12 +69,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en">
       <body className="cursor-halo-on">
         <Providers initialUser={user} initialSiteSections={siteSections}>
+          <TrackingProvider />
           <Cursor />
           <Nav />
           <AuthModal />
+          <PolicyGate />
           <Chatbot />
           {children}
           <Footer />
+          <CookieBanner />
         </Providers>
       </body>
     </html>

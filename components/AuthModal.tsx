@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { X, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
+import { LEGAL_ROUTES } from '@/lib/policies';
 import { useStore } from './Providers';
 
 type AuthResponse = {
@@ -15,6 +17,9 @@ type AuthResponse = {
     phone?: string;
     isAdmin: boolean;
     avatar?: string;
+    marketingConsent: boolean;
+    acceptedPolicyVersion?: string;
+    hasAcceptedPolicies: boolean;
   };
 };
 
@@ -70,6 +75,9 @@ export function AuthModal() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [providers, setProviders] = useState(defaultProviders);
   const [providersLoaded, setProvidersLoaded] = useState(false);
 
@@ -83,6 +91,9 @@ export function AuthModal() {
       setError('');
       setPassword('');
       setActiveAction(null);
+      setAcceptTerms(false);
+      setAcceptPrivacy(false);
+      setMarketingConsent(false);
     }
   }, [showAuthModal]);
 
@@ -150,6 +161,12 @@ export function AuthModal() {
     setActiveAction('password');
     setError('');
 
+    if (tab === 'signup' && (!acceptTerms || !acceptPrivacy)) {
+      setError('Accept the Terms and Privacy Policy to create your account.');
+      setActiveAction(null);
+      return;
+    }
+
     try {
       const endpoint = tab === 'signin' ? '/api/auth/login' : '/api/auth/signup';
       const response = await fetch(endpoint, {
@@ -160,7 +177,15 @@ export function AuthModal() {
         body: JSON.stringify(
           tab === 'signin'
             ? { email, password }
-            : { name, email, phone, password }
+            : {
+                name,
+                email,
+                phone,
+                password,
+                acceptTerms,
+                acceptPrivacy,
+                marketingConsent,
+              }
         ),
       });
       const data = (await response.json()) as AuthResponse;
@@ -298,7 +323,8 @@ export function AuthModal() {
           ) : (
             <div className="rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3 text-xs leading-6 text-[var(--tp-text)]/65">
               Google and Apple sign-in become available as soon as their provider
-              credentials are added.
+              credentials are added. Social sign-in users will also confirm the
+              latest TuloPots terms on first entry.
             </div>
           )}
 
@@ -347,6 +373,7 @@ export function AuthModal() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Password"
+              autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
               className="w-full rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] py-3.5 pl-11 pr-12 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
             />
             <button
@@ -361,6 +388,58 @@ export function AuthModal() {
               )}
             </button>
           </div>
+
+          {tab === 'signup' ? (
+            <div className="space-y-3 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4">
+              <label className="flex items-start gap-3 text-xs leading-6 text-[var(--tp-text)]/68">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(event) => setAcceptTerms(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-[var(--tp-border-strong)]"
+                />
+                <span>
+                  I accept the{' '}
+                  <Link href={LEGAL_ROUTES.terms} target="_blank" className="text-[var(--tp-accent)] underline">
+                    Terms of Use
+                  </Link>
+                  .
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 text-xs leading-6 text-[var(--tp-text)]/68">
+                <input
+                  type="checkbox"
+                  checked={acceptPrivacy}
+                  onChange={(event) => setAcceptPrivacy(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-[var(--tp-border-strong)]"
+                />
+                <span>
+                  I confirm I have read the{' '}
+                  <Link
+                    href={LEGAL_ROUTES.privacy}
+                    target="_blank"
+                    className="text-[var(--tp-accent)] underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 text-xs leading-6 text-[var(--tp-text)]/68">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(event) => setMarketingConsent(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-[var(--tp-border-strong)]"
+                />
+                <span>
+                  Send me launch updates, care notes, and product stories by email.
+                </span>
+              </label>
+            </div>
+          ) : null}
 
           {error && (
             <div className="rounded-2xl border border-[var(--tp-accent)]/20 bg-[var(--tp-accent-soft)] px-4 py-3 text-sm text-[var(--tp-heading)]">
@@ -408,6 +487,19 @@ export function AuthModal() {
 
           <p className="text-center text-[10px] text-[var(--tp-text)]/42">
             Use your TuloPots account for checkout, reviews, Studio, and saved pieces.
+            By continuing you agree to the current{' '}
+            <Link href={LEGAL_ROUTES.terms} target="_blank" className="text-[var(--tp-accent)] underline">
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link
+              href={LEGAL_ROUTES.privacy}
+              target="_blank"
+              className="text-[var(--tp-accent)] underline"
+            >
+              Privacy Policy
+            </Link>
+            .
           </p>
         </form>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LEGAL_ROUTES } from '@/lib/policies';
 import { useStore } from './Providers';
 
 export function Footer() {
@@ -62,6 +63,9 @@ export function Footer() {
             <Link href="/care-guide" className="transition hover:text-white">
               Care Guide
             </Link>
+            <Link href={LEGAL_ROUTES.delivery} className="transition hover:text-white">
+              Delivery & Returns
+            </Link>
             {isSectionVisible('contact.entry') ? (
               <Link href="/contact" className="transition hover:text-white">
                 Contact Us
@@ -78,6 +82,7 @@ export function Footer() {
             Get care tips, new arrivals and exclusive offers.
           </p>
           <form action="/api/newsletter" method="post" className="mt-5 flex gap-2">
+            <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
             <input
               name="email"
               type="email"
@@ -91,11 +96,34 @@ export function Footer() {
               Join
             </button>
           </form>
+          <p className="mt-3 text-xs leading-6 text-white/35">
+            By joining, you agree to our{' '}
+            <Link href={LEGAL_ROUTES.privacy} className="underline">
+              Privacy Policy
+            </Link>{' '}
+            and can unsubscribe at any time.
+          </p>
         </div>
       </div>
 
-      <div className="border-t border-white/8 py-5 text-center text-xs text-white/30">
-        © 2026 TuloPots. All rights reserved.
+      <div className="border-t border-white/8 py-5">
+        <div className="container-shell flex flex-col gap-3 text-center text-xs text-white/30 md:flex-row md:items-center md:justify-between md:text-left">
+          <div>© 2026 TuloPots. All rights reserved.</div>
+          <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end">
+            <Link href={LEGAL_ROUTES.terms} className="transition hover:text-white">
+              Terms
+            </Link>
+            <Link href={LEGAL_ROUTES.privacy} className="transition hover:text-white">
+              Privacy
+            </Link>
+            <Link href={LEGAL_ROUTES.cookies} className="transition hover:text-white">
+              Cookies
+            </Link>
+            <Link href={LEGAL_ROUTES.delivery} className="transition hover:text-white">
+              Delivery & Returns
+            </Link>
+          </div>
+        </div>
       </div>
     </footer>
   );

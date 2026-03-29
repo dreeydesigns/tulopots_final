@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/components/Providers';
+import { LEGAL_ROUTES } from '@/lib/policies';
+import { trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
 
 type CheckoutOrder = {
@@ -36,7 +38,7 @@ function isValidPhone(value: string) {
 
 const activeMethodStyle = {
   background: 'var(--tp-accent)',
-  color: '#ffffff',
+  color: 'var(--tp-btn-primary-text)',
 };
 
 const inactiveMethodStyle = {
@@ -210,6 +212,15 @@ export default function CartPage() {
 
     try {
       const order = await createOrder();
+      void trackEvent(
+        'begin_checkout',
+        {
+          paymentMethod: 'mpesa',
+          value: order.totalAmount,
+          itemCount: checkoutItems.length,
+        },
+        'analytics'
+      );
 
       const payRes = await fetch('/api/payments/mpesa', {
         method: 'POST',
@@ -243,6 +254,15 @@ export default function CartPage() {
 
     try {
       const order = await createOrder();
+      void trackEvent(
+        'begin_checkout',
+        {
+          paymentMethod: 'card',
+          value: order.totalAmount,
+          itemCount: checkoutItems.length,
+        },
+        'analytics'
+      );
 
       const payRes = await fetch('/api/payments/stripe', {
         method: 'POST',
@@ -614,6 +634,20 @@ export default function CartPage() {
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/52">
                     Card payments are processed through Stripe. M-Pesa orders use an STK push to
                     the number above. Free delivery applies on orders over KES 5,000.
+                  </p>
+                  <p className="text-[11px] leading-5 text-[var(--tp-text)]/46">
+                    By continuing, you agree to the{' '}
+                    <Link href={LEGAL_ROUTES.terms} className="text-[var(--tp-accent)] underline">
+                      Terms of Use
+                    </Link>{' '}
+                    and{' '}
+                    <Link
+                      href={LEGAL_ROUTES.privacy}
+                      className="text-[var(--tp-accent)] underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                    . Card details stay on Stripe-hosted pages and are not stored on our servers.
                   </p>
                 </div>
               )}

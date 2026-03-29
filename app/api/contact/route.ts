@@ -11,10 +11,15 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const formData = await req.formData();
+    const company = String(formData.get('company') ?? '').trim();
     const name = String(formData.get('name') ?? '').trim();
     const email = String(formData.get('email') ?? '').trim();
     const subject = String(formData.get('subject') ?? '').trim();
     const message = String(formData.get('message') ?? '').trim();
+
+    if (company) {
+      return NextResponse.json({ ok: true, message: 'Thanks, we received your message.' });
+    }
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -31,7 +36,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       data: { name, email, subject: subject || '(no subject)', message },
     });
 
-    return NextResponse.json({ ok: true, message: `Thanks ${name}, we received your message.` });
+    const response = NextResponse.json({
+      ok: true,
+      message: `Thanks ${name}, we received your message.`,
+    });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error: any) {
     console.error('[api/contact] error saving message:', error);
     return NextResponse.json({ error: 'Could not send message' }, { status: 500 });

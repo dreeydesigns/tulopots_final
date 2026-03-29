@@ -3,9 +3,11 @@ import { getCurrentUser } from '@/lib/auth';
 
 export async function GET() {
   const user = await getCurrentUser();
-  return NextResponse.json({
+  const response = NextResponse.json({
     ok: true,
     user,
     isLoggedIn: !!user,
   });
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
 }

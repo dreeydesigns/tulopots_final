@@ -7,8 +7,10 @@ import {
   isAdminEmailAddress,
   isValidEmail,
   isValidPassword,
+  mapUserToSessionUser,
   mergeAuthProviders,
 } from '@/lib/auth';
+import { CURRENT_POLICY_VERSION } from '@/lib/policies';
 
 function isValidPhone(phone: string) {
   return !phone || /^\+?[0-9]{10,15}$/.test(phone);
@@ -21,12 +23,18 @@ export async function POST(request: NextRequest) {
       email?: string;
       phone?: string;
       password?: string;
+      acceptTerms?: boolean;
+      acceptPrivacy?: boolean;
+      marketingConsent?: boolean;
     };
 
     const name = String(body.name || '').trim();
     const email = String(body.email || '').trim().toLowerCase();
     const phone = String(body.phone || '').trim();
     const password = String(body.password || '');
+    const acceptTerms = Boolean(body.acceptTerms);
+    const acceptPrivacy = Boolean(body.acceptPrivacy);
+    const marketingConsent = Boolean(body.marketingConsent);
 
     if (!name) {
       return NextResponse.json(
@@ -56,6 +64,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!acceptTerms || !acceptPrivacy) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'You need to accept the Terms and Privacy Policy to continue.',
+        },
+        { status: 400 }
+      );
+    }
+
     const existing = await prisma.user.findFirst({
       where: {
         OR: [{ email }, ...(phone ? [{ phone }] : [])],
@@ -69,6 +87,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const now = new Date();
     const user = existing
       ? await prisma.user.update({
           where: { id: existing.id },
@@ -79,6 +98,11 @@ export async function POST(request: NextRequest) {
             passwordHash: hashPassword(password),
             provider: mergeAuthProviders(existing.provider, 'password'),
             isAdmin: existing.isAdmin || isAdminEmailAddress(email),
+            acceptedTermsAt: now,
+            acceptedPrivacyAt: now,
+            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+            marketingConsent,
+            marketingConsentAt: marketingConsent ? now : null,
           },
         })
       : await prisma.user.create({
@@ -89,6 +113,11 @@ export async function POST(request: NextRequest) {
             passwordHash: hashPassword(password),
             provider: 'password',
             isAdmin: isAdminEmailAddress(email),
+            acceptedTermsAt: now,
+            acceptedPrivacyAt: now,
+            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+            marketingConsent,
+            marketingConsentAt: marketingConsent ? now : null,
           },
         });
 
@@ -98,17 +127,11 @@ export async function POST(request: NextRequest) {
     );
     const response = NextResponse.json({
       ok: true,
-      user: {
-        id: user.id,
-        name: user.name || email.split('@')[0],
-        email: user.email,
-        phone: user.phone || undefined,
-        isAdmin: user.isAdmin,
-        avatar: user.avatar || undefined,
-      },
+      user: mapUserToSessionUser(user),
     });
 
     attachSessionCookie(response, token, expiresAt);
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error: any) {
     return NextResponse.json(

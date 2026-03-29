@@ -12,15 +12,22 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     let email = '';
+    let company = '';
 
     // Determine if the request is multipart/form-data or JSON
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('form-data')) {
       const form = await req.formData();
       email = String(form.get('email') ?? '').trim();
+      company = String(form.get('company') ?? '').trim();
     } else {
       const body = await req.json().catch(() => ({}));
       email = String(body?.email ?? '').trim();
+      company = String(body?.company ?? '').trim();
+    }
+
+    if (company) {
+      return NextResponse.json({ ok: true, message: 'Thanks! You are subscribed.' });
     }
 
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -34,7 +41,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       create: { email },
     });
 
-    return NextResponse.json({ ok: true, message: 'Thanks! You are subscribed.' });
+    const response = NextResponse.json({
+      ok: true,
+      message: 'Thanks! You are subscribed.',
+    });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error: any) {
     console.error('[api/newsletter] error saving subscription:', error);
     return NextResponse.json({ error: 'Could not subscribe' }, { status: 500 });

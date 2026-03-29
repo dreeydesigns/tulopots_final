@@ -28,6 +28,9 @@ export type User = {
   phone?: string;
   isAdmin: boolean;
   avatar?: string;
+  marketingConsent: boolean;
+  acceptedPolicyVersion?: string;
+  hasAcceptedPolicies: boolean;
 };
 
 export type Theme = 'dark' | 'light';

@@ -95,6 +95,7 @@ export default async function Page() {
             </p>
 
             <form action="/api/contact" method="post" className="mt-7 space-y-4">
+              <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
@@ -154,6 +155,14 @@ export default async function Page() {
               <button className="btn-primary block w-full text-center">
                 Send Message
               </button>
+
+              <p className="text-xs leading-6 tp-text-muted">
+                By sending a message, you agree to our{' '}
+                <a href="/privacy-policy" className="tp-accent underline">
+                  Privacy Policy
+                </a>
+                . We only use your details to respond and support your request.
+              </p>
             </form>
           </div>
 

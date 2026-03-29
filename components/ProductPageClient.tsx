@@ -18,6 +18,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Product, sizeOptionsFor } from '@/lib/products';
+import { trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
 import { Breadcrumbs } from './Breadcrumbs';
 import { ProductCard } from './ProductCard';
@@ -214,6 +215,17 @@ export function ProductPageClient({
       unitPrice: unit,
       sizeLabel: size.label,
     });
+    void trackEvent(
+      'add_to_cart',
+      {
+        slug: product.slug,
+        mode,
+        quantity: qty,
+        size: size.label,
+        value: total,
+      },
+      'analytics'
+    );
 
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 2200);
@@ -256,6 +268,14 @@ export function ProductPageClient({
       setReviewFeedback(
         data.message || 'Your review has been received and is waiting for approval.'
       );
+      void trackEvent(
+        'review_submit',
+        {
+          slug: product.slug,
+          rating: reviewRating,
+        },
+        'analytics'
+      );
     } catch (error: any) {
       setReviewError(error?.message || 'Unable to submit your review.');
     } finally {
@@ -271,6 +291,14 @@ export function ProductPageClient({
     try {
       await navigator.clipboard.writeText(window.location.href);
       setShareFeedback('Link copied. You can share this piece anywhere.');
+      void trackEvent(
+        'product_share',
+        {
+          slug: product.slug,
+          method: 'copy_link',
+        },
+        'analytics'
+      );
     } catch {
       setShareFeedback('Copy was blocked on this browser. Use the WhatsApp share instead.');
     }
@@ -282,6 +310,14 @@ export function ProductPageClient({
     }
 
     const message = `Take a look at ${product.name} from TuloPots: ${window.location.href}`;
+    void trackEvent(
+      'product_share',
+      {
+        slug: product.slug,
+        method: 'whatsapp',
+      },
+      'analytics'
+    );
     window.open(
       `https://wa.me/?text=${encodeURIComponent(message)}`,
       '_blank',
@@ -314,7 +350,7 @@ export function ProductPageClient({
         <div>
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] shadow-[0_18px_50px_rgba(90,52,34,0.08)]">
             {product.badge && (
-              <span className="absolute left-4 top-4 z-10 rounded-full bg-[#e9f3ea] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#5b6f60]">
+              <span className="absolute left-4 top-4 z-10 rounded-full bg-[var(--tp-accent-soft)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent-strong)]">
                 {product.badge}
               </span>
             )}
@@ -327,8 +363,8 @@ export function ProductPageClient({
               <Heart
                 className={`h-5 w-5 ${
                   wishlist.includes(product.slug)
-                    ? 'fill-[#B66A3C] text-[#B66A3C]'
-                    : 'text-[#9b8575]'
+                    ? 'fill-[var(--tp-accent)] text-[var(--tp-accent)]'
+                    : 'text-[var(--tp-text-muted)]'
                 }`}
               />
             </button>
@@ -339,6 +375,7 @@ export function ProductPageClient({
                 alt={product.name}
                 width={1000}
                 height={1200}
+                sizes="(max-width: 1024px) 100vw, 52vw"
                 className="h-[32rem] w-full object-cover transition duration-500 md:h-[40rem]"
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/20 to-transparent" />
@@ -352,8 +389,8 @@ export function ProductPageClient({
                 onClick={() => setActiveImage(img)}
                 className={`overflow-hidden rounded-[1.25rem] border transition ${
                   activeImage === img
-                    ? 'border-[#B66A3C] shadow-[0_10px_25px_rgba(182,106,60,0.16)]'
-                    : 'border-[var(--tp-border)] hover:border-[#c9b8aa]'
+                    ? 'border-[var(--tp-accent)] shadow-[var(--tp-shadow-soft)]'
+                    : 'border-[var(--tp-border)] hover:border-[var(--tp-border-strong)]'
                 }`}
               >
                 <Image
@@ -361,6 +398,7 @@ export function ProductPageClient({
                   alt={`${product.name} view ${index + 1}`}
                   width={400}
                   height={400}
+                  sizes="(max-width: 640px) 22vw, 12vw"
                   className="h-24 w-full object-cover transition duration-500 hover:scale-105"
                 />
               </button>
@@ -377,7 +415,9 @@ export function ProductPageClient({
             {product.name}
           </h1>
 
-          <div className="mt-4 max-w-xl text-base italic text-[#B66A3C]">{product.short}</div>
+          <div className="mt-4 max-w-xl text-base italic text-[var(--tp-accent)]">
+            {product.short}
+          </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1">
@@ -386,8 +426,8 @@ export function ProductPageClient({
                   key={star}
                   className={`h-4 w-4 ${
                     star <= Math.round(reviewAverage || product.rating)
-                      ? 'fill-[#f0b400] text-[#f0b400]'
-                      : 'text-[#dfd2c8]'
+                      ? 'fill-[var(--tp-accent-strong)] text-[var(--tp-accent-strong)]'
+                      : 'text-[var(--tp-border-strong)]'
                   }`}
                 />
               ))}
@@ -423,22 +463,22 @@ export function ProductPageClient({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setMode('plant')}
-                  className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                    mode === 'plant'
-                      ? 'bg-[#cf7c47] text-white'
+                    className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                      mode === 'plant'
+                      ? 'bg-[var(--tp-accent)] text-[var(--tp-btn-primary-text)]'
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
-                  }`}
-                >
+                    }`}
+                  >
                   Pot + Plant
                 </button>
                 <button
                   onClick={() => setMode('pot')}
-                  className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                    mode === 'pot'
-                      ? 'bg-[#5A3422] text-white'
+                    className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                      mode === 'pot'
+                      ? 'bg-[var(--tp-accent)] text-[var(--tp-btn-primary-text)]'
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
-                  }`}
-                >
+                    }`}
+                  >
                   Pot Only
                 </button>
               </div>
@@ -470,13 +510,13 @@ export function ProductPageClient({
                     onClick={() => setSelected(option.key)}
                     className={`rounded-[1rem] border px-4 py-3 text-left transition ${
                       selected === option.key
-                        ? 'border-[#B66A3C] bg-[#fff7f0] shadow-[0_10px_22px_rgba(182,106,60,0.08)]'
-                        : 'border-[var(--tp-border)] bg-[var(--tp-card)] hover:border-[#cfb39e]'
+                        ? 'border-[var(--tp-accent)] bg-[var(--tp-accent-soft)] shadow-[var(--tp-shadow-soft)]'
+                        : 'border-[var(--tp-border)] bg-[var(--tp-card)] hover:border-[var(--tp-border-strong)]'
                     }`}
                   >
                     <div className="text-sm font-semibold text-[var(--tp-heading)]">{option.label}</div>
                     <div className="mt-1 text-xs text-[var(--tp-text)]/55">{option.helper}</div>
-                    <div className="mt-2 text-xs font-semibold text-[#B66A3C]">
+                    <div className="mt-2 text-xs font-semibold text-[var(--tp-accent)]">
                       {money(previewPrice)}
                     </div>
                   </button>
@@ -577,22 +617,26 @@ export function ProductPageClient({
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
               <button
                 onClick={handleAddToCart}
-                className="rounded-full bg-[#4a2d1f] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:scale-[1.01] hover:bg-[#5A3422]"
+                className="rounded-full px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] transition hover:scale-[1.01] hover:opacity-92"
+                style={{
+                  background: 'var(--tp-accent-strong)',
+                  color: 'var(--tp-btn-primary-text)',
+                }}
               >
                 {justAdded ? 'Added to Cart' : `Add to Cart — ${money(total)}`}
               </button>
 
               <Link
                 href="/cart"
-                className="inline-flex items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tp-heading)] transition hover:border-[#c9b8aa] hover:bg-[var(--tp-card)]"
+                className="inline-flex items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tp-heading)] transition hover:border-[var(--tp-border-strong)] hover:bg-[var(--tp-card)]"
               >
                 View Cart
               </Link>
             </div>
 
             {justAdded && (
-              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#f3ede6] px-4 py-3 text-sm text-[#5f5147]">
-                <Check className="h-4 w-4 text-[#B66A3C]" />
+              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[var(--tp-accent-soft)] px-4 py-3 text-sm text-[var(--tp-heading)]">
+                <Check className="h-4 w-4 text-[var(--tp-accent)]" />
                 Added successfully. You can review or checkout from cart.
               </div>
             )}
@@ -600,15 +644,15 @@ export function ProductPageClient({
 
           <div className="mt-7 flex flex-wrap gap-6 border-t border-[var(--tp-border)] pt-6 text-sm text-[var(--tp-text)]/72">
             <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-[#B66A3C]" />
+              <Truck className="h-4 w-4 text-[var(--tp-accent)]" />
               Free delivery in Nairobi over KES 5,000
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-[#B66A3C]" />
+              <Shield className="h-4 w-4 text-[var(--tp-accent)]" />
               Secure checkout
             </div>
             <div className="flex items-center gap-2">
-              <Leaf className="h-4 w-4 text-[#B66A3C]" />
+              <Leaf className="h-4 w-4 text-[var(--tp-accent)]" />
               Crafted terracotta
             </div>
           </div>
@@ -713,8 +757,8 @@ export function ProductPageClient({
                               key={`${review.id}-${star}`}
                               className={`h-3.5 w-3.5 ${
                                 star <= review.rating
-                                  ? 'fill-[#f0b400] text-[#f0b400]'
-                                  : 'text-[#dfd2c8]'
+                                  ? 'fill-[var(--tp-accent-strong)] text-[var(--tp-accent-strong)]'
+                                  : 'text-[var(--tp-border-strong)]'
                               }`}
                             />
                           ))}
@@ -742,14 +786,14 @@ export function ProductPageClient({
                     key={star}
                     type="button"
                     onClick={() => setReviewRating(star)}
-                    className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] p-2 transition hover:border-[#cfb39e]"
+                    className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] p-2 transition hover:border-[var(--tp-border-strong)]"
                     aria-label={`Rate ${star} stars`}
                   >
                     <Star
                       className={`h-4 w-4 ${
                         star <= reviewRating
-                          ? 'fill-[#f0b400] text-[#f0b400]'
-                          : 'text-[#dfd2c8]'
+                          ? 'fill-[var(--tp-accent-strong)] text-[var(--tp-accent-strong)]'
+                          : 'text-[var(--tp-border-strong)]'
                       }`}
                     />
                   </button>
@@ -758,7 +802,7 @@ export function ProductPageClient({
               <textarea
                 value={reviewText}
                 onChange={(event) => setReviewText(event.target.value)}
-                className="mt-3 min-h-[110px] w-full rounded-3xl border border-[var(--tp-border)] bg-[var(--tp-card)] p-4 text-[var(--tp-heading)] outline-none transition focus:border-[#B66A3C]"
+                className="mt-3 min-h-[110px] w-full rounded-3xl border border-[var(--tp-border)] bg-[var(--tp-card)] p-4 text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
                 placeholder={
                   isLoggedIn
                     ? 'Share how the piece arrived, how it feels, or where it now lives.'
@@ -783,7 +827,11 @@ export function ProductPageClient({
                   type="button"
                   onClick={handleReviewSubmit}
                   disabled={reviewSubmitting}
-                  className="rounded-full bg-[#5A3422] px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white disabled:opacity-60"
+                  className="rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] disabled:opacity-60"
+                  style={{
+                    background: 'var(--tp-accent-strong)',
+                    color: 'var(--tp-btn-primary-text)',
+                  }}
                 >
                   {reviewSubmitting ? 'Sending...' : isLoggedIn ? 'Post Review' : 'Sign In to Review'}
                 </button>

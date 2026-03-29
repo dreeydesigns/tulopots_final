@@ -6,6 +6,7 @@ import {
   isAdminEmailAddress,
   isValidEmail,
   isValidPassword,
+  mapUserToSessionUser,
   verifyPassword,
 } from '@/lib/auth';
 
@@ -64,17 +65,11 @@ export async function POST(request: NextRequest) {
     const { token, expiresAt } = await createSession(user.id, scope);
     const response = NextResponse.json({
       ok: true,
-      user: {
-        id: user.id,
-        name: user.name || email.split('@')[0],
-        email,
-        phone: user.phone || undefined,
-        isAdmin: user.isAdmin,
-        avatar: user.avatar || undefined,
-      },
+      user: mapUserToSessionUser(user),
     });
 
     attachSessionCookie(response, token, expiresAt);
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error: any) {
     return NextResponse.json(

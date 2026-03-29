@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { AuthScope, User } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { CURRENT_POLICY_VERSION, hasAcceptedPolicies } from '@/lib/policies';
 
 export const SESSION_COOKIE = 'tp_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -14,14 +15,32 @@ export type SessionUser = {
   phone?: string;
   isAdmin: boolean;
   avatar?: string;
+  marketingConsent: boolean;
+  acceptedPolicyVersion?: string;
+  hasAcceptedPolicies: boolean;
 };
 
-function toSessionUser(
-  user: Pick<User, 'id' | 'name' | 'email' | 'phone' | 'isAdmin' | 'avatar'>
-): SessionUser | null {
+type SessionUserRecord = Pick<
+  User,
+  | 'id'
+  | 'name'
+  | 'email'
+  | 'phone'
+  | 'isAdmin'
+  | 'avatar'
+  | 'marketingConsent'
+  | 'acceptedTermsAt'
+  | 'acceptedPrivacyAt'
+  | 'acceptedPolicyVersion'
+>;
+
+export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | null {
   if (!user.email) {
     return null;
   }
+
+  const acceptedPolicyVersion =
+    user.acceptedPolicyVersion || CURRENT_POLICY_VERSION;
 
   return {
     id: user.id,
@@ -30,6 +49,13 @@ function toSessionUser(
     phone: user.phone || undefined,
     isAdmin: user.isAdmin,
     avatar: user.avatar || undefined,
+    marketingConsent: user.marketingConsent,
+    acceptedPolicyVersion,
+    hasAcceptedPolicies: hasAcceptedPolicies({
+      acceptedTermsAt: user.acceptedTermsAt,
+      acceptedPrivacyAt: user.acceptedPrivacyAt,
+      acceptedPolicyVersion: user.acceptedPolicyVersion,
+    }),
   };
 }
 
@@ -90,14 +116,22 @@ export async function createSession(
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
 
-  await prisma.authSession.create({
-    data: {
-      token,
-      userId,
-      scope,
-      expiresAt,
-    },
-  });
+  await prisma.$transaction([
+    prisma.authSession.create({
+      data: {
+        token,
+        userId,
+        scope,
+        expiresAt,
+      },
+    }),
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        lastSignInAt: new Date(),
+      },
+    }),
+  ]);
 
   return { token, expiresAt };
 }
@@ -116,6 +150,7 @@ export function attachSessionCookie(
     path: '/',
     expires: expiresAt,
     maxAge: SESSION_MAX_AGE_SECONDS,
+    priority: 'high',
   });
 }
 
@@ -129,6 +164,7 @@ export function clearSessionCookie(response: NextResponse) {
     path: '/',
     expires: new Date(0),
     maxAge: 0,
+    priority: 'high',
   });
 }
 
@@ -165,7 +201,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  return toSessionUser(session.user);
+  return mapUserToSessionUser(session.user);
 }
 
 export async function deleteCurrentSession() {

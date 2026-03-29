@@ -4,6 +4,18 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
 
+function parseOrigin(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return trimTrailingSlash(new URL(value).origin);
+  } catch {
+    return null;
+  }
+}
+
 export function getSiteUrlFallback() {
   return trimTrailingSlash(
     process.env.NEXT_PUBLIC_SITE_URL || 'https://tulopots.com'
@@ -21,6 +33,22 @@ export function getRequestOrigin(request: NextRequest) {
   const host = forwardedHost || request.nextUrl.host;
 
   return trimTrailingSlash(`${protocol}://${host}`);
+}
+
+export function isSameOriginRequest(request: NextRequest) {
+  const currentOrigin = getRequestOrigin(request);
+  const origin = parseOrigin(request.headers.get('origin'));
+  const referer = parseOrigin(request.headers.get('referer'));
+
+  if (origin) {
+    return origin === currentOrigin;
+  }
+
+  if (referer) {
+    return referer === currentOrigin;
+  }
+
+  return false;
 }
 
 export function resolveBaseUrl(value?: string | null) {

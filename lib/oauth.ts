@@ -52,10 +52,12 @@ function setOAuthCookies(
 ) {
   const cookieOptions = {
     httpOnly: true,
-    sameSite: 'lax' as const,
+    sameSite:
+      process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
+    priority: 'high' as const,
   };
 
   response.cookies.set({
@@ -78,11 +80,13 @@ function setOAuthCookies(
 function clearOAuthCookies(response: NextResponse) {
   const cookieOptions = {
     httpOnly: true,
-    sameSite: 'lax' as const,
+    sameSite:
+      process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: new Date(0),
     maxAge: 0,
+    priority: 'high' as const,
   };
 
   response.cookies.set({
