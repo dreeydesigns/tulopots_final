@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, StudioBrief } from '@prisma/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ export async function GET() {
       {
         ok: true,
         count: briefs.length,
-        briefs: briefs.map((brief) => ({
+        briefs: briefs.map((brief: StudioBrief) => ({
           id: brief.referenceCode,
           createdAt: brief.createdAt,
           status: brief.status,
@@ -72,7 +72,9 @@ export async function GET() {
       },
       { status: 200 }
     );
-  } catch {
+  } catch (error) {
+    console.error('Studio GET error:', error);
+
     return Response.json(
       {
         ok: false,
@@ -142,12 +144,12 @@ export async function POST(request: Request) {
       data: {
         referenceCode,
         message,
-        imageFileName,
-        imagePreview,
-        referenceLink,
+        imageFileName: imageFileName || null,
+        imagePreview: imagePreview || null,
+        referenceLink: referenceLink || null,
         space,
         helpType,
-        extraNote,
+        extraNote: extraNote || null,
         summary,
       },
     });
