@@ -1,0 +1,114 @@
+{
+  "lastUpdated": "2026-03-29T16:35:00.000Z",
+  "phases": [
+    {
+      "id": "admin",
+      "label": "Admin / CMS System",
+      "status": "complete",
+      "percent": 100,
+      "tasks": [
+        { "label": "Dashboard with live counts", "done": true },
+        { "label": "Product CRUD", "done": true },
+        { "label": "Order management", "done": true },
+        { "label": "Studio brief inbox", "done": true },
+        { "label": "Contact messages viewer", "done": true },
+        { "label": "Newsletter list", "done": true },
+        { "label": "Admin auth/access control", "done": true }
+      ]
+    },
+    {
+      "id": "products",
+      "label": "Product Database System",
+      "status": "complete",
+      "percent": 100,
+      "tasks": [
+        { "label": "Prisma Product model", "done": true },
+        { "label": "Seed script from lib/products.ts", "done": true },
+        { "label": "API updated to serve from DB", "done": true },
+        { "label": "Frontend connected to DB", "done": true }
+      ]
+    },
+    {
+      "id": "content",
+      "label": "Content Management",
+      "status": "in_progress",
+      "percent": 67,
+      "tasks": [
+        { "label": "SiteSection Prisma model", "done": true },
+        { "label": "Admin content tab", "done": true },
+        { "label": "Frontend respects visibility flags", "done": false }
+      ]
+    },
+    {
+      "id": "auth",
+      "label": "Auth System Hardening",
+      "status": "complete",
+      "percent": 100,
+      "tasks": [
+        { "label": "User model with isAdmin", "done": true },
+        { "label": "Proper session management", "done": true },
+        { "label": "Admin route protection", "done": true },
+        { "label": "Customer auth flow", "done": true }
+      ]
+    },
+    {
+      "id": "conversion",
+      "label": "Conversion Improvement",
+      "status": "not_started",
+      "percent": 0,
+      "tasks": [
+        { "label": "Product page persuasion layer", "done": false },
+        { "label": "Cart hardening", "done": false },
+        { "label": "Checkout flow stability", "done": false },
+        { "label": "Trust signals", "done": false }
+      ]
+    },
+    {
+      "id": "seo",
+      "label": "SEO System",
+      "status": "not_started",
+      "percent": 0,
+      "tasks": [
+        { "label": "Dynamic metadata all pages", "done": false },
+        { "label": "Open Graph tags", "done": false },
+        { "label": "Structured data (JSON-LD)", "done": false },
+        { "label": "Image alt attributes", "done": false }
+      ]
+    },
+    {
+      "id": "reviews",
+      "label": "Reviews & Trust System",
+      "status": "in_progress",
+      "percent": 25,
+      "tasks": [
+        { "label": "Review Prisma model", "done": true },
+        { "label": "Review form on product pages", "done": false },
+        { "label": "Admin moderation", "done": false },
+        { "label": "Display on product pages", "done": false }
+      ]
+    },
+    {
+      "id": "social",
+      "label": "Social & Brand Integration",
+      "status": "not_started",
+      "percent": 0,
+      "tasks": [
+        { "label": "Share buttons", "done": false },
+        { "label": "OG images per product", "done": false },
+        { "label": "Campaign route stubs", "done": false }
+      ]
+    },
+    {
+      "id": "polish",
+      "label": "Premium Frontend Polish",
+      "status": "not_started",
+      "percent": 0,
+      "tasks": [
+        { "label": "Micro-interactions", "done": false },
+        { "label": "Loading/error/empty states", "done": false },
+        { "label": "Mobile audit", "done": false },
+        { "label": "Typography + spacing audit", "done": false }
+      ]
+    }
+  ]
+}

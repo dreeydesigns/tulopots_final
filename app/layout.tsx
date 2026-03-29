@@ -8,17 +8,20 @@ import { Providers } from '../components/Providers';
 import Cursor from '../components/Cursor';
 import { AuthModal } from '../components/AuthModal';
 import { Chatbot } from '../components/Chatbot';
+import { getCurrentUser } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'TuloPots - Handcrafted Terracotta from Kenya',
   description: 'Premium handcrafted terracotta pots, plant pairings, and custom studio commissions from Nairobi.',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
+
   return (
     <html lang="en">
       <body className="cursor-halo-on">
-        <Providers>
+        <Providers initialUser={user}>
           <Cursor />
           <Nav />
           <AuthModal />

@@ -8,14 +8,57 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String?  @unique
-  phone     String?  @unique
-  provider  String?
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  orders    Order[]
+  id           String        @id @default(cuid())
+  name         String?
+  email        String?       @unique
+  phone        String?       @unique
+  provider     String?
+  passwordHash String?
+  avatar       String?
+  isAdmin      Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  orders       Order[]
+  reviews      Review[]
+  sessions     AuthSession[]
+}
+
+model AuthSession {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  scope     AuthScope @default(CUSTOMER)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  sku             String?  @unique
+  category        String
+  size            String
+  badge           String?
+  short           String
+  price           Int
+  potOnly         Int?
+  description     String   @db.Text
+  cardDescription String   @db.Text
+  image           String
+  decorative      Boolean  @default(false)
+  forcePotOnly    Boolean  @default(false)
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  details         Json
+  plantGuide      Json?
+  visible         Boolean  @default(true)
+  available       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  reviews         Review[]
 }
 
 model Order {
@@ -35,6 +78,7 @@ model Order {
   shippingAddr2 String?
   shippingCity  String?
   shippingNotes String?
+  adminNotes    String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   user          User?         @relation(fields: [userId], references: [id])
@@ -87,17 +131,22 @@ model StudioBrief {
   helpType      String
   extraNote     String?
   summary       String
+  internalNotes String?           @db.Text
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 }
 
 model ContactMessage {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   name      String
   email     String
   subject   String
-  message   String   @db.Text
-  createdAt DateTime @default(now())
+  message   String               @db.Text
+  status    ContactMessageStatus @default(NEW)
+  readAt    DateTime?
+  handledAt DateTime?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @default(now()) @updatedAt
 }
 
 model NewsletterSubscriber {
@@ -106,10 +155,43 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 }
 
+model SiteSection {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  route     String?
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String?
+  name      String
+  rating    Int
+  body      String   @db.Text
+  approved  Boolean  @default(false)
+  featured  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+enum AuthScope {
+  CUSTOMER
+  ADMIN
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
   PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
   FAILED
   CANCELLED
 }
@@ -136,4 +218,10 @@ enum StudioBriefStatus {
   REVIEWING
   RESPONDED
   CLOSED
+}
+
+enum ContactMessageStatus {
+  NEW
+  READ
+  HANDLED
 }

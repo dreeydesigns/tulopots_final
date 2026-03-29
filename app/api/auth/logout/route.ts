@@ -1,2 +1,10 @@
 import { NextResponse } from 'next/server';
-export async function POST(){ return NextResponse.json({ ok:true, message:'Mock logout successful' }); }
+import { clearSessionCookie, deleteCurrentSession } from '@/lib/auth';
+
+export async function POST() {
+  await deleteCurrentSession();
+
+  const response = NextResponse.json({ ok: true });
+  clearSessionCookie(response);
+  return response;
+}

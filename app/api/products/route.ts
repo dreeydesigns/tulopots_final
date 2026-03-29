@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { products } from '@/lib/products';
+import { getCatalogProducts } from '@/lib/catalog';
 
 export async function GET() {
+  const items = await getCatalogProducts();
+
   return NextResponse.json({
     ok: true,
-    items: products,
-    count: products.length,
+    items,
+    count: items.length,
     generatedAt: new Date().toISOString(),
   });
 }

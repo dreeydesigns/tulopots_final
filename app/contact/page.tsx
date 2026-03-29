@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation';
 import { BRAND } from '@/lib/site';
+import { isSiteSectionVisible } from '@/lib/catalog';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -31,10 +33,16 @@ const INFO = [
   { Icon: ClockIcon, title: 'Open Hours', text: 'Mon–Sat, 9AM – 6PM EAT' },
 ] as const;
 
-export default function Page() {
+export default async function Page() {
+  const isVisible = await isSiteSectionVisible('contact.entry');
+
+  if (!isVisible) {
+    notFound();
+  }
+
   return (
     <main className="tp-page min-h-screen pb-16">
-      <div className="tp-surface border-b tp-border pt-28 pb-10 text-center">
+      <div className="border-b tp-border tp-surface pb-10 pt-28 text-center">
         <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
           Get in Touch
         </div>

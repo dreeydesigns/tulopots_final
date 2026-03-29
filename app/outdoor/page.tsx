@@ -1,4 +1,30 @@
-import { products } from '@/lib/products';
+import { notFound } from 'next/navigation';
 import { CollectionTemplate } from '@/components/Templates';
-export const metadata = { title:'Outdoor Plants | TuloPots', description:'Weather-ready outdoor terracotta pots with curated hardy plant pairings.' };
-export default function Page(){return <CollectionTemplate route="outdoor" title="Outdoor Plants" intro="Robust terracotta pots built for sun, rain and wind. Paired with weather-hardy plants for your garden, patio or balcony." facts={['12 Products','Weather-resistant','Double-fired clay']} filters={['all','medium','large','decorative','new arrivals']} products={products.filter(p=>p.category==='outdoor')} showing="Showing 12 of 12 products" />}
+import { getCatalogProducts, isSiteSectionVisible } from '@/lib/catalog';
+
+export const metadata = {
+  title: 'Outdoor Plants | TuloPots',
+  description: 'Weather-ready outdoor terracotta pots with curated hardy plant pairings.',
+};
+
+export default async function Page() {
+  const isVisible = await isSiteSectionVisible('collections.outdoor');
+
+  if (!isVisible) {
+    notFound();
+  }
+
+  const products = await getCatalogProducts({ category: 'outdoor' });
+
+  return (
+    <CollectionTemplate
+      route="outdoor"
+      title="Outdoor Plants"
+      intro="Robust terracotta forms built for patios, balconies, and open spaces where craft should still feel calm and composed."
+      facts={['Weather-ready', 'Double-fired clay', 'Nairobi crafted']}
+      filters={['all', 'medium', 'large', 'decorative', 'new arrivals']}
+      products={products}
+      showing={`Showing ${products.length} of ${products.length} products`}
+    />
+  );
+}

@@ -26,7 +26,7 @@ export type User = {
   name: string;
   email: string;
   phone?: string;
-  isAdmin?: boolean;
+  isAdmin: boolean;
   avatar?: string;
 };
 
@@ -34,13 +34,14 @@ export type Theme = 'dark' | 'light';
 
 type Store = {
   isLoggedIn: boolean;
-  setIsLoggedIn: (v: boolean) => void;
+  setIsLoggedIn: (value: boolean) => void;
   user: User | null;
-  setUser: (u: User | null) => void;
+  setUser: (user: User | null) => void;
+  refreshSession: () => Promise<void>;
   showAuthModal: boolean;
-  setShowAuthModal: (v: boolean) => void;
+  setShowAuthModal: (value: boolean) => void;
   theme: Theme;
-  setTheme: (t: Theme) => void;
+  setTheme: (theme: Theme) => void;
   wishlist: string[];
   toggleWishlist: (slug: string) => void;
   cart: CartItem[];
@@ -76,9 +77,15 @@ const read = <T,>(key: string, fallback: T): T => {
   }
 };
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedInRaw] = useState(false);
-  const [user, setUserRaw] = useState<User | null>(null);
+export function Providers({
+  children,
+  initialUser = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: User | null;
+}) {
+  const [isLoggedIn, setIsLoggedInRaw] = useState(Boolean(initialUser));
+  const [user, setUserRaw] = useState<User | null>(initialUser);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [theme, setThemeRaw] = useState<Theme>('dark');
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -98,13 +105,40 @@ export function Providers({ children }: { children: React.ReactNode }) {
     transitionTimers.current = [];
   };
 
+  async function refreshSession() {
+    try {
+      const response = await fetch('/api/auth/session', {
+        cache: 'no-store',
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        user: User | null;
+        isLoggedIn: boolean;
+      };
+
+      if (!response.ok || !data.ok) {
+        setUserRaw(null);
+        setIsLoggedInRaw(false);
+        return;
+      }
+
+      setUserRaw(data.user);
+      setIsLoggedInRaw(data.isLoggedIn);
+    } catch {
+      setUserRaw(null);
+      setIsLoggedInRaw(false);
+    }
+  }
+
   useEffect(() => {
-    setIsLoggedInRaw(read('tp-auth', false));
-    setUserRaw(read<User | null>('tp-user', null));
     setThemeRaw(read<Theme>('tp-theme', 'dark'));
     setWishlist(read('tp-wishlist', []));
     setCart(read('tp-cart', []));
     isHydrated.current = true;
+
+    if (!initialUser) {
+      void refreshSession();
+    }
 
     return () => {
       if (typeof window !== 'undefined') {
@@ -112,14 +146,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
     };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('tp-auth', JSON.stringify(isLoggedIn));
-  }, [isLoggedIn]);
-
-  useEffect(() => {
-    localStorage.setItem('tp-user', JSON.stringify(user));
-  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('tp-theme', JSON.stringify(theme));
@@ -159,17 +185,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
     };
   }, [themeTransition]);
 
-  const setIsLoggedIn = (v: boolean) => {
-    setIsLoggedInRaw(v);
-    if (!v) {
-      setUserRaw(null);
-      localStorage.removeItem('tp-user');
+  const setIsLoggedIn = (value: boolean) => {
+    if (value) {
+      setShowAuthModal(true);
+      return;
     }
+
+    void fetch('/api/auth/logout', {
+      method: 'POST',
+    }).finally(() => {
+      setUserRaw(null);
+      setIsLoggedInRaw(false);
+      setShowAuthModal(false);
+    });
   };
 
-  const setUser = (u: User | null) => {
-    setUserRaw(u);
-    setIsLoggedInRaw(!!u);
+  const setUser = (nextUser: User | null) => {
+    setUserRaw(nextUser);
+    setIsLoggedInRaw(!!nextUser);
   };
 
   const setTheme = (nextTheme: Theme) => {
@@ -225,10 +258,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const key = `${product.slug}-${mode}-${cfg.sizeLabel || 'default'}`;
 
     setCart((cur) => {
-      const existing = cur.find((i) => i.key === key);
+      const existing = cur.find((item) => item.key === key);
       if (existing) {
-        return cur.map((i) =>
-          i.key === key ? { ...i, quantity: i.quantity + quantity } : i
+        return cur.map((item) =>
+          item.key === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
 
@@ -250,15 +283,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const updateQty = (key: string, delta: number) =>
     setCart((cur) =>
-      cur.map((i) =>
-        i.key === key
-          ? { ...i, quantity: Math.max(1, i.quantity + delta) }
-          : i
+      cur.map((item) =>
+        item.key === key
+          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          : item
       )
     );
 
   const removeItem = (key: string) =>
-    setCart((cur) => cur.filter((i) => i.key !== key));
+    setCart((cur) => cur.filter((item) => item.key !== key));
 
   const value = useMemo(
     () => ({
@@ -266,6 +299,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       setIsLoggedIn,
       user,
       setUser,
+      refreshSession,
       showAuthModal,
       setShowAuthModal,
       theme,

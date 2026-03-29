@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -15,7 +15,7 @@ import {
   Truck,
   Check,
 } from 'lucide-react';
-import { Product, products, sizeOptionsFor } from '@/lib/products';
+import { Product, sizeOptionsFor } from '@/lib/products';
 import { money } from '@/lib/utils';
 import { Breadcrumbs } from './Breadcrumbs';
 import { ProductCard } from './ProductCard';
@@ -60,7 +60,13 @@ function getReasonBlocks(product: Product, mode: 'plant' | 'pot') {
   ];
 }
 
-export function ProductPageClient({ product }: { product: Product }) {
+export function ProductPageClient({
+  product,
+  relatedProducts,
+}: {
+  product: Product;
+  relatedProducts: Product[];
+}) {
   const { addToCart, toggleWishlist, wishlist, isLoggedIn, setIsLoggedIn } = useStore();
 
   const defaultMode = product.forcePotOnly || product.decorative ? 'pot' : 'plant';
@@ -79,17 +85,11 @@ export function ProductPageClient({ product }: { product: Product }) {
   const gallery = [product.image, product.image, product.image, product.image];
   const [activeImage, setActiveImage] = useState(gallery[0]);
 
-  const size = sizes.find((s) => s.key === selected) || sizes[0];
+  const size = sizes.find((option) => option.key === selected) || sizes[0];
   const unit = Math.round(
     (mode === 'plant' ? product.price : product.potOnly || product.price) * size.multiplier
   );
   const total = unit * qty;
-
-  const related = useMemo(
-    () =>
-      products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 2),
-    [product]
-  );
 
   const canToggleModes = !product.forcePotOnly && !product.decorative && !!product.potOnly;
   const reviewGate = true;
@@ -182,9 +182,9 @@ export function ProductPageClient({ product }: { product: Product }) {
           </div>
 
           <div className="mt-4 grid grid-cols-4 gap-4">
-            {gallery.map((img, i) => (
+            {gallery.map((img, index) => (
               <button
-                key={i}
+                key={index}
                 onClick={() => setActiveImage(img)}
                 className={`overflow-hidden rounded-[1.25rem] border transition ${
                   activeImage === img
@@ -194,7 +194,7 @@ export function ProductPageClient({ product }: { product: Product }) {
               >
                 <Image
                   src={img}
-                  alt={`${product.name} view ${i + 1}`}
+                  alt={`${product.name} view ${index + 1}`}
                   width={400}
                   height={400}
                   className="h-24 w-full object-cover transition duration-500 hover:scale-105"
@@ -217,11 +217,11 @@ export function ProductPageClient({ product }: { product: Product }) {
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((s) => (
+              {[1, 2, 3, 4, 5].map((star) => (
                 <Star
-                  key={s}
+                  key={star}
                   className={`h-4 w-4 ${
-                    s <= Math.round(product.rating)
+                    star <= Math.round(product.rating)
                       ? 'fill-[#f0b400] text-[#f0b400]'
                       : 'text-[#dfd2c8]'
                   }`}
@@ -294,23 +294,24 @@ export function ProductPageClient({ product }: { product: Product }) {
               Select size
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {sizes.map((s) => {
+              {sizes.map((option) => {
                 const previewPrice = Math.round(
-                  (mode === 'plant' ? product.price : product.potOnly || product.price) * s.multiplier
+                  (mode === 'plant' ? product.price : product.potOnly || product.price) *
+                    option.multiplier
                 );
 
                 return (
                   <button
-                    key={s.key}
-                    onClick={() => setSelected(s.key)}
+                    key={option.key}
+                    onClick={() => setSelected(option.key)}
                     className={`rounded-[1rem] border px-4 py-3 text-left transition ${
-                      selected === s.key
+                      selected === option.key
                         ? 'border-[#B66A3C] bg-[#fff7f0] shadow-[0_10px_22px_rgba(182,106,60,0.08)]'
                         : 'border-[var(--tp-border)] bg-[var(--tp-card)] hover:border-[#cfb39e]'
                     }`}
                   >
-                    <div className="text-sm font-semibold text-[var(--tp-heading)]">{s.label}</div>
-                    <div className="mt-1 text-xs text-[var(--tp-text)]/55">{s.helper}</div>
+                    <div className="text-sm font-semibold text-[var(--tp-heading)]">{option.label}</div>
+                    <div className="mt-1 text-xs text-[var(--tp-text)]/55">{option.helper}</div>
                     <div className="mt-2 text-xs font-semibold text-[#B66A3C]">
                       {money(previewPrice)}
                     </div>
@@ -337,7 +338,7 @@ export function ProductPageClient({ product }: { product: Product }) {
             <div className="flex flex-col gap-5 md:flex-row md:items-center">
               <div className="inline-flex items-center self-start rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)]">
                 <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  onClick={() => setQty((value) => Math.max(1, value - 1))}
                   className="px-4 py-3 text-[var(--tp-text)]/70 transition hover:text-[var(--tp-heading)]"
                   aria-label="Decrease quantity"
                 >
@@ -347,7 +348,7 @@ export function ProductPageClient({ product }: { product: Product }) {
                   {qty}
                 </div>
                 <button
-                  onClick={() => setQty((q) => q + 1)}
+                  onClick={() => setQty((value) => value + 1)}
                   className="px-4 py-3 text-[var(--tp-text)]/70 transition hover:text-[var(--tp-heading)]"
                   aria-label="Increase quantity"
                 >
@@ -406,7 +407,7 @@ export function ProductPageClient({ product }: { product: Product }) {
 
           <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
             <button
-              onClick={() => setDetailsOpen((s) => !s)}
+              onClick={() => setDetailsOpen((state) => !state)}
               className="flex w-full items-center justify-between px-5 py-4 text-left"
             >
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
@@ -422,7 +423,9 @@ export function ProductPageClient({ product }: { product: Product }) {
             {detailsOpen && (
               <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--tp-border)] px-5 py-5 text-sm">
                 <div className="text-[var(--tp-text)]/55">Material</div>
-                <div className="text-[var(--tp-heading)]">100% Natural Kenyan Clay</div>
+                <div className="text-[var(--tp-heading)]">
+                  {product.details.material || '100% Natural Kenyan Clay'}
+                </div>
 
                 <div className="text-[var(--tp-text)]/55">Selected size</div>
                 <div className="text-[var(--tp-heading)]">{size.label}</div>
@@ -431,7 +434,9 @@ export function ProductPageClient({ product }: { product: Product }) {
                 <div className="text-[var(--tp-heading)]">{product.sku}</div>
 
                 <div className="text-[var(--tp-text)]/55">Finish</div>
-                <div className="text-[var(--tp-heading)]">Natural Terracotta</div>
+                <div className="text-[var(--tp-heading)]">
+                  {product.details.finish || 'Natural Terracotta'}
+                </div>
               </div>
             )}
           </div>
@@ -439,7 +444,7 @@ export function ProductPageClient({ product }: { product: Product }) {
           {!!product.plantGuide && (
             <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
               <button
-                onClick={() => setCareOpen((s) => !s)}
+                onClick={() => setCareOpen((state) => !state)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]">
@@ -454,10 +459,10 @@ export function ProductPageClient({ product }: { product: Product }) {
 
               {careOpen && (
                 <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--tp-border)] px-5 py-5 text-sm">
-                  {Object.entries(product.plantGuide).map(([k, v]) => (
-                    <div key={k} className="contents">
-                      <div className="capitalize text-[var(--tp-text)]/55">{k}</div>
-                      <div className="text-[var(--tp-heading)]">{String(v)}</div>
+                  {Object.entries(product.plantGuide).map(([key, value]) => (
+                    <div key={key} className="contents">
+                      <div className="capitalize text-[var(--tp-text)]/55">{key}</div>
+                      <div className="text-[var(--tp-heading)]">{String(value)}</div>
                     </div>
                   ))}
                 </div>
@@ -510,7 +515,7 @@ export function ProductPageClient({ product }: { product: Product }) {
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {related.map((item) => (
+          {relatedProducts.map((item) => (
             <ProductCard key={item.slug} product={item} collection />
           ))}
         </div>
