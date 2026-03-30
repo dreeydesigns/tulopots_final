@@ -7,7 +7,7 @@ type SubmitState = {
   message: string;
 };
 
-export function ContactForm() {
+export function ContactForm({ context = 'contact-page' }: { context?: string }) {
   const [state, setState] = useState<SubmitState>({
     tone: 'idle',
     message: '',
@@ -21,6 +21,24 @@ export function ContactForm() {
 
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const phone = String(formData.get('phone') ?? '').trim();
+    const preferredReply = String(formData.get('preferredReply') ?? '').trim();
+    const originalMessage = String(formData.get('message') ?? '').trim();
+    const notes = [];
+
+    if (phone) {
+      notes.push(`Phone / WhatsApp: ${phone}`);
+    }
+
+    if (preferredReply) {
+      notes.push(`Preferred reply channel: ${preferredReply}`);
+    }
+
+    if (notes.length) {
+      formData.set('message', `${originalMessage}\n\n${notes.join('\n')}`);
+    }
+
+    formData.set('context', context);
 
     try {
       const response = await fetch('/api/contact', {
@@ -55,6 +73,8 @@ export function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-7 space-y-4">
       <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
+      <input type="hidden" name="context" value={context} />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
@@ -84,6 +104,37 @@ export function ContactForm() {
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+            Phone or WhatsApp
+          </label>
+          <input
+            name="phone"
+            type="tel"
+            placeholder="+254700000000"
+            className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
+            style={{ borderWidth: '1px' }}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+            Preferred reply
+          </label>
+          <select
+            name="preferredReply"
+            className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
+            style={{ borderWidth: '1px', color: 'var(--tp-text)' }}
+            defaultValue="email"
+          >
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <label className="text-[11px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
           Subject
@@ -92,13 +143,14 @@ export function ContactForm() {
           name="subject"
           className="tp-input rounded-2xl px-5 py-3.5 text-sm outline-none transition"
           style={{ borderWidth: '1px', color: 'var(--tp-text)' }}
-          defaultValue="General Inquiry"
+          defaultValue="General conversation"
         >
-          <option>General Inquiry</option>
-          <option>Custom Order</option>
+          <option>General conversation</option>
+          <option>Studio / Custom Order</option>
+          <option>Delivery support</option>
           <option>Plant Care Help</option>
           <option>Wholesale</option>
-          <option>Other</option>
+          <option>Press / Collaboration</option>
         </select>
       </div>
 
@@ -108,8 +160,8 @@ export function ContactForm() {
         </label>
         <textarea
           name="message"
-          placeholder="Tell us what you need..."
-          className="tp-input min-h-[140px] resize-none rounded-2xl px-5 py-4 text-sm outline-none transition"
+          placeholder="Tell us what you need, where the piece will live, or what kind of help would be most useful."
+          className="tp-input min-h-[160px] resize-none rounded-2xl px-5 py-4 text-sm outline-none transition"
           style={{ borderWidth: '1px' }}
           required
         />
@@ -122,6 +174,11 @@ export function ContactForm() {
       >
         {isSubmitting ? 'Sending...' : 'Send Message'}
       </button>
+
+      <div className="rounded-[1.5rem] bg-[var(--tp-surface)] px-4 py-4 text-sm leading-7 tp-text-soft">
+        Most messages receive a reply within one working day. If your order is already paid and
+        you only need a delivery update, use the tracking page for the fastest answer.
+      </div>
 
       <p className="text-xs leading-6 tp-text-muted">
         By sending a message, you agree to our{' '}
