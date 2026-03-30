@@ -624,7 +624,7 @@ function MobileScenePanel({
   const product = productMap[leadItem.slug];
   const presentation = CARD_LIBRARY[leadItem.slug];
   const imageSrc = presentation?.image || product.image;
-  const displayName = presentation?.displayName || product.name;
+  const displayName = product.name;
 
   return (
     <div className="mt-8 md:hidden">
@@ -1131,7 +1131,7 @@ export default function LoggedInHome() {
 
                           const presentation = CARD_LIBRARY[item.slug];
                           const imageSrc = presentation?.image || product.image;
-                          const displayName = presentation?.displayName || product.name;
+                          const displayName = product.name;
                           const imageHeight = Math.round(CARD_HEIGHTS[ci] * 0.65);
 
                           return (

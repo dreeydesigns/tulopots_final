@@ -7,7 +7,7 @@ export type Product = {
   details: Record<string,string>; plantGuide?: Record<string,string>;
 };
 
-export const products: Product[] = [
+const baseProducts: Product[] = [
   { slug:'ribbed-globe-peace-lily', category:'indoor', size:'small', badge:'Indoor', sku:'TP-GLOBE-SM-001', name:'Ribbed Globe Pot with Peace Lily', short:'with Peace Lily', rating:4.5, reviews:24, price:1800, potOnly:900, description:'Our signature ribbed globe is hand-thrown on the wheel over 25 minutes, creating subtle variations in each rib. The natural terracotta breathes, allowing air to reach the roots of your Peace Lily. Each pot is fired twice for maximum durability.', cardDescription:'A plump ribbed globe in classic terracotta. The ribbed texture adds grip and character.', plantGuide:{watering:'Weekly', light:'Low to medium indirect', temperature:'18–30°C'}, details:{material:'100% Natural Kenyan Clay', dimensions:'12cm x 14cm', weight:'420g', shape:'Round', finish:'Natural Terracotta'}, image:imageByKey.indoor1 },
   { slug:'pedestal-bowl-succulents', category:'indoor', size:'small', badge:'New', sku:'TP-BOWL-SM-002', name:'Pedestal Bowl with Succulents', short:'with Succulents', rating:4.3, reviews:18, price:2200, potOnly:1100, description:'The pedestal bowl combines form and function with a raised base that provides excellent drainage and airflow. Perfect for creating stunning succulent gardens.', cardDescription:'Wide-mouth bowl on a conical foot. Ideal for succulent arrangements and low trailing plants.', plantGuide:{watering:'Every 10 days', light:'Bright indirect', temperature:'18–29°C'}, details:{material:'100% Natural Kenyan Clay', dimensions:'16cm x 18cm', weight:'510g', shape:'Bowl', finish:'Natural Terracotta'}, image:imageByKey.indoor2 },
   { slug:'cylinder-vase-snake-plant', category:'indoor', size:'small', badge:'Indoor', sku:'TP-CYL-SM-003', name:'Cylinder Vase with Snake Plant', short:'with Snake Plant', rating:4.7, reviews:31, price:1500, potOnly:800, description:'The cylinder vase features clean, modern lines that complement any interior. The narrow opening supports tall, upright plants beautifully.', cardDescription:'Elegant hourglass profile in warm terracotta. Suits upright plants like snake plant or bamboo.', plantGuide:{watering:'Every 2 weeks', light:'Low to bright indirect', temperature:'18–32°C'}, details:{material:'100% Natural Kenyan Clay', dimensions:'10cm x 22cm', weight:'390g', shape:'Cylinder', finish:'Natural Terracotta'}, image:imageByKey.indoor3 },
@@ -43,6 +43,48 @@ export const products: Product[] = [
   { slug:'round-belly-solo', category:'pots', size:'medium', badge:'Pot Only', sku:'TP-BELL-SO-033', name:'Round Belly Pot', short:'Round · Natural Terracotta', rating:4.3, reviews:17, price:1200, potOnly:null, description:'The timeless round belly pot, a classic shape that works beautifully in any setting.', cardDescription:'Classic round belly shape in natural terracotta.', details:{material:'100% Natural Kenyan Clay', dimensions:'15cm x 16cm', weight:'420g', shape:'Round', finish:'Natural Terracotta'}, image:imageByKey.productStudio, forcePotOnly:true },
   { slug:'workshop-set', category:'pots', size:'sets', badge:'Bestseller', sku:'TP-SET-MX-034', name:'Studio Workshop Set', short:'Mixed Set · Natural Terracotta', rating:4.9, reviews:38, price:6500, potOnly:null, description:'A hand-picked set of 4 different pot styles from our workshop. Each set is unique, featuring a mix of sizes and shapes.', cardDescription:'Set of 4 mixed pots from our studio. A curated collection.', details:{material:'100% Natural Kenyan Clay', dimensions:'Mixed set of 4', weight:'3.2kg', shape:'Mixed Set', finish:'Natural Terracotta'}, image:imageByKey.productStudio, forcePotOnly:true }
 ];
+
+const PRODUCT_NAME_OVERRIDES: Record<string, string> = {
+  'ribbed-globe-peace-lily': 'Karen Ribbed Globe with Peace Lily',
+  'pedestal-bowl-succulents': 'Muthaiga Pedestal Bowl with Succulents',
+  'cylinder-vase-snake-plant': 'Runda Cylinder Vase with Snake Plant',
+  'jug-handle-pothos': 'Lavington Jug Handle Pot with Pothos',
+  'wide-rim-monstera': 'Kitisuru Wide Rim Planter with Monstera',
+  'tapered-column-fiddle': 'Gigiri Tapered Column with Fiddle Leaf Fig',
+  'ribbed-globe-medium-zz': 'Nyari Ribbed Globe with ZZ Plant',
+  'smooth-bowl-aloe': 'Spring Valley Smooth Bowl with Aloe Vera',
+  'tall-cylinder-bamboo': 'Rosslyn Tall Cylinder with Bamboo',
+  'studio-jug-ivy': 'Kyuna Studio Jug with Ivy',
+  'wide-mouth-spider': 'Riverside Wide Mouth Pot with Spider Plant',
+  'deep-planter-bird': 'Karen Deep Planter with Bird of Paradise',
+  'studio-collection-agave': 'Vipingo Studio Collection with Agave & Aloe',
+  'hut-sculpture-garden': 'Muthaiga Hut Sculpture with Garden Ornament',
+  'ribbed-cylinder-xl-bougainvillea': 'Runda Ribbed Cylinder XL with Bougainvillea',
+  'round-belly-lavender': 'Tigoni Round Belly Pot with Lavender',
+  'ribbed-globe-xl-bird': 'Nyali Ribbed Globe XL with Bird of Paradise',
+  'pedestal-garden-cacti': 'Nanyuki Pedestal Garden Bowl with Cacti Mix',
+  'wide-rim-bougainvillea': 'Loresho Wide Rim Garden Pot with Rosemary',
+  'jug-garden-ferns': 'Kitisuru Jug Garden Vessel with Ferns',
+  'studio-xl-deep-palm': 'Muthaiga Studio XL Deep with Date Palm',
+  'hut-mini-bird': 'Gigiri Hut Mini with Bird Feeder',
+  'ribbed-tall-garden-canna': 'Rosslyn Ribbed Tall Garden with Canna Lily',
+  'belly-pot-lemon': 'Tigoni Belly Pot with Lemon Tree',
+  'ribbed-globe-solo': 'Karen Ribbed Globe',
+  'pedestal-bowl-solo': 'Muthaiga Pedestal Bowl',
+  'cylinder-vase-solo': 'Runda Cylinder Vase',
+  'jug-handle-solo': 'Lavington Jug Handle Pot',
+  'hut-sculpture-solo': 'Muthaiga Hut Sculpture',
+  'ribbed-cylinder-solo': 'Kitisuru Ribbed Cylinder',
+  'wide-rim-solo': 'Nyari Wide Rim Planter',
+  'tapered-column-solo': 'Gigiri Tapered Column',
+  'round-belly-solo': 'Tigoni Round Belly Pot',
+  'workshop-set': 'Karen Studio Workshop Set',
+};
+
+export const products: Product[] = baseProducts.map((product) => ({
+  ...product,
+  name: PRODUCT_NAME_OVERRIDES[product.slug] ?? product.name,
+}));
 
 export const productBySlug = Object.fromEntries(products.map((p) => [p.slug, p]));
 export const studioCard = { slug:'studio-collection-request', category:'studio', name:'Studio Collection', short:'custom commissions', rating:5, reviews:12, price:0, image:imageByKey.clay, badge:'Members', cardDescription:'Upload inspirations, tell us quantities, and let our guided studio assistant shape your brief.' };
