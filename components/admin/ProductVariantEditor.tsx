@@ -43,7 +43,7 @@ function emptyModeContent(): ProductModeContent {
 }
 
 function modeLabel(mode: ProductMode) {
-  return mode === 'plant' ? 'Pot + Plant' : 'Clay Form';
+  return mode === 'plant' ? 'Placed with Plant' : 'Clay Form';
 }
 
 export function ProductVariantEditor({

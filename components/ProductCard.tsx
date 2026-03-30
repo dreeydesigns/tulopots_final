@@ -14,31 +14,31 @@ function getUseTag(product: any) {
   const name = `${product?.name || ''} ${product?.short || ''}`.toLowerCase();
   const category = `${product?.category || ''}`.toLowerCase();
 
-  if (name.includes('peace lily')) return 'Desk Green';
+  if (name.includes('peace lily')) return 'Calm Presence';
   if (name.includes('snake plant')) return 'Corner Calm';
-  if (name.includes('succulent')) return 'Shelf Style';
-  if (name.includes('pothos')) return 'Easy Green';
-  if (name.includes('monstera')) return 'Statement Pot';
-  if (name.includes('bamboo')) return 'Entry Style';
-  if (name.includes('bougainvillea')) return 'Patio Piece';
-  if (name.includes('palm')) return 'Corner Piece';
-  if (name.includes('fiddle')) return 'Room Lift';
-  if (name.includes('aloe')) return 'Calm Accent';
-  if (name.includes('bird of paradise')) return 'Patio Green';
+  if (name.includes('succulent')) return 'Table Calm';
+  if (name.includes('pothos')) return 'Soft Movement';
+  if (name.includes('monstera')) return 'Room Presence';
+  if (name.includes('bamboo')) return 'Entry Rhythm';
+  if (name.includes('bougainvillea')) return 'Patio Presence';
+  if (name.includes('palm')) return 'Open-Space Anchor';
+  if (name.includes('fiddle')) return 'Vertical Presence';
+  if (name.includes('aloe')) return 'Light-Filled Calm';
+  if (name.includes('bird of paradise')) return 'Bold Presence';
 
-  if (category === 'outdoor') return 'Patio Piece';
-  if (category === 'indoor') return 'Desk Green';
+  if (category === 'outdoor') return 'Open-Space Piece';
+  if (category === 'indoor') return 'Interior Piece';
   if (category === 'pots') {
-    if (name.includes('bowl')) return 'Table Centre';
-    if (name.includes('jug')) return 'Shelf Accent';
-    if (name.includes('cylinder')) return 'Corner Height';
+    if (name.includes('bowl')) return 'Table Presence';
+    if (name.includes('jug')) return 'Shelf Presence';
+    if (name.includes('cylinder')) return 'Vertical Presence';
     if (name.includes('globe')) return 'Rounded Presence';
     if (name.includes('wide rim')) return 'Entry Presence';
-    if (name.includes('set')) return 'Layered Styling';
+    if (name.includes('set')) return 'Layered Placement';
     return 'Placement Ready';
   }
 
-  return 'Home Piece';
+  return 'Placed Piece';
 }
 
 export function ProductCard({ product }: any) {
@@ -51,7 +51,7 @@ export function ProductCard({ product }: any) {
   const useTag = useMemo(() => getUseTag(product), [product]);
   const isLight = theme === 'light';
   const displayBadge =
-    product.category === 'pots' && String(product.badge || '').toLowerCase() === 'pot only'
+    product.category === 'pots' && String(product.badge || '').toLowerCase() === 'clay form'
       ? ''
       : product.badge;
 

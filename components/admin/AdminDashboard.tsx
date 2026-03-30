@@ -1511,7 +1511,7 @@ export function AdminDashboard({ user }: { user: User }) {
                         >
                           Slug and SKU are generated automatically while you are creating a new
                           product. The presentation editor below controls what customers see for
-                          Pot + Plant, Clay Form, and each size image swap.
+                          Placed with Plant, Clay Form, and each size image swap.
                         </div>
 
                         <ProductVariantEditor

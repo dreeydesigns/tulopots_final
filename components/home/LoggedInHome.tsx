@@ -47,31 +47,31 @@ const CARD_LIBRARY: Record<
   }
 > = {
   'ribbed-globe-peace-lily': {
-    displayName: 'Ribbed Globe Form',
+    displayName: 'Zuri',
     image: imageByKey.indoor1,
   },
   'pedestal-bowl-succulents': {
-    displayName: 'Pedestal Bowl Form',
+    displayName: 'Kaya',
     image: imageByKey.indoor2,
   },
   'cylinder-vase-snake-plant': {
-    displayName: 'Cylinder Vase Form',
+    displayName: 'Nia',
     image: imageByKey.indoor3,
   },
   'jug-handle-pothos': {
-    displayName: 'Handled Clay Form',
+    displayName: 'Amani',
     image: imageByKey.indoor4,
   },
   'hut-sculpture-garden': {
-    displayName: 'Clay Sculpture Piece',
+    displayName: 'Boma',
     image: imageByKey.outdoor2,
   },
   'wide-rim-bougainvillea': {
-    displayName: 'Wide Rim Garden Form',
+    displayName: 'Mara',
     image: imageByKey.outdoor3,
   },
   'studio-xl-deep-palm': {
-    displayName: 'Studio XL Form',
+    displayName: 'Jua',
     image: imageByKey.outdoor1,
   },
 };
@@ -84,9 +84,9 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'for Living',
     description:
-      'Objects shaped to bring warmth, texture, and quiet presence into everyday spaces.',
-    primaryCta: { label: 'Shop Collection', href: '/indoor' },
-    secondaryCta: { label: 'Explore Forms', href: '/pots' },
+      'Clay presence shaped for rooms that ask for warmth, balance, and quiet calm.',
+    primaryCta: { label: 'View Collection', href: '/indoor' },
+    secondaryCta: { label: 'Clay Forms', href: '/pots' },
     stats: [
       { value: '120+', label: 'Forms' },
       { value: '8yr', label: 'Craft' },
@@ -111,9 +111,9 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'Interior Spaces',
     description:
-      'Forms for shelves, tables, corners, studios, and rooms that deserve character.',
-    primaryCta: { label: 'Shop Interior', href: '/indoor' },
-    secondaryCta: { label: 'View Forms', href: '/pots' },
+      'Pieces for shelves, tables, corners, and rooms that feel better when presence is placed well.',
+    primaryCta: { label: 'View Interior', href: '/indoor' },
+    secondaryCta: { label: 'Clay Forms', href: '/pots' },
     stats: [
       { value: '36+', label: 'Selections' },
       { value: '4.8', label: 'Rated' },
@@ -138,9 +138,9 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'Open Spaces',
     description:
-      'Pieces designed for terraces, entrances, gardens, courtyards, and open-air living.',
-    primaryCta: { label: 'Shop Outdoor', href: '/outdoor' },
-    secondaryCta: { label: 'Browse Forms', href: '/pots' },
+      'Pieces for terraces, entrances, gardens, courtyards, and open-air living with restraint.',
+    primaryCta: { label: 'View Open Spaces', href: '/outdoor' },
+    secondaryCta: { label: 'Clay Forms', href: '/pots' },
     stats: [
       { value: '28+', label: 'Selections' },
       { value: 'Natural', label: 'Clay' },
@@ -165,8 +165,8 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'Forms',
     description:
-      'A curated selection of handmade forms where shape leads, styling follows, and presence matters.',
-    primaryCta: { label: 'Browse Forms', href: '/pots' },
+      'A curated selection of handmade forms where shape leads, placement follows, and presence matters.',
+    primaryCta: { label: 'View Forms', href: '/pots' },
     secondaryCta: { label: 'Contact Studio', href: '/contact' },
     stats: [
       { value: '50+', label: 'Forms' },
@@ -188,8 +188,8 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'in Craft',
     description:
-      'Made with patience, material honesty, and the tactile character that gives each piece its own life.',
-    primaryCta: { label: 'View Collection', href: '/pots' },
+      'Made with patience, material honesty, and the quiet character that gives each piece its own life.',
+    primaryCta: { label: 'Clay Forms', href: '/pots' },
     secondaryCta: { label: 'Contact Studio', href: '/contact' },
     stats: [
       { value: 'Handmade', label: 'Method' },
@@ -215,7 +215,7 @@ const SLIDES: Slide[] = [
     titleAccent: '',
     titleBottom: 'Story',
     description:
-      'Handcrafted terracotta from Nairobi — shaped through craft, not trend, and made to live beautifully over time.',
+      'Handcrafted terracotta from Nairobi, shaped through craft rather than trend and made to live beautifully over time.',
     primaryCta: { label: 'Read Our Story', href: '/about' },
     secondaryCta: { label: 'Contact Us', href: '/contact' },
     stats: [
@@ -449,7 +449,7 @@ function MagneticPotScene({
                 color: palette.potPanelText,
               }}
             >
-              Form Focus
+              Clay Forms
             </div>
             <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
               Move cursor
@@ -457,11 +457,11 @@ function MagneticPotScene({
           </div>
 
           <div className="serif-display text-[26px] leading-none" style={{ color: palette.potPanelText }}>
-            Signature Clay Form
+            Quiet Clay Form
           </div>
 
           <p className="mt-4 text-[12px] leading-6" style={{ color: palette.potPanelMuted }}>
-            Start with the shape, then decide where it belongs. Shelf, entry, table, terrace, or patio — the form comes first.
+            Start with the form, then place it where the room asks for it. Shelf, entry, table, terrace, or patio.
           </p>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
@@ -480,7 +480,7 @@ function MagneticPotScene({
                 e.currentTarget.style.background = palette.primaryBtnBg;
               }}
             >
-              Shop Forms
+              View Forms
             </button>
 
             <button
@@ -581,13 +581,13 @@ function MobileScenePanel({
     return (
       <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: palette.sceneTextFaint }}>
-          Shape First
+          Clay Forms
         </div>
         <div className="serif-display mt-3 text-[2rem] leading-none" style={{ color: palette.potPanelText }}>
-          Signature Clay Form
+          Quiet Clay Form
         </div>
         <p className="mt-3 text-sm leading-6" style={{ color: palette.potPanelMuted }}>
-          Start with the form, then decide where it belongs. Shelf, table, entry, terrace, or patio.
+          Start with the form, then place it where the room asks for it. Shelf, table, entry, terrace, or patio.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Link
@@ -598,7 +598,7 @@ function MobileScenePanel({
               color: palette.primaryBtnText,
             }}
           >
-            Shop Forms
+            View Forms
           </Link>
           <Link
             href="/contact"
@@ -648,7 +648,7 @@ function MobileScenePanel({
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/12 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
             <div className="text-[10px] uppercase tracking-[0.18em] text-white/70">
-              Featured form
+              Featured presence
             </div>
             <div className="serif-display mt-2 text-[1.9rem] leading-none">{displayName}</div>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/80">

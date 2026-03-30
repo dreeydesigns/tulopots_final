@@ -114,14 +114,17 @@ function baseSizeKeysForProfile(profile: string) {
 
 function derivePotName(name: string) {
   const trimmed = trimString(name);
-  const cleaned = trimmed.replace(/\s+with\s+.+$/i, '').trim();
+  const cleaned = trimmed
+    .replace(/\s*\+\s*.+$/i, '')
+    .replace(/\s+with\s+.+$/i, '')
+    .trim();
   return cleaned || trimmed;
 }
 
 function derivePotShort(
   short: string,
   details?: Record<string, unknown> | null,
-  fallback = 'Clay form only'
+  fallback = 'Quiet clay form for your own planting direction'
 ) {
   const shape = trimString(details?.shape);
   const finish = trimString(details?.finish || 'Natural Terracotta');
@@ -136,7 +139,7 @@ function derivePotShort(
   }
 
   if (shape) {
-    return `${shape} · Clay Form`;
+    return `${shape} · Clay presence`;
   }
 
   return fallback;
@@ -144,26 +147,26 @@ function derivePotShort(
 
 function defaultPotDescription(
   details?: Record<string, unknown> | null,
-  fallback = 'Choose the clay form on its own and pair it with your own planting direction.'
+  fallback = 'Choose the clay form on its own and place it with your own planting direction.'
 ) {
   const shape = trimString(details?.shape);
   if (!shape) {
     return fallback;
   }
 
-  return `Choose the ${shape.toLowerCase()} on its own and pair it with your own planting direction.`;
+  return `Choose the ${shape.toLowerCase()} on its own and place it with your own planting direction.`;
 }
 
 function defaultPotCardDescription(
   details?: Record<string, unknown> | null,
-  fallback = 'Clay form only, ready for your own styling.'
+  fallback = 'Quiet clay form, ready for your own planting direction.'
 ) {
   const shape = trimString(details?.shape);
   if (!shape) {
     return fallback;
   }
 
-  return `${shape} only, ready for your own styling.`;
+  return `${shape} form, ready for your own planting direction.`;
 }
 
 function buildDefaultModeContent(

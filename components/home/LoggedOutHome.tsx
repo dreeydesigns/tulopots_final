@@ -42,7 +42,7 @@ export default function LoggedOutHome() {
                 href="/pots"
                 className="tp-btn-primary text-center cursor-hover inline-flex items-center justify-center rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]"
               >
-                Shop Collection
+                View Collection
               </Link>
 
               <Link

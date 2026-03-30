@@ -269,7 +269,7 @@ export default function DeliveryPage() {
                     <div>
                       <div className="text-sm font-semibold tp-heading">{item.name}</div>
                       <div className="mt-1 text-xs tp-text-muted">
-                        {item.mode === 'plant' ? 'Pot + Plant' : 'Clay Form'} · Qty {item.quantity}
+                        {item.mode === 'plant' ? 'Placed with Plant' : 'Clay Form'} · Qty {item.quantity}
                       </div>
                     </div>
                   </div>

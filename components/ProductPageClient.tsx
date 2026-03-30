@@ -45,31 +45,33 @@ function getPlacementCue(input: { name: string; short?: string; category: Produc
   if (text.includes('palm')) return 'A bold piece for patios, lounges, and larger corners.';
   if (text.includes('hut')) return 'A strong outdoor piece with sculptural presence.';
   if (input.category === 'outdoor') return 'Well placed on patios, balconies, and open spaces.';
-  if (input.category === 'pots') return 'Choose the form first, then style it your way.';
+  if (input.category === 'pots') {
+    return 'Choose the form first, then place it where the room asks for it.';
+  }
   return 'A refined clay piece for spaces that need warmth and presence.';
 }
 
 function getReasonBlocks(product: Product, mode: ProductMode) {
   if (mode === 'plant') {
     return [
-      'Complete look from the start',
-      'Easy to place at home or gift',
-      'Balanced pot and plant pairing',
+      'Placed and ready from the start',
+      'Balanced between living green and clay form',
+      'Easy to settle into the room',
     ];
   }
 
   if (product.category === 'outdoor') {
     return [
-      'Strong shape for open spaces',
-      'Easy to style later with your own plant',
-      'A lasting clay form with presence',
+      'Strong presence for open-air placement',
+      'Ready for your own planting direction',
+      'A clay form that keeps the space composed',
     ];
   }
 
   return [
-    'A clean form you can style your way',
-    'Easy to pair with your own plant later',
-    'Works for gifting, shelves, desks, or corners',
+    'A quiet form you can place your way',
+    'Ready for your own planting direction later',
+    'Made for shelves, consoles, corners, and tables',
   ];
 }
 
@@ -154,7 +156,7 @@ export function ProductPageClient({
 
   const modeLabel =
     activeMode === 'plant'
-      ? 'Pot + Plant'
+      ? 'Placed with Plant'
       : product.forcePotOnly || product.decorative
       ? 'Clay Form'
       : 'Clay Form';
@@ -162,8 +164,8 @@ export function ProductPageClient({
   const modeSupport =
     display.cardDescription ||
     (activeMode === 'plant'
-      ? 'A complete piece, ready for the space you have in mind.'
-      : 'Choose the clay form now and style it with your own plant later.');
+      ? 'A ready-to-place piece, composed around both plant and form.'
+      : 'Choose the clay form now and place it your way later.');
 
   useEffect(() => {
     setSelected('');
@@ -460,7 +462,7 @@ export function ProductPageClient({
             <div className="serif-display text-5xl text-[var(--tp-heading)]">{money(unit)}</div>
             {canToggleModes && activeMode === 'plant' && potPresentation.unitPrice > 0 && (
               <div className="pb-1 text-sm text-[var(--tp-text)]/60">
-                Clay form: {money(potPresentation.unitPrice)}
+                Clay form from: {money(potPresentation.unitPrice)}
               </div>
             )}
           </div>
@@ -474,7 +476,7 @@ export function ProductPageClient({
           {canToggleModes && (
             <div className="mt-8">
               <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/60">
-                Choose your order
+                Choose your direction
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -485,7 +487,7 @@ export function ProductPageClient({
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                     }`}
                   >
-                  Pot + Plant
+                  Placed with Plant
                 </button>
                 <button
                   onClick={() => setMode('pot')}

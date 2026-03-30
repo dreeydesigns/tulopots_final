@@ -314,11 +314,11 @@ export default function CartPage() {
               Your cart is empty
             </div>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--tp-text)]/72">
-              There are no clay forms in your cart yet. Explore the collection and return when a
+              There are no clay pieces in your cart yet. Explore the collection and return when a
               piece feels right for your space.
             </p>
             <Link href="/pots" className="btn-primary mt-6 inline-flex">
-              Browse Clay Forms
+              View Clay Forms
             </Link>
           </div>
         ) : (
@@ -373,7 +373,7 @@ export default function CartPage() {
                       {item.name}
                     </div>
                     <div className="mt-2 text-sm text-[var(--tp-text)]/72">
-                      {item.mode === 'plant' ? 'Pot + Plant' : 'Clay Form'}
+                      {item.mode === 'plant' ? 'Placed with Plant' : 'Clay Form'}
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
                     </div>
                     <div className="mt-2 text-sm font-medium text-[var(--tp-text)]/75">

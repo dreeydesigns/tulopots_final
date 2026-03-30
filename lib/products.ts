@@ -50,60 +50,246 @@ const baseProducts: Product[] = [
   { slug:'workshop-set', category:'pots', size:'sets', badge:'Bestseller', sku:'TP-SET-MX-034', name:'Studio Workshop Set', short:'Mixed Set · Natural Terracotta', rating:4.9, reviews:38, price:6500, potOnly:null, description:'A hand-picked set of 4 different pot styles from our workshop. Each set is unique, featuring a mix of sizes and shapes.', cardDescription:'Set of 4 mixed pots from our studio. A curated collection.', details:{material:'100% Natural Kenyan Clay', dimensions:'Mixed set of 4', weight:'3.2kg', shape:'Mixed Set', finish:'Natural Terracotta'}, image:imageByKey.productStudio, forcePotOnly:true }
 ];
 
-const PRODUCT_NAME_OVERRIDES: Record<string, string> = {
-  'ribbed-globe-peace-lily': 'Karen Ribbed Globe with Peace Lily',
-  'pedestal-bowl-succulents': 'Muthaiga Pedestal Bowl with Succulents',
-  'cylinder-vase-snake-plant': 'Runda Cylinder Vase with Snake Plant',
-  'jug-handle-pothos': 'Lavington Jug Handle Pot with Pothos',
-  'wide-rim-monstera': 'Kitisuru Wide Rim Planter with Monstera',
-  'tapered-column-fiddle': 'Gigiri Tapered Column with Fiddle Leaf Fig',
-  'ribbed-globe-medium-zz': 'Nyari Ribbed Globe with ZZ Plant',
-  'smooth-bowl-aloe': 'Spring Valley Smooth Bowl with Aloe Vera',
-  'tall-cylinder-bamboo': 'Rosslyn Tall Cylinder with Bamboo',
-  'studio-jug-ivy': 'Kyuna Studio Jug with Ivy',
-  'wide-mouth-spider': 'Riverside Wide Mouth Pot with Spider Plant',
-  'deep-planter-bird': 'Karen Deep Planter with Bird of Paradise',
-  'studio-collection-agave': 'Vipingo Studio Collection with Agave & Aloe',
-  'hut-sculpture-garden': 'Muthaiga Hut Sculpture with Garden Ornament',
-  'ribbed-cylinder-xl-bougainvillea': 'Runda Ribbed Cylinder XL with Bougainvillea',
-  'round-belly-lavender': 'Tigoni Round Belly Pot with Lavender',
-  'ribbed-globe-xl-bird': 'Nyali Ribbed Globe XL with Bird of Paradise',
-  'pedestal-garden-cacti': 'Nanyuki Pedestal Garden Bowl with Cacti Mix',
-  'wide-rim-bougainvillea': 'Loresho Wide Rim Garden Pot with Rosemary',
-  'jug-garden-ferns': 'Kitisuru Jug Garden Vessel with Ferns',
-  'studio-xl-deep-palm': 'Muthaiga Studio XL Deep with Date Palm',
-  'hut-mini-bird': 'Gigiri Hut Mini with Bird Feeder',
-  'ribbed-tall-garden-canna': 'Rosslyn Ribbed Tall Garden with Canna Lily',
-  'belly-pot-lemon': 'Tigoni Belly Pot with Lemon Tree',
-  'ribbed-globe-solo': 'Karen Ribbed Globe',
-  'pedestal-bowl-solo': 'Muthaiga Pedestal Bowl',
-  'cylinder-vase-solo': 'Runda Cylinder Vase',
-  'jug-handle-solo': 'Lavington Jug Handle Pot',
-  'hut-sculpture-solo': 'Muthaiga Hut Sculpture',
-  'ribbed-cylinder-solo': 'Kitisuru Ribbed Cylinder',
-  'wide-rim-solo': 'Nyari Wide Rim Planter',
-  'tapered-column-solo': 'Gigiri Tapered Column',
-  'round-belly-solo': 'Tigoni Round Belly Pot',
-  'workshop-set': 'Karen Studio Workshop Set',
+type ProductLanguageOverride = {
+  name: string;
+  plant?: string;
+  short: string;
 };
 
-export const products: Product[] = baseProducts.map((product) => ({
-  ...product,
-  name: PRODUCT_NAME_OVERRIDES[product.slug] ?? product.name,
-}));
+const PRODUCT_LANGUAGE_OVERRIDES: Record<string, ProductLanguageOverride> = {
+  'ribbed-globe-peace-lily': {
+    name: 'Zuri',
+    plant: 'Peace Lily',
+    short: 'Rounded calm for shelves and bedrooms',
+  },
+  'pedestal-bowl-succulents': {
+    name: 'Kaya',
+    plant: 'Succulents',
+    short: 'Low sculpted presence for tables and ledges',
+  },
+  'cylinder-vase-snake-plant': {
+    name: 'Nia',
+    plant: 'Snake Plant',
+    short: 'Vertical calm for corners and desks',
+  },
+  'jug-handle-pothos': {
+    name: 'Amani',
+    plant: 'Pothos',
+    short: 'Soft movement for shelves and window light',
+  },
+  'wide-rim-monstera': {
+    name: 'Mara',
+    plant: 'Monstera',
+    short: 'Wide presence for rooms that hold a little drama',
+  },
+  'tapered-column-fiddle': {
+    name: 'Nuru',
+    plant: 'Fiddle Leaf Fig',
+    short: 'Tall composure for corners that need height',
+  },
+  'ribbed-globe-medium-zz': {
+    name: 'Zuri',
+    plant: 'ZZ Plant',
+    short: 'Rounded calm for desks and quieter corners',
+  },
+  'smooth-bowl-aloe': {
+    name: 'Safi',
+    plant: 'Aloe Vera',
+    short: 'Clean warmth for sunlit tables',
+  },
+  'tall-cylinder-bamboo': {
+    name: 'Kito',
+    plant: 'Bamboo',
+    short: 'Vertical rhythm for entries and taller corners',
+  },
+  'studio-jug-ivy': {
+    name: 'Amani',
+    plant: 'Ivy',
+    short: 'Relaxed movement for shelves and softened rooms',
+  },
+  'wide-mouth-spider': {
+    name: 'Asha',
+    plant: 'Spider Plant',
+    short: 'Open form for light shelves and easy corners',
+  },
+  'deep-planter-bird': {
+    name: 'Jua',
+    plant: 'Bird of Paradise',
+    short: 'Deep presence for rooms that want bold green',
+  },
+  'studio-collection-agave': {
+    name: 'Ayo',
+    plant: 'Agave & Aloe',
+    short: 'Grounded scale for terraces and open rooms',
+  },
+  'hut-sculpture-garden': {
+    name: 'Boma',
+    short: 'Sculptural clay presence for gardens and entries',
+  },
+  'ribbed-cylinder-xl-bougainvillea': {
+    name: 'Imara',
+    plant: 'Bougainvillea',
+    short: 'Strong vertical presence for patios and walls',
+  },
+  'round-belly-lavender': {
+    name: 'Zola',
+    plant: 'Lavender',
+    short: 'Soft rounded warmth for patios and balcony corners',
+  },
+  'ribbed-globe-xl-bird': {
+    name: 'Zuri',
+    plant: 'Bird of Paradise',
+    short: 'Rounded presence for bolder open spaces',
+  },
+  'pedestal-garden-cacti': {
+    name: 'Kaya',
+    plant: 'Cacti Mix',
+    short: 'Low sculpted calm for paths and terraces',
+  },
+  'wide-rim-bougainvillea': {
+    name: 'Mara',
+    plant: 'Rosemary',
+    short: 'Wide-set balance for entries and outdoor tables',
+  },
+  'jug-garden-ferns': {
+    name: 'Amani',
+    plant: 'Ferns',
+    short: 'Soft volume for shaded gardens and verandas',
+  },
+  'studio-xl-deep-palm': {
+    name: 'Jua',
+    plant: 'Date Palm',
+    short: 'Deep rooted presence for larger open spaces',
+  },
+  'hut-mini-bird': {
+    name: 'Boma Mini',
+    short: 'Small sculptural presence for ledges and garden nooks',
+  },
+  'ribbed-tall-garden-canna': {
+    name: 'Imara',
+    plant: 'Canna Lily',
+    short: 'Tall rhythm for patios and planted edges',
+  },
+  'belly-pot-lemon': {
+    name: 'Zola',
+    plant: 'Lemon Tree',
+    short: 'Rounded warmth for courtyards and sunlit terraces',
+  },
+  'ribbed-globe-solo': {
+    name: 'Zuri',
+    short: 'Rounded calm for shelves and bedrooms',
+  },
+  'pedestal-bowl-solo': {
+    name: 'Kaya',
+    short: 'Low sculpted presence for tables and ledges',
+  },
+  'cylinder-vase-solo': {
+    name: 'Nia',
+    short: 'Vertical calm for corners and desks',
+  },
+  'jug-handle-solo': {
+    name: 'Amani',
+    short: 'Soft movement for shelves and window light',
+  },
+  'hut-sculpture-solo': {
+    name: 'Boma',
+    short: 'Sculptural clay presence for gardens and entries',
+  },
+  'ribbed-cylinder-solo': {
+    name: 'Imara',
+    short: 'Strong vertical presence for patios and walls',
+  },
+  'wide-rim-solo': {
+    name: 'Mara',
+    short: 'Wide-set balance for entries and outdoor tables',
+  },
+  'tapered-column-solo': {
+    name: 'Nuru',
+    short: 'Tall composure for corners that need height',
+  },
+  'round-belly-solo': {
+    name: 'Zola',
+    short: 'Rounded warmth for patios and balcony corners',
+  },
+  'workshop-set': {
+    name: 'Sanaa',
+    short: 'A composed set for layered placement',
+  },
+};
+
+function normalizeBadge(badge?: string) {
+  const key = String(badge || '').trim().toLowerCase();
+
+  if (key === 'indoor') return 'Interior';
+  if (key === 'outdoor') return 'Open Space';
+  if (key === 'new') return 'New Arrival';
+  if (key === 'bestseller') return 'Most Chosen';
+  if (key === 'pot only') return 'Clay Form';
+
+  return badge;
+}
+
+function buildEditorialDescription(product: Product, override: ProductLanguageOverride, name: string) {
+  const isClayForm = product.category === 'pots' || product.forcePotOnly || product.decorative;
+
+  if (product.decorative) {
+    return `${name} is a sculptural clay piece for gardens, terraces, and entries where quiet presence matters.`;
+  }
+
+  if (isClayForm) {
+    return `${name} is a quiet clay form, ready to be placed on its own or paired with your own planting direction.`;
+  }
+
+  if (product.category === 'outdoor') {
+    return `${name} brings ${override.short.toLowerCase()}, pairing living green with a clay form shaped for open spaces.`;
+  }
+
+  return `${name} brings ${override.short.toLowerCase()}, pairing living green with a clay form shaped for interior spaces.`;
+}
+
+function buildEditorialCardDescription(product: Product, override: ProductLanguageOverride) {
+  if (product.decorative) {
+    return 'Sculptural clay presence for gardens and entries.';
+  }
+
+  if (product.category === 'pots' || product.forcePotOnly) {
+    return 'A quiet clay form, ready for your own planting direction.';
+  }
+
+  return `${override.short}.`;
+}
+
+export const products: Product[] = baseProducts.map((product) => {
+  const override = PRODUCT_LANGUAGE_OVERRIDES[product.slug];
+
+  if (!override) {
+    return product;
+  }
+
+  const name = override.plant ? `${override.name} + ${override.plant}` : override.name;
+
+  return {
+    ...product,
+    name,
+    short: override.short,
+    description: buildEditorialDescription(product, override, name),
+    cardDescription: buildEditorialCardDescription(product, override),
+    badge: normalizeBadge(product.badge),
+  };
+});
 
 export const productBySlug = Object.fromEntries(products.map((p) => [p.slug, p]));
-export const studioCard = { slug:'studio-collection-request', category:'studio', name:'Studio Collection', short:'custom commissions', rating:5, reviews:12, price:0, image:imageByKey.clay, badge:'Members', cardDescription:'Upload inspirations, tell us quantities, and let our guided studio assistant shape your brief.' };
+export const studioCard = { slug:'studio-collection-request', category:'studio', name:'Studio Collection', short:'Concierge-made commissions', rating:5, reviews:12, price:0, image:imageByKey.clay, badge:'Members', cardDescription:'Upload inspirations, share the space, and let the studio shape the brief with you.' };
 
 export const sizeOptionsFor = (product: Product) => productSizeOptionsFor(product);
 
 export const faqItems = [
   ['Are TuloPots really handmade?', 'Yes! Every single pot is hand-thrown on a potter\'s wheel by our skilled artisans in Nairobi. No two pots are exactly alike — each carries the subtle variations that make handcrafted pottery special.'],
   ['What clay do you use?', 'We use 100% natural Kenyan clay sourced from local deposits. Our clay is processed and aged before shaping to support durability and beautiful finish.'],
-  ['Do your pots have drainage holes?', 'All plant-ready pots come with drainage holes. Decorative pieces may not. Always check the product detail page.'],
-  ['How do I care for my terracotta pot?', 'Terracotta is naturally porous and breathable. Avoid freezing temperatures, clean with a damp cloth, and occasionally soak in water to prevent salt buildup.'],
-  ['Do you deliver outside Nairobi?', 'Yes, we deliver across Kenya. Nairobi deliveries are free for orders above KSh 5,000.'],
-  ['Can I order pots without plants?', 'Absolutely. Eligible pairings are available as clay forms, and our Clay Forms collection is ready for customers who already have plants.'],
+  ['Do your clay pieces have drainage holes?', 'All plant-ready pieces come with drainage holes. Sculptural pieces may not. Always check the product page before placing an order.'],
+  ['How do I care for my terracotta piece?', 'Terracotta is naturally porous and breathable. Clean with a damp cloth, keep it out of freezing temperatures, and soak occasionally if you want to ease visible salt build-up.'],
+  ['Do you deliver outside Nairobi?', 'Yes. We deliver across Kenya. Nairobi orders above KSh 5,000 qualify for complimentary delivery.'],
+  ['Can I order clay forms without planting?', 'Yes. Eligible pairings are available as clay forms, and the Clay Forms collection is designed for customers who want to place their own green later.'],
   ['Do you accept custom orders?', 'Yes. Signed-in customers can use Studio Collection to upload inspirations and start a guided brief.'],
-  ['What is your return policy?', 'We offer a 30-day satisfaction guarantee for pots. Contact us if something arrives damaged or not as expected.']
+  ['What is your return policy?', 'We offer a 30-day satisfaction guarantee for clay pieces. Contact us if something arrives damaged or not as expected.']
 ] as const;
