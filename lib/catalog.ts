@@ -2,6 +2,11 @@ import { Prisma } from '@prisma/client';
 import type { Product as DbProduct, SiteSection as DbSiteSection } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import {
+  buildStoredProductFields,
+  normalizeAvailableSizes,
+  normalizeModeContent,
+} from '@/lib/product-variants';
+import {
   faqItems,
   productBySlug as fallbackProductBySlug,
   products as fallbackProducts,
@@ -53,20 +58,24 @@ function asStringArray(value: Prisma.JsonValue | null | undefined) {
 }
 
 function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
+  const storedFields = buildStoredProductFields(product);
+
   return {
-    name: product.name,
+    name: storedFields.name,
     slug: product.slug,
     sku: product.sku,
     category: product.category,
     size: product.size,
     badge: product.badge || null,
-    short: product.short,
-    price: product.price,
-    potOnly: product.potOnly,
-    description: product.description,
-    cardDescription: product.cardDescription,
-    image: product.image,
-    gallery: product.gallery ? product.gallery : [product.image],
+    short: storedFields.short,
+    price: storedFields.price,
+    potOnly: storedFields.potOnly,
+    description: storedFields.description,
+    cardDescription: storedFields.cardDescription,
+    image: storedFields.image,
+    gallery: storedFields.gallery,
+    availableSizes: storedFields.availableSizes,
+    modeContent: storedFields.modeContent,
     decorative: product.decorative ?? false,
     forcePotOnly: product.forcePotOnly ?? false,
     rating: product.rating,
@@ -79,7 +88,7 @@ function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
 }
 
 export function mapDbProductToCatalog(product: ProductRecord): CatalogProduct {
-  return {
+  const baseProduct = {
     slug: product.slug,
     category: product.category as CatalogProduct['category'],
     size: product.size,
@@ -102,6 +111,18 @@ export function mapDbProductToCatalog(product: ProductRecord): CatalogProduct {
     forcePotOnly: product.forcePotOnly,
     details: asStringRecord(product.details) || {},
     plantGuide: asStringRecord(product.plantGuide),
+    availableSizes: normalizeAvailableSizes(product.availableSizes, product.size),
+    modeContent: undefined,
+  } satisfies CatalogProduct;
+  const modeContent = normalizeModeContent({
+    ...baseProduct,
+    modeContent: product.modeContent,
+  });
+
+  return {
+    ...baseProduct,
+    availableSizes: normalizeAvailableSizes(product.availableSizes, product.size),
+    modeContent,
   };
 }
 

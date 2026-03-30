@@ -430,26 +430,60 @@ export default function SettingsPage() {
                     {item.description}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => item.setValue(!item.value)}
-                  aria-pressed={item.value}
-                  className="relative h-7 w-12 rounded-full border transition-colors"
-                  style={{
-                    background: item.value
-                      ? 'var(--tp-accent)'
-                      : 'color-mix(in srgb, var(--tp-border-strong) 78%, var(--tp-bg) 22%)',
-                    borderColor: item.value
-                      ? 'var(--tp-accent)'
-                      : 'var(--tp-border)',
-                  }}
-                >
+                <div className="flex min-w-[92px] flex-col items-end gap-2">
                   <span
-                    className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                      item.value ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
+                    className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                    style={{
+                      background: item.value
+                        ? 'var(--tp-accent-soft)'
+                        : 'color-mix(in srgb, var(--tp-surface) 84%, transparent 16%)',
+                      color: item.value ? 'var(--tp-accent)' : 'var(--tp-text)',
+                    }}
+                  >
+                    {item.value ? 'On' : 'Off'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => item.setValue(!item.value)}
+                    aria-pressed={item.value}
+                    aria-label={`${item.value ? 'Turn off' : 'Turn on'} ${item.label}`}
+                    className="relative h-9 w-[78px] rounded-full border transition-all"
+                    style={{
+                      background: item.value
+                        ? 'var(--tp-accent)'
+                        : 'color-mix(in srgb, var(--tp-border-strong) 78%, var(--tp-bg) 22%)',
+                      borderColor: item.value ? 'var(--tp-accent)' : 'var(--tp-border)',
+                      boxShadow: item.value
+                        ? '0 10px 24px color-mix(in srgb, var(--tp-accent) 28%, transparent 72%)'
+                        : 'none',
+                    }}
+                  >
+                    <span
+                      className={`absolute inset-y-0 left-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity ${
+                        item.value ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      style={{ color: 'var(--tp-btn-primary-text)' }}
+                    >
+                      On
+                    </span>
+                    <span
+                      className={`absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity ${
+                        item.value ? 'opacity-0' : 'opacity-100'
+                      }`}
+                      style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}
+                    >
+                      Off
+                    </span>
+                    <span
+                      className={`absolute top-0.5 h-7 w-7 rounded-full shadow transition-transform ${
+                        item.value ? 'translate-x-[46px]' : 'translate-x-0.5'
+                      }`}
+                      style={{
+                        background: item.value ? 'var(--tp-btn-primary-text)' : '#ffffff',
+                      }}
+                    />
+                  </button>
+                </div>
               </div>
             ))}
 

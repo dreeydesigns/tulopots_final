@@ -70,6 +70,8 @@ type Store = {
       quantity?: number;
       unitPrice?: number;
       sizeLabel?: string;
+      name?: string;
+      image?: string;
     }
   ) => void;
   updateQty: (key: string, delta: number) => void;
@@ -316,6 +318,8 @@ export function Providers({
       cfg.unitPrice ||
       (mode === 'plant' ? product.price : product.potOnly || product.price);
     const key = `${product.slug}-${mode}-${cfg.sizeLabel || 'default'}`;
+    const itemName = cfg.name || product.name;
+    const itemImage = cfg.image || product.image;
 
     setCart((cur) => {
       const existing = cur.find((item) => item.key === key);
@@ -330,8 +334,8 @@ export function Providers({
         {
           key,
           slug: product.slug,
-          name: product.name,
-          image: product.image,
+          name: itemName,
+          image: itemImage,
           mode,
           unitPrice,
           quantity,

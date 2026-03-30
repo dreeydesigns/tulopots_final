@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
+import { buildStoredProductFields } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
 export async function PATCH(
@@ -51,11 +52,43 @@ export async function PATCH(
     body.sku == null
       ? existing.sku
       : String(body.sku).trim() || existing.sku || generateSku({ category: nextCategory, size: nextSize, name: nextName });
+  const nextDecorative =
+    body.decorative == null ? existing.decorative : Boolean(body.decorative);
+  const nextForcePotOnly =
+    body.forcePotOnly == null
+      ? nextCategory === 'pots'
+        ? true
+        : existing.forcePotOnly
+      : Boolean(body.forcePotOnly) || nextCategory === 'pots';
+  const nextDetails =
+    existing.details && typeof existing.details === 'object' && !Array.isArray(existing.details)
+      ? (existing.details as Record<string, unknown>)
+      : {};
+  const storedFields = buildStoredProductFields({
+    category: nextCategory,
+    size: nextSize,
+    name: nextName,
+    short: nextShort,
+    description: nextDescription,
+    cardDescription: nextCardDescription,
+    image: nextImage,
+    gallery: nextGallery.map((entry) => String(entry)),
+    price: body.price == null ? existing.price : Number(body.price),
+    potOnly:
+      body.potOnly == null || body.potOnly === ''
+        ? body.potOnly === '' ? null : existing.potOnly
+        : Number(body.potOnly),
+    forcePotOnly: nextForcePotOnly,
+    decorative: nextDecorative,
+    details: nextDetails,
+    availableSizes: body.availableSizes == null ? existing.availableSizes : body.availableSizes,
+    modeContent: body.modeContent == null ? existing.modeContent : body.modeContent,
+  });
 
   const product = await prisma.product.update({
     where: { id },
     data: {
-      name: nextName,
+      name: storedFields.name,
       slug: nextSlug,
       sku: nextSku,
       category: nextCategory,
@@ -64,16 +97,17 @@ export async function PATCH(
         body.badge == null
           ? existing.badge
           : String(body.badge).trim() || null,
-      short: nextShort,
-      price: body.price == null ? existing.price : Number(body.price),
-      potOnly:
-        body.potOnly == null || body.potOnly === ''
-          ? body.potOnly === '' ? null : existing.potOnly
-          : Number(body.potOnly),
-      description: nextDescription,
-      cardDescription: nextCardDescription,
-      image: nextImage,
-      gallery: nextGallery.length ? nextGallery : [nextImage],
+      short: storedFields.short,
+      price: storedFields.price,
+      potOnly: storedFields.potOnly,
+      description: storedFields.description,
+      cardDescription: storedFields.cardDescription,
+      image: storedFields.image,
+      gallery: storedFields.gallery,
+      availableSizes: storedFields.availableSizes,
+      modeContent: storedFields.modeContent,
+      decorative: nextDecorative,
+      forcePotOnly: nextForcePotOnly,
       visible: body.visible == null ? existing.visible : Boolean(body.visible),
       available: body.available == null ? existing.available : Boolean(body.available),
     },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
+import { buildStoredProductFields } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
@@ -28,8 +29,31 @@ export async function POST(request: NextRequest) {
   const potOnly = body.potOnly === '' || body.potOnly == null ? null : Number(body.potOnly);
   const visible = body.visible !== false;
   const available = body.available !== false;
+  const decorative = body.decorative === true;
+  const forcePotOnly = body.forcePotOnly === true || category === 'pots';
+  const details = {
+    material: '100% Natural Kenyan Clay',
+    finish: 'Natural Terracotta',
+  };
+  const storedFields = buildStoredProductFields({
+    category,
+    size,
+    name,
+    short,
+    description,
+    cardDescription,
+    image,
+    gallery,
+    price,
+    potOnly,
+    forcePotOnly,
+    decorative,
+    details,
+    availableSizes: body.availableSizes,
+    modeContent: body.modeContent,
+  });
 
-  if (!name || !slug || !image || !description || price <= 0) {
+  if (!name || !slug || !storedFields.image || !storedFields.description || storedFields.price <= 0) {
     return NextResponse.json(
       { ok: false, error: 'Name, slug, image, description, and price are required.' },
       { status: 400 }
@@ -38,25 +62,26 @@ export async function POST(request: NextRequest) {
 
   const product = await prisma.product.create({
     data: {
-      name,
+      name: storedFields.name,
       slug,
       sku,
       category,
       size,
       badge: badge || null,
-      short,
-      price,
-      potOnly,
-      description,
-      cardDescription,
-      image,
-      gallery: gallery.length ? gallery : [image],
+      short: storedFields.short,
+      price: storedFields.price,
+      potOnly: storedFields.potOnly,
+      description: storedFields.description,
+      cardDescription: storedFields.cardDescription,
+      image: storedFields.image,
+      gallery: storedFields.gallery,
+      availableSizes: storedFields.availableSizes,
+      modeContent: storedFields.modeContent,
+      decorative,
+      forcePotOnly,
       visible,
       available,
-      details: {
-        material: '100% Natural Kenyan Clay',
-        finish: 'Natural Terracotta',
-      },
+      details,
     },
   });
 

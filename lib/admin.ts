@@ -2,6 +2,7 @@ import type { ContactMessageStatus, OrderStatus, StudioBriefStatus } from '@pris
 import { syncCatalogToDatabase } from '@/lib/catalog';
 import { getCurrentUser } from '@/lib/auth';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
+import { normalizeAvailableSizes, normalizeModeContent } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
 export const adminOrderStatuses: OrderStatus[] = [
@@ -235,6 +236,37 @@ export async function getAdminDashboardData() {
         Array.isArray(product.gallery) && product.gallery.length
           ? product.gallery.map((entry) => String(entry))
           : [product.image],
+      availableSizes: normalizeAvailableSizes(product.availableSizes, product.size),
+      modeContent: normalizeModeContent({
+        category: product.category,
+        size: product.size,
+        name: product.name,
+        short: product.short,
+        description: product.description,
+        cardDescription: product.cardDescription,
+        image: product.image,
+        gallery:
+          Array.isArray(product.gallery) && product.gallery.length
+            ? product.gallery.map((entry) => String(entry))
+            : [product.image],
+        price: product.price,
+        potOnly: product.potOnly,
+        forcePotOnly: product.forcePotOnly,
+        decorative: product.decorative,
+        details:
+          (product.details && typeof product.details === 'object' && !Array.isArray(product.details)
+            ? Object.fromEntries(
+                Object.entries(product.details as Record<string, unknown>).map(([key, value]) => [
+                  key,
+                  String(value),
+                ])
+              )
+            : {}) as Record<string, string>,
+        availableSizes: product.availableSizes,
+        modeContent: product.modeContent,
+      }),
+      decorative: product.decorative,
+      forcePotOnly: product.forcePotOnly,
       visible: product.visible,
       available: product.available,
       updatedAt: product.updatedAt.toISOString(),

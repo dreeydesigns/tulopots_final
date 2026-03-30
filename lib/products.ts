@@ -1,9 +1,15 @@
+import {
+  sizeOptionsFor as productSizeOptionsFor,
+  type ProductModeContentMap,
+  type ProductSizeKey,
+} from './product-variants';
 import { imageByKey } from './site';
 
 export type Product = {
   slug: string; category: 'indoor'|'outdoor'|'pots'; size: string; badge?: string; sku: string;
   name: string; short: string; rating: number; reviews: number; price: number; potOnly: number | null;
   description: string; cardDescription: string; image: string; gallery?: string[]; decorative?: boolean; forcePotOnly?: boolean;
+  availableSizes?: ProductSizeKey[]; modeContent?: ProductModeContentMap;
   details: Record<string,string>; plantGuide?: Record<string,string>;
 };
 
@@ -89,13 +95,7 @@ export const products: Product[] = baseProducts.map((product) => ({
 export const productBySlug = Object.fromEntries(products.map((p) => [p.slug, p]));
 export const studioCard = { slug:'studio-collection-request', category:'studio', name:'Studio Collection', short:'custom commissions', rating:5, reviews:12, price:0, image:imageByKey.clay, badge:'Members', cardDescription:'Upload inspirations, tell us quantities, and let our guided studio assistant shape your brief.' };
 
-export const sizeOptionsFor = (product: Product) => {
-  if (product.size === 'sets') return [{ key:'set', label:'Studio Set', helper:'Set of 4 pots', multiplier:1 }];
-  if (product.decorative) return [{ key:'small', label:'Small', helper:'Easy to style', multiplier:1 }, { key:'medium', label:'Medium', helper:'Most popular size', multiplier:1.18 }, { key:'large', label:'Large', helper:'Makes a statement', multiplier:1.35 }];
-  if (product.size === 'small') return [{ key:'small', label:'Small', helper:'Great for desks', multiplier:1 }, { key:'medium', label:'Medium', helper:'Easy for shelves', multiplier:1.2 }, { key:'large', label:'Large', helper:'Nice for floors', multiplier:1.42 }];
-  if (product.size === 'medium') return [{ key:'small', label:'Small', helper:'Slightly smaller', multiplier:0.9 }, { key:'medium', label:'Medium', helper:'Most popular size', multiplier:1 }, { key:'large', label:'Large', helper:'Nice for floors', multiplier:1.22 }, { key:'xl', label:'Extra Large', helper:'Best for patios', multiplier:1.45 }];
-  return [{ key:'medium', label:'Medium', helper:'Easy to place', multiplier:0.82 }, { key:'large', label:'Large', helper:'Nice for floors', multiplier:1 }, { key:'xl', label:'Extra Large', helper:'Best for patios', multiplier:1.2 }];
-};
+export const sizeOptionsFor = (product: Product) => productSizeOptionsFor(product);
 
 export const faqItems = [
   ['Are TuloPots really handmade?', 'Yes! Every single pot is hand-thrown on a potter\'s wheel by our skilled artisans in Nairobi. No two pots are exactly alike — each carries the subtle variations that make handcrafted pottery special.'],

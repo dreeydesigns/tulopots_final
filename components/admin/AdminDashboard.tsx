@@ -18,7 +18,14 @@ import {
 } from 'lucide-react';
 import type { User } from '@/components/Providers';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
-import { ProductMediaField } from './ProductMediaField';
+import {
+  adminAvailableSizeOptions,
+  normalizeAvailableSizes,
+  normalizeModeContent,
+  type ProductModeContentMap,
+  type ProductSizeKey,
+} from '@/lib/product-variants';
+import { ProductVariantEditor } from './ProductVariantEditor';
 
 type Tab =
   | 'overview'
@@ -63,6 +70,10 @@ type DashboardData = {
     cardDescription: string;
     image: string;
     gallery: string[];
+    availableSizes: ProductSizeKey[];
+    modeContent: ProductModeContentMap;
+    decorative: boolean;
+    forcePotOnly: boolean;
     visible: boolean;
     available: boolean;
     updatedAt: string;
@@ -191,33 +202,12 @@ type ProductFormState = {
   category: string;
   size: string;
   badge: string;
-  short: string;
-  description: string;
-  cardDescription: string;
-  image: string;
-  gallery: string[];
-  price: string;
-  potOnly: string;
+  availableSizes: ProductSizeKey[];
+  modeContent: ProductModeContentMap;
   visible: boolean;
   available: boolean;
-};
-
-const defaultProductForm: ProductFormState = {
-  name: '',
-  slug: '',
-  sku: '',
-  category: 'pots',
-  size: 'medium',
-  badge: '',
-  short: '',
-  description: '',
-  cardDescription: '',
-  image: '',
-  gallery: [],
-  price: '',
-  potOnly: '',
-  visible: true,
-  available: true,
+  decorative: boolean;
+  forcePotOnly: boolean;
 };
 
 const productCategoryOptions = [
@@ -226,7 +216,7 @@ const productCategoryOptions = [
   { value: 'pots', label: 'Clay Forms' },
 ];
 
-const productSizeOptions = [
+const productSizeProfileOptions = [
   { value: 'small', label: 'Small' },
   { value: 'medium', label: 'Medium' },
   { value: 'large', label: 'Large' },
@@ -281,24 +271,95 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString();
 }
 
-function productToForm(product: DashboardData['products'][number]): ProductFormState {
+function syncProductForm(
+  current: ProductFormState,
+  updates: Partial<ProductFormState> = {}
+): ProductFormState {
+  const nextCategory = updates.category ?? current.category;
+  const nextSize = updates.size ?? current.size;
+  const nextName = updates.name ?? current.name;
+  const nextDecorative = updates.decorative ?? current.decorative;
+  const nextForcePotOnly =
+    nextCategory === 'pots' ? true : updates.forcePotOnly ?? current.forcePotOnly;
+  const resolvedForcePotOnly =
+    updates.category && nextCategory !== 'pots' && updates.forcePotOnly == null
+      ? false
+      : nextForcePotOnly;
+  const nextAvailableSizes = normalizeAvailableSizes(
+    updates.availableSizes ?? current.availableSizes,
+    nextSize
+  );
+  const nextModeContent = normalizeModeContent({
+    category: nextCategory,
+    size: nextSize,
+    name: nextName,
+    short: '',
+    description: '',
+    cardDescription: '',
+    image: '',
+    gallery: [],
+    price: 0,
+    potOnly: null,
+    decorative: nextDecorative,
+    forcePotOnly: resolvedForcePotOnly,
+    availableSizes: nextAvailableSizes,
+    modeContent: updates.modeContent ?? current.modeContent,
+    details: {},
+  });
+
   return {
-    name: product.name,
-    slug: product.slug,
-    sku: product.sku || '',
-    category: product.category,
-    size: product.size,
-    badge: product.badge || '',
-    short: product.short,
-    description: product.description,
-    cardDescription: product.cardDescription,
-    image: product.image,
-    gallery: product.gallery,
-    price: String(product.price),
-    potOnly: product.potOnly == null ? '' : String(product.potOnly),
-    visible: product.visible,
-    available: product.available,
+    ...current,
+    ...updates,
+    category: nextCategory,
+    size: nextSize,
+    name: nextName,
+    decorative: nextDecorative,
+    forcePotOnly: resolvedForcePotOnly,
+    availableSizes: nextAvailableSizes,
+    modeContent: nextModeContent,
   };
+}
+
+function createDefaultProductForm(): ProductFormState {
+  return syncProductForm(
+    {
+      name: '',
+      slug: '',
+      sku: '',
+      category: 'pots',
+      size: 'medium',
+      badge: '',
+      availableSizes: [],
+      modeContent: {},
+      visible: true,
+      available: true,
+      decorative: false,
+      forcePotOnly: true,
+    },
+    {}
+  );
+}
+
+const defaultProductForm: ProductFormState = createDefaultProductForm();
+
+function productToForm(product: DashboardData['products'][number]): ProductFormState {
+  return syncProductForm(
+    {
+      name: product.name,
+      slug: product.slug,
+      sku: product.sku || '',
+      category: product.category,
+      size: product.size,
+      badge: product.badge || '',
+      availableSizes: product.availableSizes,
+      modeContent: product.modeContent,
+      visible: product.visible,
+      available: product.available,
+      decorative: product.decorative,
+      forcePotOnly: product.forcePotOnly,
+    },
+    {}
+  );
 }
 
 export function AdminDashboard({ user }: { user: User }) {
@@ -549,12 +610,19 @@ export function AdminDashboard({ user }: { user: User }) {
       sku: current.name
         ? generateProductSku({
             category: current.category,
-            size: current.size,
+            size: current.availableSizes[0] || current.size,
             name: current.name,
           })
         : '',
     }));
-  }, [editingProductId, productForm.category, productForm.name, productForm.size, skuManual]);
+  }, [
+    editingProductId,
+    productForm.availableSizes,
+    productForm.category,
+    productForm.name,
+    productForm.size,
+    skuManual,
+  ]);
 
   useEffect(() => {
     if (selectedBrief) {
@@ -592,13 +660,7 @@ export function AdminDashboard({ user }: { user: User }) {
         {
           method: editingProductId ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...productForm,
-            price: Number(productForm.price),
-            potOnly: productForm.potOnly,
-            gallery: productForm.gallery,
-            image: productForm.image || productForm.gallery[0] || '',
-          }),
+          body: JSON.stringify(productForm),
         }
       );
 
@@ -610,7 +672,7 @@ export function AdminDashboard({ user }: { user: User }) {
       }
 
       setEditingProductId(null);
-      setProductForm(defaultProductForm);
+      setProductForm(createDefaultProductForm());
       setSlugManual(false);
       setSkuManual(false);
       await loadDashboard();
@@ -639,7 +701,7 @@ export function AdminDashboard({ user }: { user: User }) {
 
       if (editingProductId === id) {
         setEditingProductId(null);
-        setProductForm(defaultProductForm);
+        setProductForm(createDefaultProductForm());
         setSlugManual(false);
         setSkuManual(false);
       }
@@ -1179,7 +1241,7 @@ export function AdminDashboard({ user }: { user: User }) {
                           type="button"
                           onClick={() => {
                             setEditingProductId(null);
-                            setProductForm(defaultProductForm);
+                            setProductForm(createDefaultProductForm());
                             setSlugManual(false);
                             setSkuManual(false);
                           }}
@@ -1219,6 +1281,21 @@ export function AdminDashboard({ user }: { user: User }) {
                                 </span>
                                 <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
                                   {(product.price > 0 ? 'Live pricing' : 'Needs pricing')}
+                                </span>
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                  {product.availableSizes
+                                    .map(
+                                      (sizeKey) =>
+                                        adminAvailableSizeOptions.find(
+                                          (option) => option.key === sizeKey
+                                        )?.label || sizeKey
+                                    )
+                                    .join(' / ')}
+                                </span>
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                  {product.modeContent.plant?.price && product.modeContent.pot?.price
+                                    ? 'Dual mode'
+                                    : 'Single mode'}
                                 </span>
                               </div>
                               <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
@@ -1300,7 +1377,7 @@ export function AdminDashboard({ user }: { user: User }) {
                           label="Name"
                           value={productForm.name}
                           onChange={(value) =>
-                            setProductForm((current) => ({ ...current, name: value }))
+                            setProductForm((current) => syncProductForm(current, { name: value }))
                           }
                         />
 
@@ -1310,17 +1387,85 @@ export function AdminDashboard({ user }: { user: User }) {
                             value={productForm.category}
                             options={productCategoryOptions}
                             onChange={(value) =>
-                              setProductForm((current) => ({ ...current, category: value }))
+                              setProductForm((current) =>
+                                syncProductForm(current, {
+                                  category: value,
+                                  availableSizes: normalizeAvailableSizes(undefined, current.size),
+                                })
+                              )
                             }
                           />
                           <SelectField
-                            label="Size"
+                            label="Size Profile"
                             value={productForm.size}
-                            options={productSizeOptions}
+                            options={productSizeProfileOptions}
                             onChange={(value) =>
-                              setProductForm((current) => ({ ...current, size: value }))
+                              setProductForm((current) =>
+                                syncProductForm(current, {
+                                  size: value,
+                                  availableSizes: normalizeAvailableSizes(undefined, value),
+                                })
+                              )
                             }
                           />
+                        </div>
+
+                        <div
+                          className="rounded-[1.25rem] border px-4 py-4"
+                          style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)' }}
+                        >
+                          <div
+                            className="text-[11px] font-semibold uppercase tracking-[0.18em]"
+                            style={{ color: 'var(--tp-accent)' }}
+                          >
+                            Available sizes
+                          </div>
+                          <div
+                            className="mt-2 text-sm leading-7"
+                            style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}
+                          >
+                            Check only the sizes customers should be able to choose on the product page.
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {(productForm.size === 'sets'
+                              ? adminAvailableSizeOptions.filter((option) => option.key === 'set')
+                              : adminAvailableSizeOptions.filter((option) => option.key !== 'set')
+                            ).map((option) => {
+                              const isSelected = productForm.availableSizes.includes(option.key);
+
+                              return (
+                                <button
+                                  key={option.key}
+                                  type="button"
+                                  onClick={() =>
+                                    setProductForm((current) => {
+                                      const nextSelected = current.availableSizes.includes(option.key)
+                                        ? current.availableSizes.filter((size) => size !== option.key)
+                                        : [...current.availableSizes, option.key];
+
+                                      if (!nextSelected.length) {
+                                        return current;
+                                      }
+
+                                      return syncProductForm(current, {
+                                        availableSizes: nextSelected,
+                                      });
+                                    })
+                                  }
+                                  className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{
+                                    background: isSelected ? 'var(--tp-accent)' : 'var(--tp-card)',
+                                    color: isSelected
+                                      ? 'var(--tp-btn-primary-text)'
+                                      : 'var(--tp-heading)',
+                                    border: isSelected ? 'none' : '1px solid var(--tp-border)',
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
@@ -1354,72 +1499,51 @@ export function AdminDashboard({ user }: { user: User }) {
                               setProductForm((current) => ({ ...current, badge: value }))
                             }
                           />
-                          <Field
-                            label="Short line"
-                            value={productForm.short}
-                            onChange={(value) =>
-                              setProductForm((current) => ({ ...current, short: value }))
-                            }
-                          />
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <Field
-                            label="Price"
-                            value={productForm.price}
-                            onChange={(value) =>
-                              setProductForm((current) => ({ ...current, price: value }))
-                            }
-                          />
-                          <Field
-                            label="Clay form price"
-                            value={productForm.potOnly}
-                            onChange={(value) =>
-                              setProductForm((current) => ({ ...current, potOnly: value }))
-                            }
-                          />
+                        <div
+                          className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                          style={{
+                            borderColor: 'var(--tp-border)',
+                            background: 'var(--tp-surface)',
+                            color: 'var(--tp-text)',
+                          }}
+                        >
+                          Slug and SKU are generated automatically while you are creating a new
+                          product. The presentation editor below controls what customers see for
+                          Pot + Plant, Clay Form, and each size image swap.
                         </div>
 
-                        <div className="rounded-[1.25rem] border px-4 py-4 text-sm" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-text)' }}>
-                          Slug and SKU are generated automatically while you are creating a new product. You can still override them manually if needed.
-                        </div>
-
-                        <ProductMediaField
-                          gallery={productForm.gallery}
-                          mainImage={productForm.image}
-                          onChange={({ gallery, mainImage }) =>
-                            setProductForm((current) => ({
-                              ...current,
-                              gallery,
-                              image: mainImage,
-                            }))
+                        <ProductVariantEditor
+                          category={productForm.category}
+                          forcePotOnly={productForm.forcePotOnly}
+                          availableSizes={productForm.availableSizes}
+                          modeContent={productForm.modeContent}
+                          onChange={(modeContent) =>
+                            setProductForm((current) =>
+                              syncProductForm(current, {
+                                modeContent,
+                              })
+                            )
                           }
                           disabled={pendingKey === 'save-product'}
                         />
 
-                        <Field
-                          label="Description"
-                          value={productForm.description}
-                          multiline
-                          onChange={(value) =>
-                            setProductForm((current) => ({ ...current, description: value }))
-                          }
-                        />
-                        <Field
-                          label="Card description"
-                          value={productForm.cardDescription}
-                          multiline
-                          onChange={(value) =>
-                            setProductForm((current) => ({
-                              ...current,
-                              cardDescription: value,
-                            }))
-                          }
-                        />
-
                         <div className="grid gap-3 md:grid-cols-2">
-                          <ToggleRow label="Visible on storefront" checked={productForm.visible} onChange={(checked) => setProductForm((current) => ({ ...current, visible: checked }))} />
-                          <ToggleRow label="Available to order" checked={productForm.available} onChange={(checked) => setProductForm((current) => ({ ...current, available: checked }))} />
+                          <ToggleRow
+                            label="Visible on storefront"
+                            checked={productForm.visible}
+                            onChange={(checked) =>
+                              setProductForm((current) => ({ ...current, visible: checked }))
+                            }
+                          />
+                          <ToggleRow
+                            label="Available to order"
+                            checked={productForm.available}
+                            onChange={(checked) =>
+                              setProductForm((current) => ({ ...current, available: checked }))
+                            }
+                          />
                         </div>
 
                         <div className="flex flex-wrap gap-3">
@@ -1436,7 +1560,7 @@ export function AdminDashboard({ user }: { user: User }) {
                             type="button"
                             onClick={() => {
                               setEditingProductId(null);
-                              setProductForm(defaultProductForm);
+                              setProductForm(createDefaultProductForm());
                               setSlugManual(false);
                               setSkuManual(false);
                             }}

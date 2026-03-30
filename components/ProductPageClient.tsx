@@ -17,7 +17,8 @@ import {
   Truck,
   Check,
 } from 'lucide-react';
-import { Product, sizeOptionsFor } from '@/lib/products';
+import { resolveProductPresentation, type ProductMode } from '@/lib/product-variants';
+import { Product } from '@/lib/products';
 import { trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -33,8 +34,8 @@ type ReviewItem = {
   createdAt: string;
 };
 
-function getPlacementCue(product: Product) {
-  const text = `${product.name} ${product.short || ''}`.toLowerCase();
+function getPlacementCue(input: { name: string; short?: string; category: Product['category'] }) {
+  const text = `${input.name} ${input.short || ''}`.toLowerCase();
 
   if (text.includes('peace lily')) return 'Best for desks, shelves, and calm corners.';
   if (text.includes('snake plant')) return 'Made for clean corners, entries, and office spaces.';
@@ -43,12 +44,12 @@ function getPlacementCue(product: Product) {
   if (text.includes('bougainvillea')) return 'Strong for patios, balconies, and open outdoor spaces.';
   if (text.includes('palm')) return 'A bold piece for patios, lounges, and larger corners.';
   if (text.includes('hut')) return 'A strong outdoor piece with sculptural presence.';
-  if (product.category === 'outdoor') return 'Well placed on patios, balconies, and open spaces.';
-  if (product.category === 'pots') return 'Choose the form first, then style it your way.';
+  if (input.category === 'outdoor') return 'Well placed on patios, balconies, and open spaces.';
+  if (input.category === 'pots') return 'Choose the form first, then style it your way.';
   return 'A refined clay piece for spaces that need warmth and presence.';
 }
 
-function getReasonBlocks(product: Product, mode: 'plant' | 'pot') {
+function getReasonBlocks(product: Product, mode: ProductMode) {
   if (mode === 'plant') {
     return [
       'Complete look from the start',
@@ -95,21 +96,24 @@ export function ProductPageClient({
 }) {
   const { addToCart, toggleWishlist, wishlist, isLoggedIn, setIsLoggedIn } = useStore();
 
-  const defaultMode = product.forcePotOnly || product.decorative ? 'pot' : 'plant';
-  const [mode, setMode] = useState<'plant' | 'pot'>(defaultMode);
-
-  const sizes = sizeOptionsFor(product);
-  const [selected, setSelected] = useState(
-    sizes[Math.min(1, sizes.length - 1)]?.key || sizes[0].key
-  );
+  const defaultMode: ProductMode = product.forcePotOnly || product.decorative ? 'pot' : 'plant';
+  const [mode, setMode] = useState<ProductMode>(defaultMode);
+  const [selected, setSelected] = useState('');
 
   const [qty, setQty] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [careOpen, setCareOpen] = useState(!!product.plantGuide);
   const [justAdded, setJustAdded] = useState(false);
 
-  const gallery = product.gallery?.length ? product.gallery : [product.image];
-  const [activeImage, setActiveImage] = useState(gallery[0]);
+  const presentation = resolveProductPresentation(product, mode, selected);
+  const potPresentation = resolveProductPresentation(product, 'pot', selected);
+  const activeMode = presentation.mode;
+  const sizes = presentation.sizes;
+  const size = presentation.currentSize;
+  const display = presentation.currentContent;
+  const gallery = display.gallery?.length ? display.gallery : [display.image];
+  const galleryKey = gallery.join('||');
+  const [activeImage, setActiveImage] = useState(display.image || gallery[0] || product.image);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewCount, setReviewCount] = useState(product.reviews);
   const [reviewAverage, setReviewAverage] = useState(product.rating);
@@ -121,16 +125,17 @@ export function ProductPageClient({
   const [reviewError, setReviewError] = useState('');
   const [shareFeedback, setShareFeedback] = useState('');
 
-  const size = sizes.find((option) => option.key === selected) || sizes[0];
-  const unit = Math.round(
-    (mode === 'plant' ? product.price : product.potOnly || product.price) * size.multiplier
-  );
+  const unit = presentation.unitPrice;
   const total = unit * qty;
 
-  const canToggleModes = !product.forcePotOnly && !product.decorative && !!product.potOnly;
+  const canToggleModes = presentation.availableModes.length > 1;
 
-  const placementCue = getPlacementCue(product);
-  const reasonBlocks = getReasonBlocks(product, mode);
+  const placementCue = getPlacementCue({
+    name: display.name,
+    short: display.short,
+    category: product.category,
+  });
+  const reasonBlocks = getReasonBlocks(product, activeMode);
   const categoryLabel = getCategoryLabel(product.category);
   const trustSignals = [
     {
@@ -148,20 +153,25 @@ export function ProductPageClient({
   ];
 
   const modeLabel =
-    mode === 'plant'
+    activeMode === 'plant'
       ? 'Pot + Plant'
       : product.forcePotOnly || product.decorative
       ? 'Clay Form'
       : 'Clay Form';
 
   const modeSupport =
-    mode === 'plant'
+    display.cardDescription ||
+    (activeMode === 'plant'
       ? 'A complete piece, ready for the space you have in mind.'
-      : 'Choose the clay form now and style it with your own plant later.';
+      : 'Choose the clay form now and style it with your own plant later.');
 
   useEffect(() => {
-    setActiveImage(gallery[0]);
-  }, [product.slug, product.image, product.gallery]);
+    setSelected('');
+  }, [product.slug]);
+
+  useEffect(() => {
+    setActiveImage(display.image || gallery[0] || product.image);
+  }, [activeMode, display.image, galleryKey, product.image, product.slug, size.key]);
 
   useEffect(() => {
     let active = true;
@@ -214,16 +224,18 @@ export function ProductPageClient({
 
   function handleAddToCart() {
     addToCart(product, {
-      mode,
+      mode: activeMode,
       quantity: qty,
       unitPrice: unit,
       sizeLabel: size.label,
+      name: display.name,
+      image: display.image,
     });
     void trackEvent(
       'add_to_cart',
       {
         slug: product.slug,
-        mode,
+        mode: activeMode,
         quantity: qty,
         size: size.label,
         value: total,
@@ -313,7 +325,7 @@ export function ProductPageClient({
       return;
     }
 
-    const message = `Take a look at ${product.name} from TuloPots: ${window.location.href}`;
+    const message = `Take a look at ${display.name} from TuloPots: ${window.location.href}`;
     void trackEvent(
       'product_share',
       {
@@ -376,7 +388,7 @@ export function ProductPageClient({
             <div className="relative">
               <Image
                 src={activeImage}
-                alt={product.name}
+                alt={display.name}
                 width={1000}
                 height={1200}
                 sizes="(max-width: 1024px) 100vw, 52vw"
@@ -399,7 +411,7 @@ export function ProductPageClient({
               >
                 <Image
                   src={img}
-                  alt={`${product.name} view ${index + 1}`}
+                  alt={`${display.name} view ${index + 1}`}
                   width={400}
                   height={400}
                   sizes="(max-width: 640px) 22vw, 12vw"
@@ -416,11 +428,11 @@ export function ProductPageClient({
           </div>
 
           <h1 className="mt-4 serif-display text-5xl leading-[0.95] text-[var(--tp-heading)] md:text-6xl">
-            {product.name}
+            {display.name}
           </h1>
 
           <div className="mt-4 max-w-xl text-base italic text-[var(--tp-accent)]">
-            {product.short}
+            {display.short}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -446,9 +458,9 @@ export function ProductPageClient({
 
           <div className="mt-7 flex items-end gap-3">
             <div className="serif-display text-5xl text-[var(--tp-heading)]">{money(unit)}</div>
-            {canToggleModes && mode === 'plant' && product.potOnly && (
+            {canToggleModes && activeMode === 'plant' && potPresentation.unitPrice > 0 && (
               <div className="pb-1 text-sm text-[var(--tp-text)]/60">
-                Clay form: {money(Math.round(product.potOnly * size.multiplier))}
+                Clay form: {money(potPresentation.unitPrice)}
               </div>
             )}
           </div>
@@ -456,7 +468,7 @@ export function ProductPageClient({
           <p className="mt-3 max-w-xl text-sm leading-7 text-[var(--tp-text)]/72">{placementCue}</p>
 
           <p className="mt-7 max-w-xl text-sm leading-8 text-[var(--tp-text)]/75">
-            {product.description}
+            {display.description}
           </p>
 
           {canToggleModes && (
@@ -468,7 +480,7 @@ export function ProductPageClient({
                 <button
                   onClick={() => setMode('plant')}
                     className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                      mode === 'plant'
+                      activeMode === 'plant'
                       ? 'bg-[var(--tp-accent)] text-[var(--tp-btn-primary-text)]'
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                     }`}
@@ -478,7 +490,7 @@ export function ProductPageClient({
                 <button
                   onClick={() => setMode('pot')}
                     className={`rounded-full px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                      mode === 'pot'
+                      activeMode === 'pot'
                       ? 'bg-[var(--tp-accent)] text-[var(--tp-btn-primary-text)]'
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                     }`}
@@ -503,17 +515,15 @@ export function ProductPageClient({
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {sizes.map((option) => {
-                const previewPrice = Math.round(
-                  (mode === 'plant' ? product.price : product.potOnly || product.price) *
-                    option.multiplier
-                );
+                const previewPrice = resolveProductPresentation(product, activeMode, option.key)
+                  .unitPrice;
 
                 return (
                   <button
                     key={option.key}
                     onClick={() => setSelected(option.key)}
                     className={`rounded-[1rem] border px-4 py-3 text-left transition ${
-                      selected === option.key
+                      size.key === option.key
                         ? 'border-[var(--tp-accent)] bg-[var(--tp-accent-soft)] shadow-[var(--tp-shadow-soft)]'
                         : 'border-[var(--tp-border)] bg-[var(--tp-card)] hover:border-[var(--tp-border-strong)]'
                     }`}
