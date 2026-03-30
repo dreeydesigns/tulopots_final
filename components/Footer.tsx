@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { LEGAL_ROUTES } from '@/lib/policies';
@@ -8,11 +9,16 @@ import { BRAND } from '@/lib/site';
 import { useStore } from './Providers';
 
 export function Footer() {
-  const { isSectionVisible } = useStore();
+  const { isLoggedIn, isSectionVisible } = useStore();
+  const pathname = usePathname();
   const [newsletterState, setNewsletterState] = useState('');
   const [newsletterTone, setNewsletterTone] = useState<'idle' | 'error' | 'success'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['new-arrivals']);
+
+  if (pathname === '/' && isLoggedIn) {
+    return null;
+  }
 
   function toggleInterest(value: string) {
     setSelectedInterests((current) =>

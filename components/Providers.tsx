@@ -98,6 +98,23 @@ const read = <T,>(key: string, fallback: T): T => {
   }
 };
 
+const readStoredTheme = (): Theme | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('tp-theme');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed === 'light' || parsed === 'dark' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const readSystemTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+};
+
 export function Providers({
   children,
   initialUser = null,
@@ -114,6 +131,7 @@ export function Providers({
   const [theme, setThemeRaw] = useState<Theme>('dark');
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [usesSystemTheme, setUsesSystemTheme] = useState(true);
   const [themeTransition, setThemeTransition] = useState<ThemeTransitionState>({
     active: false,
     nextTheme: 'light',
@@ -155,7 +173,9 @@ export function Providers({
   }
 
   useEffect(() => {
-    setThemeRaw(read<Theme>('tp-theme', 'dark'));
+    const storedTheme = readStoredTheme();
+    setThemeRaw(storedTheme ?? readSystemTheme());
+    setUsesSystemTheme(!storedTheme);
     setWishlist(read('tp-wishlist', []));
     setCart(read('tp-cart', []));
     isHydrated.current = true;
@@ -172,10 +192,6 @@ export function Providers({
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('tp-theme', JSON.stringify(theme));
-  }, [theme]);
-
-  useEffect(() => {
     localStorage.setItem('tp-wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
@@ -188,6 +204,19 @@ export function Providers({
     document.documentElement.classList.toggle('theme-light', theme === 'light');
     document.documentElement.classList.toggle('theme-dark', theme !== 'light');
   }, [theme]);
+
+  useEffect(() => {
+    if (!usesSystemTheme || typeof window === 'undefined') return;
+
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const syncTheme = () => setThemeRaw(media.matches ? 'light' : 'dark');
+    syncTheme();
+    media.addEventListener('change', syncTheme);
+
+    return () => {
+      media.removeEventListener('change', syncTheme);
+    };
+  }, [usesSystemTheme]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -237,8 +266,12 @@ export function Providers({
 
     if (!isHydrated.current || typeof window === 'undefined') {
       setThemeRaw(nextTheme);
+      setUsesSystemTheme(false);
       return;
     }
+
+    localStorage.setItem('tp-theme', JSON.stringify(nextTheme));
+    setUsesSystemTheme(false);
 
     clearThemeTimers();
 

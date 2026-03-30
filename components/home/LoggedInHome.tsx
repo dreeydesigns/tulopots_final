@@ -236,7 +236,6 @@ const SLIDES: Slide[] = [
 const CARD_WIDTHS = [210, 195, 180];
 const CARD_HEIGHTS = [290, 272, 255];
 const CARD_MARGINS = [0, 28, -8];
-const DESKTOP_SCENE_QUERY = '(min-width: 768px)';
 
 type ThemePalette = {
   sceneText: string;
@@ -692,11 +691,14 @@ export default function LoggedInHome() {
   const { addToCart, theme } = useStore();
   const router = useRouter();
   const productMap = useMemo(() => Object.fromEntries(products.map((p) => [p.slug, p])), []);
+  const lastSlideIndex = SLIDES.length - 1;
 
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
-  const [isSceneMode, setIsSceneMode] = useState(false);
+  const [isPhone, setIsPhone] = useState(false);
+  const [hasDismissedFirstHint, setHasDismissedFirstHint] = useState(false);
+  const [hasDismissedLastHint, setHasDismissedLastHint] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const sceneRefs = useRef<(HTMLElement | null)[]>([]);
 
@@ -704,8 +706,8 @@ export default function LoggedInHome() {
   const palette = getPalette(isLight);
 
   useEffect(() => {
-    const media = window.matchMedia(DESKTOP_SCENE_QUERY);
-    const syncMode = () => setIsSceneMode(media.matches);
+    const media = window.matchMedia('(max-width: 767px)');
+    const syncMode = () => setIsPhone(media.matches);
     syncMode();
     media.addEventListener('change', syncMode);
     return () => media.removeEventListener('change', syncMode);
@@ -713,13 +715,6 @@ export default function LoggedInHome() {
 
   useEffect(() => {
     const html = document.documentElement;
-    if (!isSceneMode) {
-      html.classList.remove('page-fullscreen');
-      html.style.overflow = '';
-      document.body.style.overflow = '';
-      return;
-    }
-
     html.classList.add('page-fullscreen');
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -728,7 +723,7 @@ export default function LoggedInHome() {
       html.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, [isSceneMode]);
+  }, []);
 
   const replaySceneAnimations = (idx: number) => {
     const scene = sceneRefs.current[idx];
@@ -742,6 +737,15 @@ export default function LoggedInHome() {
 
   const goTo = (next: number) => {
     if (animating || next === current || next < 0 || next >= SLIDES.length) return;
+
+    if (current === 0 && next > current) {
+      setHasDismissedFirstHint(true);
+    }
+
+    if (current === lastSlideIndex && next < current) {
+      setHasDismissedLastHint(true);
+    }
+
     setAnimating(true);
     setPrev(current);
     setCurrent(next);
@@ -761,13 +765,10 @@ export default function LoggedInHome() {
   };
 
   useEffect(() => {
-    if (!isSceneMode) return;
     replaySceneAnimations(0);
-  }, [isSceneMode]);
+  }, []);
 
   useEffect(() => {
-    if (!isSceneMode) return;
-
     const onWheel = (e: WheelEvent) => {
       if (animating || Math.abs(e.deltaY) < 14) return;
       e.preventDefault();
@@ -811,10 +812,17 @@ export default function LoggedInHome() {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [animating, current, isSceneMode]);
+  }, [animating, current, lastSlideIndex]);
+
+  const mobileGestureHint =
+    isPhone && current === 0 && !hasDismissedFirstHint
+      ? { label: 'Scroll up', direction: 'up' as const }
+      : isPhone && current === lastSlideIndex && !hasDismissedLastHint
+        ? { label: 'Scroll down', direction: 'down' as const }
+        : null;
 
   return (
-    <main className={`relative overflow-x-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
+    <main className={`fixed inset-0 overflow-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
@@ -975,6 +983,31 @@ export default function LoggedInHome() {
                       style={{ color: palette.sceneTextMuted }}
                     >
                       {slide.nextLabel}
+                    </div>
+                  ) : null}
+
+                  {mobileGestureHint ? (
+                    <div
+                      className="mobile-scroll-hint pointer-events-none mt-6 flex items-center gap-3 md:hidden"
+                      style={{ color: palette.sceneTextFaint }}
+                    >
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md"
+                        style={{
+                          background: palette.navBtnBg,
+                          borderColor: palette.navBtnBorder,
+                          color: palette.navBtnText,
+                        }}
+                      >
+                        {mobileGestureHint.direction === 'up' ? (
+                          <ArrowUp className="h-4 w-4" />
+                        ) : (
+                          <ArrowDown className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="text-[10px] font-medium uppercase tracking-[0.22em]">
+                        {mobileGestureHint.label}
+                      </div>
                     </div>
                   ) : null}
 
@@ -1268,14 +1301,12 @@ export default function LoggedInHome() {
       </div>
 
       <style jsx global>{`
-        @media (min-width: 768px) {
-          html,
-          body {
-            overflow: hidden !important;
-            height: 100% !important;
-            max-height: 100vh !important;
-            overscroll-behavior: none;
-          }
+        html,
+        body {
+          overflow: hidden !important;
+          height: 100% !important;
+          max-height: 100vh !important;
+          overscroll-behavior: none;
         }
       `}</style>
 
@@ -1460,34 +1491,33 @@ export default function LoggedInHome() {
           }
         }
 
-        @media (max-width: 767px) {
-          .scene,
-          .scene.active,
-          .scene.prev {
-            position: relative;
-            inset: auto;
+        .mobile-scroll-hint {
+          animation: mobileHintFloat 1.65s ease-in-out infinite;
+        }
+
+        .mobile-scroll-hint svg {
+          animation: mobileHintArrow 1.65s ease-in-out infinite;
+        }
+
+        @keyframes mobileHintFloat {
+          0%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.82;
+          }
+          50% {
+            transform: translateY(-6px);
             opacity: 1;
-            transform: none;
-            pointer-events: auto;
-            min-height: 100svh;
-            transition: none;
           }
+        }
 
-          .scene.active .fade-item,
-          .scene .fade-item,
-          .scene.active .card-stage,
-          .scene .card-stage {
-            opacity: 1;
-            transform: none;
-            animation: none !important;
+        @keyframes mobileHintArrow {
+          0%,
+          100% {
+            transform: translateY(0);
           }
-
-          .tp-scene-light .scene + .scene {
-            border-top: 1px solid rgba(35, 23, 17, 0.08);
-          }
-
-          .tp-scene-dark .scene + .scene {
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+          50% {
+            transform: translateY(-3px);
           }
         }
 
@@ -1495,7 +1525,9 @@ export default function LoggedInHome() {
           .scene,
           .fade-item,
           .card-stage,
-          .scene.active .fade-item {
+          .scene.active .fade-item,
+          .mobile-scroll-hint,
+          .mobile-scroll-hint svg {
             animation: none !important;
             transition: none !important;
           }

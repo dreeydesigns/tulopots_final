@@ -109,6 +109,10 @@ export function Nav() {
     headerClass = 'border-b tp-nav-surface backdrop-blur-md';
   }
 
+  const resolvedHeaderClass = menuOpen
+    ? 'border-transparent tp-nav-surface shadow-[0_18px_40px_rgba(0,0,0,0.14)] backdrop-blur-xl'
+    : headerClass;
+
   const isLightSurface = isLoggedOutHome || isInternalPage;
 
   const brandClass = isLightSurface ? 'tp-heading' : 'text-white';
@@ -130,13 +134,17 @@ export function Nav() {
     : 'border-white/20 bg-white/10 text-white hover:bg-white/20';
 
   const mobilePanelClass = isLightSurface
-    ? 'tp-card tp-border'
-    : 'border-white/10 bg-[#120b07]/92 text-white';
+    ? 'tp-card tp-border backdrop-blur-2xl'
+    : 'border-white/12 bg-[rgba(20,12,8,0.78)] text-white backdrop-blur-2xl';
+
+  const mobileBackdropClass = isLightSurface
+    ? 'bg-[rgba(247,242,234,0.24)] backdrop-blur-xl'
+    : 'bg-[rgba(10,6,4,0.28)] backdrop-blur-xl';
 
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ${headerClass}`}
+        className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-300 ${resolvedHeaderClass}`}
       >
         <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4 md:px-10">
           <div className="flex items-center gap-4">
@@ -288,50 +296,59 @@ export function Nav() {
       </header>
 
       {menuOpen && (
-        <div className="fixed inset-x-4 top-[84px] z-40 lg:hidden">
-          <div className={`overflow-hidden rounded-[2rem] border shadow-2xl ${mobilePanelClass}`}>
-            <div className="px-5 pb-3 pt-5">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] tp-text-muted">
-                Explore
-              </div>
-            </div>
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className={`absolute inset-0 ${mobileBackdropClass}`}
+          />
 
-            <nav className="flex flex-col pb-3">
-              {links.filter((link) => link.visible).map(({ label, href }) => (
+          <div className="absolute inset-x-4 top-[84px]">
+            <div className={`overflow-hidden rounded-[2rem] border shadow-2xl ${mobilePanelClass}`}>
+              <div className="px-5 pb-3 pt-5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] tp-text-muted">
+                  Explore
+                </div>
+              </div>
+
+              <nav className="flex flex-col pb-3">
+                {links.filter((link) => link.visible).map(({ label, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
+                      href
+                    )}`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+
                 <Link
-                  key={href}
-                  href={href}
+                  href="/search"
                   className={`px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
-                    href
+                    '/search'
                   )}`}
                 >
-                  {label}
+                  Search
                 </Link>
-              ))}
 
-              <Link
-                href="/search"
-                className={`px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
-                  '/search'
-                )}`}
-              >
-                Search
-              </Link>
-
-              {!isLoggedIn ? (
-                <div className="px-5 pb-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setShowAuthModal(true);
-                    }}
-                    className="tp-btn-primary inline-flex w-full justify-center rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                  >
-                    Sign In
-                  </button>
-                </div>
-              ) : null}
-            </nav>
+                {!isLoggedIn ? (
+                  <div className="px-5 pb-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setShowAuthModal(true);
+                      }}
+                      className="tp-btn-primary inline-flex w-full justify-center rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                ) : null}
+              </nav>
+            </div>
           </div>
         </div>
       )}
