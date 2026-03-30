@@ -57,8 +57,21 @@ export function CollectionTemplate({
     }
 
     if (route === 'pots') {
+      if (filter === 'most chosen') {
+        list = list
+          .filter((p) => (p.reviews || 0) >= 18 || (p.rating || 0) >= 4.5)
+          .sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+      }
       if (['small', 'medium', 'large'].includes(filter)) {
         list = list.filter((p) => p.size === filter);
+      }
+      if (filter === 'statement') {
+        list = list.filter(
+          (p) =>
+            p.size === 'large' ||
+            p.decorative ||
+            /column|pedestal|wide|ribbed|hut/i.test(`${p.name} ${p.short}`)
+        );
       }
       if (filter === 'decorative') {
         list = list.filter((p) => p.decorative);

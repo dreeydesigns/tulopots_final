@@ -1,7 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isValidEmail } from '@/lib/auth';
+import {
+  appendNotificationEntries,
+  appendTrackingEntry,
+  buildNotificationEntries,
+  computeDeliveryDates,
+  createTrackingCode,
+} from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
+import type { StoredAttribution } from '@/lib/tracking';
 
 type CheckoutItem = {
   key: string;
@@ -23,6 +31,11 @@ function createOrderNumber() {
   return `TP-${Date.now()}-${randomBytes(2).toString('hex').toUpperCase()}`;
 }
 
+function sanitizeAttributionValue(value: unknown, maxLength = 160) {
+  const nextValue = String(value || '').trim();
+  return nextValue ? nextValue.slice(0, maxLength) : null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -36,6 +49,8 @@ export async function POST(req: NextRequest) {
       shippingCity,
       shippingNotes,
       paymentMethod,
+      attribution,
+      sessionKey,
       items,
     } = body as {
       customerName: string;
@@ -46,6 +61,8 @@ export async function POST(req: NextRequest) {
       shippingCity?: string;
       shippingNotes?: string;
       paymentMethod: 'CARD' | 'MPESA';
+      attribution?: Partial<StoredAttribution> | null;
+      sessionKey?: string;
       items: CheckoutItem[];
     };
 
@@ -117,11 +134,59 @@ export async function POST(req: NextRequest) {
     );
     const deliveryFee = subtotal >= 5000 ? 0 : 350;
     const totalAmount = subtotal + deliveryFee;
+    const isCustomOrder = false;
+    const createdAt = new Date();
+    const orderNumber = createOrderNumber();
+    const trackingCode = createTrackingCode();
+    const { estimatedDispatchAt, estimatedDeliveryAt } = computeDeliveryDates(
+      createdAt,
+      isCustomOrder
+    );
+    const trackingTimeline = appendTrackingEntry(null, 'PENDING', isCustomOrder, createdAt);
+    const notificationLog = appendNotificationEntries(
+      null,
+      buildNotificationEntries(
+        {
+          orderNumber,
+          customerEmail: customerEmail.trim().toLowerCase(),
+          customerPhone: customerPhone.trim(),
+          status: 'PENDING',
+          isCustomOrder,
+        },
+        currentUser,
+        createdAt
+      )
+    );
+    const sanitizedAttribution = attribution
+      ? {
+          attributionSource: sanitizeAttributionValue(attribution.source),
+          attributionMedium: sanitizeAttributionValue(attribution.medium),
+          attributionCampaign: sanitizeAttributionValue(attribution.campaign),
+          attributionTerm: sanitizeAttributionValue(attribution.term),
+          attributionContent: sanitizeAttributionValue(attribution.content),
+          gclid: sanitizeAttributionValue(attribution.gclid),
+          fbclid: sanitizeAttributionValue(attribution.fbclid),
+          landingPath: sanitizeAttributionValue(attribution.landingPath, 300),
+          trackingSessionKey: sanitizeAttributionValue(sessionKey, 120),
+        }
+      : {
+          attributionSource: null,
+          attributionMedium: null,
+          attributionCampaign: null,
+          attributionTerm: null,
+          attributionContent: null,
+          gclid: null,
+          fbclid: null,
+          landingPath: null,
+          trackingSessionKey: sanitizeAttributionValue(sessionKey, 120),
+        };
     const order = await prisma.order.create({
       data: {
-        orderNumber: createOrderNumber(),
+        orderNumber,
+        trackingCode,
         userId: currentUser?.id || null,
         paymentMethod,
+        isCustomOrder,
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim().toLowerCase(),
         customerPhone: customerPhone.trim(),
@@ -132,6 +197,11 @@ export async function POST(req: NextRequest) {
         subtotal,
         deliveryFee,
         totalAmount,
+        estimatedDispatchAt,
+        estimatedDeliveryAt,
+        trackingTimeline,
+        notificationLog,
+        ...sanitizedAttribution,
         items: {
           create: sanitizedItems.map((item) => ({
             productSlug: item.productSlug,
@@ -163,6 +233,12 @@ export async function POST(req: NextRequest) {
         totalAmount: order.totalAmount,
         currency: order.currency,
         createdAt: order.createdAt,
+        attribution: {
+          source: order.attributionSource,
+          medium: order.attributionMedium,
+          campaign: order.attributionCampaign,
+          landingPath: order.landingPath,
+        },
         items: order.items,
       },
     });

@@ -29,6 +29,12 @@ export type User = {
   isAdmin: boolean;
   avatar?: string;
   marketingConsent: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  whatsappNotifications: boolean;
+  preferredContactChannel: string;
+  defaultShippingAddress?: string;
+  defaultShippingCity?: string;
   acceptedPolicyVersion?: string;
   hasAcceptedPolicies: boolean;
 };

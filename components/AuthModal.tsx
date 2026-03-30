@@ -17,10 +17,16 @@ type AuthResponse = {
     phone?: string;
     isAdmin: boolean;
     avatar?: string;
-    marketingConsent: boolean;
-    acceptedPolicyVersion?: string;
-    hasAcceptedPolicies: boolean;
-  };
+  marketingConsent: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  whatsappNotifications: boolean;
+  preferredContactChannel: string;
+  defaultShippingAddress?: string;
+  defaultShippingCity?: string;
+  acceptedPolicyVersion?: string;
+  hasAcceptedPolicies: boolean;
+};
 };
 
 type AuthProvidersResponse = {

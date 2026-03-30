@@ -1,4 +1,15 @@
 export type ConsentLevel = 'essential' | 'analytics' | 'marketing';
+export type StoredAttribution = {
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  term: string | null;
+  content: string | null;
+  gclid: string | null;
+  fbclid: string | null;
+  landingPath: string | null;
+  capturedAt: string | null;
+};
 
 export const COOKIE_CONSENT_KEY = 'tp_cookie_consent';
 export const ATTRIBUTION_KEY = 'tp_attribution';
@@ -118,7 +129,7 @@ export function readAttribution() {
   }
 
   try {
-    return JSON.parse(raw) as Record<string, string | null>;
+    return JSON.parse(raw) as StoredAttribution;
   } catch {
     return null;
   }

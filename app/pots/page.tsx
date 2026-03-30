@@ -47,8 +47,8 @@ export default async function Page() {
     <CollectionTemplate
       route="pots"
       title="Clay Forms"
-      intro="Standalone terracotta objects chosen for visual balance, versatile placement, and the quiet confidence of natural clay."
-      facts={['Most Chosen', 'Handcrafted', 'Nairobi Made']}
+      intro="Standalone terracotta forms for shelves, consoles, entry tables, and grounded corners where shape carries the whole mood of the space."
+      facts={['Most Chosen', 'Own-Plant Ready', 'Nairobi Crafted']}
       filters={['all', 'most chosen', 'small', 'medium', 'large', 'statement', 'sets']}
       products={products}
       showing={`Showing ${products.length} of ${products.length} products`}

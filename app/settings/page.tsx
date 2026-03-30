@@ -5,10 +5,15 @@ import { useEffect, useState } from 'react';
 import {
   Bell,
   ChevronRight,
+  Leaf,
+  LockKeyhole,
+  MapPin,
+  MessageCircle,
   Moon,
   Palette,
   Shield,
   Sun,
+  Truck,
   User,
 } from 'lucide-react';
 import { useStore } from '@/components/Providers';
@@ -21,16 +26,56 @@ type ToggleItem = {
   setValue: (value: boolean) => void;
 };
 
+function inputStyle() {
+  return {
+    borderColor: 'var(--tp-border)',
+    background: 'var(--tp-card)',
+    color: 'var(--tp-heading)',
+  };
+}
+
 export default function SettingsPage() {
-  const { isLoggedIn, user, theme, setTheme, setShowAuthModal } = useStore();
+  const { isLoggedIn, user, theme, setTheme, setShowAuthModal, setUser } = useStore();
   const [saved, setSaved] = useState('');
+  const [saveTone, setSaveTone] = useState<'idle' | 'error' | 'success'>('idle');
+  const [isSaving, setIsSaving] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [smsNotifs, setSmsNotifs] = useState(false);
+  const [whatsappNotifs, setWhatsappNotifs] = useState(false);
   const [newsletter, setNewsletter] = useState(false);
+  const [preferredContactChannel, setPreferredContactChannel] = useState('email');
+  const [profileName, setProfileName] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [defaultShippingAddress, setDefaultShippingAddress] = useState('');
+  const [defaultShippingCity, setDefaultShippingCity] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordTone, setPasswordTone] = useState<'idle' | 'error' | 'success'>('idle');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   useEffect(() => {
+    setProfileName(user?.name || '');
+    setProfilePhone(user?.phone || '');
+    setDefaultShippingAddress(user?.defaultShippingAddress || '');
+    setDefaultShippingCity(user?.defaultShippingCity || '');
+    setEmailNotifs(Boolean(user?.emailNotifications ?? true));
+    setSmsNotifs(Boolean(user?.smsNotifications));
+    setWhatsappNotifs(Boolean(user?.whatsappNotifications));
     setNewsletter(Boolean(user?.marketingConsent));
-  }, [user?.marketingConsent]);
+    setPreferredContactChannel(user?.preferredContactChannel || 'email');
+  }, [
+    user?.defaultShippingAddress,
+    user?.defaultShippingCity,
+    user?.emailNotifications,
+    user?.marketingConsent,
+    user?.name,
+    user?.phone,
+    user?.smsNotifications,
+    user?.whatsappNotifications,
+    user?.preferredContactChannel,
+  ]);
 
   const toggles: ToggleItem[] = [
     {
@@ -40,10 +85,16 @@ export default function SettingsPage() {
       setValue: setEmailNotifs,
     },
     {
-      label: 'SMS / WhatsApp updates',
+      label: 'SMS updates',
       description: 'Delivery reminders and last-mile coordination',
       value: smsNotifs,
       setValue: setSmsNotifs,
+    },
+    {
+      label: 'WhatsApp updates',
+      description: 'Order tracking and quick delivery communication',
+      value: whatsappNotifs,
+      setValue: setWhatsappNotifs,
     },
     {
       label: 'Brand email updates',
@@ -52,10 +103,133 @@ export default function SettingsPage() {
       setValue: setNewsletter,
     },
   ];
+  const enabledChannels = toggles
+    .filter((item) => item.value)
+    .map((item) =>
+      item.label === 'Brand email updates' ? 'Brand updates' : item.label
+    );
 
-  function save() {
-    setSaved('Preferences saved in this browser session.');
-    window.setTimeout(() => setSaved(''), 3200);
+  async function save() {
+    setIsSaving(true);
+    setSaved('');
+    setSaveTone('idle');
+
+    try {
+      const profileResponse = await fetch('/api/account/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: profileName,
+          phone: profilePhone,
+          defaultShippingAddress,
+          defaultShippingCity,
+        }),
+      });
+      const profileData = (await profileResponse.json()) as {
+        ok: boolean;
+        error?: string;
+        user?: typeof user;
+      };
+
+      if (!profileResponse.ok || !profileData.ok || !profileData.user) {
+        throw new Error(profileData.error || 'Unable to save your profile.');
+      }
+
+      setUser(profileData.user);
+
+      const preferencesResponse = await fetch('/api/account/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          marketingConsent: newsletter,
+          emailNotifications: emailNotifs,
+          smsNotifications: smsNotifs,
+          whatsappNotifications: whatsappNotifs,
+          preferredContactChannel,
+        }),
+      });
+      const preferencesData = (await preferencesResponse.json()) as {
+        ok: boolean;
+        error?: string;
+        user?: typeof user;
+      };
+
+      if (!preferencesResponse.ok || !preferencesData.ok || !preferencesData.user) {
+        throw new Error(preferencesData.error || 'Unable to save settings.');
+      }
+
+      setUser(preferencesData.user);
+      setSaveTone('success');
+      setSaved('Profile and preferences saved successfully.');
+    } catch (error: any) {
+      setSaveTone('error');
+      setSaved(error?.message || 'Unable to save settings.');
+    } finally {
+      setIsSaving(false);
+      window.setTimeout(() => {
+        setSaved('');
+        setSaveTone('idle');
+      }, 3200);
+    }
+  }
+
+  async function updatePassword() {
+    if (!newPassword.trim()) {
+      setPasswordTone('error');
+      setPasswordMessage('Enter a new password before saving.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordTone('error');
+      setPasswordMessage('The new password confirmation does not match.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordTone('idle');
+    setPasswordMessage('');
+
+    try {
+      const response = await fetch('/api/account/password', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Unable to update password.');
+      }
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordTone('success');
+      setPasswordMessage(data.message || 'Password updated successfully.');
+    } catch (error: any) {
+      setPasswordTone('error');
+      setPasswordMessage(error?.message || 'Unable to update password.');
+    } finally {
+      setIsUpdatingPassword(false);
+      window.setTimeout(() => {
+        setPasswordMessage('');
+        setPasswordTone('idle');
+      }, 3600);
+    }
   }
 
   if (!isLoggedIn) {
@@ -64,7 +238,7 @@ export default function SettingsPage() {
         <div className="mx-auto max-w-2xl rounded-[2rem] border tp-card p-10">
           <div className="serif-display text-5xl tp-heading">Settings</div>
           <p className="mt-4 text-sm leading-7 tp-text-soft">
-            Please sign in to manage your preferences and account options.
+            Please sign in to manage your profile, preferences, and account security.
           </p>
           <button
             type="button"
@@ -87,8 +261,8 @@ export default function SettingsPage() {
           </div>
           <h1 className="mt-2 serif-display text-5xl tp-heading">Settings</h1>
           <p className="mt-2 text-sm leading-7 tp-text-soft">
-            Manage your appearance, communication preferences, and legal account
-            status.
+            Manage your appearance, profile details, communication preferences, and
+            account security.
           </p>
         </div>
 
@@ -159,6 +333,84 @@ export default function SettingsPage() {
           <section className="rounded-[1.5rem] border tp-card p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+                <User className="h-4 w-4 tp-accent" />
+              </div>
+              <div>
+                <div className="font-semibold tp-heading">Profile</div>
+                <div className="text-xs tp-text-muted">Keep your delivery and account details current</div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Full name</span>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={(event) => setProfileName(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Phone</span>
+                <input
+                  type="tel"
+                  value={profilePhone}
+                  onChange={(event) => setProfilePhone(event.target.value)}
+                  placeholder="+254700000000"
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Default delivery address</span>
+                <input
+                  type="text"
+                  value={defaultShippingAddress}
+                  onChange={(event) => setDefaultShippingAddress(event.target.value)}
+                  placeholder="Building, estate, or street"
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Default city</span>
+                <input
+                  type="text"
+                  value={defaultShippingCity}
+                  onChange={(event) => setDefaultShippingCity(event.target.value)}
+                  placeholder="Nairobi"
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                <MapPin className="h-3.5 w-3.5 tp-accent" />
+                Saved delivery defaults
+              </div>
+              <div className="mt-2 text-sm tp-text-soft">
+                Checkout will prefill this address and city so repeat orders move faster.
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] tp-text-muted">Email</div>
+              <div className="mt-1 text-sm font-medium tp-heading">{user?.email}</div>
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border tp-card p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
                 <Bell className="h-4 w-4 tp-accent" />
               </div>
               <div>
@@ -181,53 +433,151 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => item.setValue(!item.value)}
-                  className="relative h-6 w-11 rounded-full transition-colors"
+                  aria-pressed={item.value}
+                  className="relative h-7 w-12 rounded-full border transition-colors"
                   style={{
                     background: item.value
                       ? 'var(--tp-accent)'
                       : 'color-mix(in srgb, var(--tp-border-strong) 78%, var(--tp-bg) 22%)',
+                    borderColor: item.value
+                      ? 'var(--tp-accent)'
+                      : 'var(--tp-border)',
                   }}
                 >
                   <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
                       item.value ? 'translate-x-5' : 'translate-x-0.5'
                     }`}
                   />
                 </button>
               </div>
             ))}
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Preferred contact channel</span>
+                <select
+                  value={preferredContactChannel}
+                  onChange={(event) => setPreferredContactChannel(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                >
+                  <option value="email">Email first</option>
+                  <option value="sms">SMS first</option>
+                  <option value="whatsapp">WhatsApp first</option>
+                </select>
+              </label>
+
+              <div className="rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                  <MessageCircle className="h-3.5 w-3.5 tp-accent" />
+                  Delivery communication
+                </div>
+                <div className="mt-2 text-sm leading-7 tp-text-soft">
+                  Standard paid orders are planned around a 2-day window. Custom orders follow
+                  a 21-day studio timeline. We will queue updates using the channels you enable.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                Active channels
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {enabledChannels.length ? (
+                  enabledChannels.map((channel) => (
+                    <span
+                      key={channel}
+                      className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] tp-heading"
+                    >
+                      {channel}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm tp-text-soft">
+                    No notification channels are active right now.
+                  </span>
+                )}
+              </div>
+            </div>
           </section>
 
           <section className="rounded-[1.5rem] border tp-card p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
-                <User className="h-4 w-4 tp-accent" />
+                <LockKeyhole className="h-4 w-4 tp-accent" />
               </div>
               <div>
-                <div className="font-semibold tp-heading">Account Info</div>
-                <div className="text-xs tp-text-muted">Your profile details</div>
+                <div className="font-semibold tp-heading">Password security</div>
+                <div className="text-xs tp-text-muted">
+                  Update your password or set one alongside social sign-in
+                </div>
               </div>
             </div>
 
-            {[
-              ['Name', user?.name],
-              ['Email', user?.email],
-              ['Phone', user?.phone || 'Not added'],
-              ['Policy version', user?.acceptedPolicyVersion || 'Pending'],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="mb-2 flex items-center justify-between rounded-2xl bg-[var(--tp-surface)] px-4 py-3 last:mb-0"
-              >
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] tp-text-muted">
-                    {label}
-                  </div>
-                  <div className="text-sm font-medium tp-heading">{value || '—'}</div>
-                </div>
-                <ChevronRight className="h-4 w-4 tp-text-muted" />
+            <div className="grid gap-4">
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Current password</span>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                />
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm">
+                  <span className="tp-heading">New password</span>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                    style={inputStyle()}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm">
+                  <span className="tp-heading">Confirm new password</span>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                    style={inputStyle()}
+                  />
+                </label>
               </div>
-            ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-6 tp-text-muted">
+              If this account was created with email and password, enter your current
+              password before saving a new one. If you only use Google or Apple, you can
+              leave it blank and create a password here.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={updatePassword}
+                disabled={isUpdatingPassword}
+                className="btn-secondary disabled:opacity-60"
+              >
+                {isUpdatingPassword ? 'Saving...' : 'Update Password'}
+              </button>
+              {passwordMessage ? (
+                <span
+                  className={`text-sm ${
+                    passwordTone === 'error' ? 'tp-accent' : 'tp-heading'
+                  }`}
+                >
+                  {passwordMessage}
+                </span>
+              ) : null}
+            </div>
           </section>
 
           <section className="rounded-[1.5rem] border tp-card p-6">
@@ -242,6 +592,16 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            <div className="mb-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] tp-text-muted">
+                Policy version
+              </div>
+              <div className="mt-1 text-sm font-medium tp-heading">
+                {user?.acceptedPolicyVersion || 'Pending'}
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <Link href={LEGAL_ROUTES.terms} className="btn-secondary text-center">
                 Terms of Use
@@ -254,6 +614,64 @@ export default function SettingsPage() {
               </Link>
               <Link href={LEGAL_ROUTES.delivery} className="btn-secondary text-center">
                 Delivery & Returns
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border tp-card p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+                <Truck className="h-4 w-4 tp-accent" />
+              </div>
+              <div>
+                <div className="font-semibold tp-heading">Support and orders</div>
+                <div className="text-xs tp-text-muted">
+                  Quick links for tracking, care guidance, and direct help
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Link
+                href="/delivery"
+                className="rounded-[1.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4 transition hover:border-[var(--tp-border-strong)]"
+              >
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                  <Truck className="h-3.5 w-3.5 tp-accent" />
+                  Track order
+                </div>
+                <div className="mt-3 text-sm font-semibold tp-heading">Follow delivery progress</div>
+                <div className="mt-2 text-sm leading-6 tp-text-soft">
+                  Check dispatch timing, delivery windows, and queued updates.
+                </div>
+              </Link>
+
+              <Link
+                href="/care-guide"
+                className="rounded-[1.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4 transition hover:border-[var(--tp-border-strong)]"
+              >
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                  <Leaf className="h-3.5 w-3.5 tp-accent" />
+                  Care help
+                </div>
+                <div className="mt-3 text-sm font-semibold tp-heading">Search guidance or upload a challenge</div>
+                <div className="mt-2 text-sm leading-6 tp-text-soft">
+                  Find care answers quickly or send a photo to the support inbox.
+                </div>
+              </Link>
+
+              <Link
+                href="/contact"
+                className="rounded-[1.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4 transition hover:border-[var(--tp-border-strong)]"
+              >
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                  <MessageCircle className="h-3.5 w-3.5 tp-accent" />
+                  Contact us
+                </div>
+                <div className="mt-3 text-sm font-semibold tp-heading">Reach the TuloPots team</div>
+                <div className="mt-2 text-sm leading-6 tp-text-soft">
+                  Use the contact page when you need sourcing help, delivery support, or a direct reply.
+                </div>
               </Link>
             </div>
           </section>
@@ -279,10 +697,35 @@ export default function SettingsPage() {
           ) : null}
 
           <div className="flex flex-wrap items-center gap-4">
-            <button type="button" onClick={save} className="btn-primary">
-              Save Settings
+            <button type="button" onClick={save} disabled={isSaving} className="btn-primary disabled:opacity-60">
+              {isSaving ? 'Saving...' : 'Save Settings'}
             </button>
-            {saved ? <span className="text-sm tp-accent">{saved}</span> : null}
+            {saved ? (
+              <span className={`text-sm ${saveTone === 'error' ? 'tp-accent' : 'tp-heading'}`}>
+                {saved}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="rounded-[1.5rem] border tp-card px-5 py-4">
+            {[
+              ['Account email', user?.email],
+              ['Phone on file', user?.phone || 'Not added'],
+              ['Policy acceptance', user?.hasAcceptedPolicies ? 'Accepted' : 'Pending'],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between border-b border-[var(--tp-border)] py-3 last:border-0"
+              >
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] tp-text-muted">
+                    {label}
+                  </div>
+                  <div className="mt-1 text-sm font-medium tp-heading">{value}</div>
+                </div>
+                <ChevronRight className="h-4 w-4 tp-text-muted" />
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -12,18 +12,35 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     let email = '';
+    let name = '';
     let company = '';
+    let preferredChannel = 'email';
+    let source = 'footer';
+    let interests: string[] = [];
 
     // Determine if the request is multipart/form-data or JSON
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('form-data')) {
       const form = await req.formData();
+      name = String(form.get('name') ?? '').trim();
       email = String(form.get('email') ?? '').trim();
       company = String(form.get('company') ?? '').trim();
+      preferredChannel = String(form.get('preferredChannel') ?? 'email').trim() || 'email';
+      source = String(form.get('source') ?? 'footer').trim() || 'footer';
+      interests = form
+        .getAll('interests')
+        .map((item) => String(item).trim())
+        .filter(Boolean);
     } else {
       const body = await req.json().catch(() => ({}));
+      name = String(body?.name ?? '').trim();
       email = String(body?.email ?? '').trim();
       company = String(body?.company ?? '').trim();
+      preferredChannel = String(body?.preferredChannel ?? 'email').trim() || 'email';
+      source = String(body?.source ?? 'footer').trim() || 'footer';
+      interests = Array.isArray(body?.interests)
+        ? body.interests.map((item: unknown) => String(item).trim()).filter(Boolean)
+        : [];
     }
 
     if (company) {
@@ -37,13 +54,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Upsert subscriber: create if not exist, else leave unchanged
     await prisma.newsletterSubscriber.upsert({
       where: { email },
-      update: {},
-      create: { email },
+      update: {
+        name: name || undefined,
+        preferredChannel,
+        interests,
+        source,
+      },
+      create: {
+        email,
+        name: name || null,
+        preferredChannel,
+        interests,
+        source,
+      },
     });
 
     const response = NextResponse.json({
       ok: true,
-      message: 'Thanks! You are subscribed.',
+      message: 'You are on the list. We will send only the kind of updates you asked for.',
     });
     response.headers.set('Cache-Control', 'no-store');
     return response;

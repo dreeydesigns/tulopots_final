@@ -27,7 +27,8 @@ export default function DeliveryReturnsPage() {
         {
           title: 'Delivery windows',
           body: [
-            'Lead times vary by product, destination, stock availability, and whether a piece is ready-made, planted, or custom. Nairobi deliveries are usually prioritized, but all delivery windows remain estimates until confirmed.',
+            'Paid standard orders are planned around a 2-day delivery window after purchase. Destination, access, order volume, and final confirmation can affect the exact handover time, but this is the operating target we communicate to customers.',
+            'Custom commissions, Studio briefs, and other made-to-order work follow a longer studio rhythm. Unless another timeline is agreed in writing, custom work should be understood as taking up to 21 days before delivery.',
             'If we cannot reach the recipient, verify access, or complete delivery safely, the order may be rescheduled and additional charges may apply where repeat delivery is required.',
           ],
         },

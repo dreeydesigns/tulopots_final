@@ -43,7 +43,7 @@ export function SearchPageClient({ products }: { products: Product[] }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search clay forms, plant pairings, SKUs, or shapes..."
+            placeholder="Search pieces, plant pairings, SKUs, or shapes..."
             className="w-full rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] py-5 pl-14 pr-5 text-[var(--tp-heading)] shadow-[var(--tp-shadow-soft)] outline-none transition focus:border-[var(--tp-accent)]"
           />
         </div>

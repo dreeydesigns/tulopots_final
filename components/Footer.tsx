@@ -10,6 +10,15 @@ export function Footer() {
   const [newsletterState, setNewsletterState] = useState('');
   const [newsletterTone, setNewsletterTone] = useState<'idle' | 'error' | 'success'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(['new-arrivals']);
+
+  function toggleInterest(value: string) {
+    setSelectedInterests((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  }
 
   async function handleNewsletterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,6 +28,8 @@ export function Footer() {
 
     const form = event.currentTarget;
     const formData = new FormData(form);
+    selectedInterests.forEach((interest) => formData.append('interests', interest));
+    formData.set('source', 'footer');
 
     try {
       const response = await fetch('/api/newsletter', {
@@ -102,6 +113,9 @@ export function Footer() {
             <Link href="/care-guide" className="transition hover:text-white">
               Care Guide
             </Link>
+            <Link href="/delivery" className="transition hover:text-white">
+              Track Order
+            </Link>
             <Link href={LEGAL_ROUTES.delivery} className="transition hover:text-white">
               Delivery & Returns
             </Link>
@@ -118,24 +132,72 @@ export function Footer() {
             Join the TuloPots Community
           </div>
           <p className="mt-4 text-sm leading-7 text-white/55">
-            Get care tips, new arrivals and exclusive offers.
+            Choose the updates you actually want: new arrivals, care guidance, open-space ideas, and launch notes.
           </p>
-          <form onSubmit={handleNewsletterSubmit} className="mt-5 flex gap-2">
+          <form onSubmit={handleNewsletterSubmit} className="mt-5 space-y-3">
             <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" />
-            <input
-              name="email"
-              type="email"
-              placeholder="Your email"
-              className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
-              required
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                name="name"
+                type="text"
+                placeholder="Your name"
+                className="min-w-0 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
+              />
+              <input
+                name="email"
+                type="email"
+                placeholder="Your email"
+                className="min-w-0 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
+                required
+              />
+            </div>
+
+            <select
+              name="preferredChannel"
+              className="w-full rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none focus:border-white/25"
+              defaultValue="email"
+            >
+              <option value="email">Email updates</option>
+              <option value="sms">SMS updates</option>
+              <option value="whatsapp">WhatsApp updates</option>
+            </select>
+
+            <div className="flex flex-wrap gap-2">
+              {[
+                ['new-arrivals', 'New arrivals'],
+                ['care-guidance', 'Care guidance'],
+                ['launch-notes', 'Launch notes'],
+                ['open-space-ideas', 'Open-space ideas'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleInterest(value)}
+                  className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition"
+                  style={{
+                    borderColor: selectedInterests.includes(value)
+                      ? 'var(--tp-accent)'
+                      : 'rgba(255,255,255,0.12)',
+                    background: selectedInterests.includes(value)
+                      ? 'rgba(255,255,255,0.12)'
+                      : 'transparent',
+                    color: selectedInterests.includes(value)
+                      ? 'var(--tp-accent-soft)'
+                      : 'rgba(255,255,255,0.72)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
+              className="w-full rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
               style={{ background: 'var(--tp-accent)' }}
             >
-              {isSubmitting ? 'Joining...' : 'Join'}
+              {isSubmitting ? 'Joining...' : 'Join the List'}
             </button>
           </form>
           <p className="mt-3 text-xs leading-6 text-white/35">

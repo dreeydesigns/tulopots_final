@@ -10,12 +10,15 @@ import {
   PackagePlus,
   PanelsTopLeft,
   RefreshCw,
+  Search,
   Sparkles,
   Star,
   SquarePen,
   Trash2,
 } from 'lucide-react';
 import type { User } from '@/components/Providers';
+import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
+import { ProductMediaField } from './ProductMediaField';
 
 type Tab =
   | 'overview'
@@ -36,6 +39,7 @@ type DashboardData = {
     newsletterSubscribers: number;
     reviews: number;
     pendingReviews: number;
+    analyticsEvents: number;
   };
   activity: Array<{
     id: string;
@@ -58,6 +62,7 @@ type DashboardData = {
     description: string;
     cardDescription: string;
     image: string;
+    gallery: string[];
     visible: boolean;
     available: boolean;
     updatedAt: string;
@@ -76,6 +81,20 @@ type DashboardData = {
     shippingCity: string | null;
     adminNotes: string | null;
     createdAt: string;
+    trackingCode: string;
+    isCustomOrder: boolean;
+    estimatedDispatchAt: string | null;
+    estimatedDeliveryAt: string | null;
+    trackingTimeline: any[];
+    notificationLog: any[];
+    attribution: {
+      source: string | null;
+      medium: string | null;
+      campaign: string | null;
+      landingPath: string | null;
+      gclid: string | null;
+      fbclid: string | null;
+    };
     itemCount: number;
     items: Array<{
       id: string;
@@ -85,6 +104,12 @@ type DashboardData = {
       lineTotal: number;
       image: string | null;
     }>;
+  }>;
+  orderAttributionSummary: Array<{
+    label: string;
+    medium: string;
+    orders: number;
+    revenue: number;
   }>;
   studioBriefs: Array<{
     id: string;
@@ -106,6 +131,8 @@ type DashboardData = {
     email: string;
     subject: string;
     message: string;
+    context: string | null;
+    imageUrl: string | null;
     status: string;
     createdAt: string;
     readAt: string | null;
@@ -113,7 +140,11 @@ type DashboardData = {
   }>;
   newsletterSubscribers: Array<{
     id: string;
+    name: string | null;
     email: string;
+    preferredChannel: string | null;
+    interests: string[];
+    source: string | null;
     createdAt: string;
   }>;
   siteSections: Array<{
@@ -137,6 +168,14 @@ type DashboardData = {
       slug: string;
     };
   }>;
+  analyticsEvents: Array<{
+    id: string;
+    eventName: string;
+    source: string | null;
+    path: string | null;
+    consentLevel: string;
+    createdAt: string;
+  }>;
 };
 
 type DashboardResponse = {
@@ -156,6 +195,7 @@ type ProductFormState = {
   description: string;
   cardDescription: string;
   image: string;
+  gallery: string[];
   price: string;
   potOnly: string;
   visible: boolean;
@@ -173,11 +213,36 @@ const defaultProductForm: ProductFormState = {
   description: '',
   cardDescription: '',
   image: '',
+  gallery: [],
   price: '',
   potOnly: '',
   visible: true,
   available: true,
 };
+
+const productCategoryOptions = [
+  { value: 'indoor', label: 'For Interior Spaces' },
+  { value: 'outdoor', label: 'For Open Spaces' },
+  { value: 'pots', label: 'Clay Forms' },
+];
+
+const productSizeOptions = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'decorative', label: 'Decorative' },
+  { value: 'sets', label: 'Studio Set' },
+];
+
+const productBadgeOptions = [
+  '',
+  'New',
+  'Bestseller',
+  'Indoor',
+  'Outdoor',
+  'Limited',
+  'Studio',
+];
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -228,6 +293,7 @@ function productToForm(product: DashboardData['products'][number]): ProductFormS
     description: product.description,
     cardDescription: product.cardDescription,
     image: product.image,
+    gallery: product.gallery,
     price: String(product.price),
     potOnly: product.potOnly == null ? '' : String(product.potOnly),
     visible: product.visible,
@@ -245,10 +311,13 @@ export function AdminDashboard({ user }: { user: User }) {
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
+  const [slugManual, setSlugManual] = useState(false);
+  const [skuManual, setSkuManual] = useState(false);
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState('PENDING');
   const [orderNotes, setOrderNotes] = useState('');
+  const [orderIsCustom, setOrderIsCustom] = useState(false);
 
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const [briefStatus, setBriefStatus] = useState('RECEIVED');
@@ -256,6 +325,11 @@ export function AdminDashboard({ user }: { user: User }) {
 
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [productQuery, setProductQuery] = useState('');
+  const [orderQuery, setOrderQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [contactQuery, setContactQuery] = useState('');
+  const [newsletterQuery, setNewsletterQuery] = useState('');
 
   async function loadDashboard() {
     try {
@@ -321,12 +395,166 @@ export function AdminDashboard({ user }: { user: User }) {
     [dashboard, selectedReviewId]
   );
 
+  const filteredProducts = useMemo(() => {
+    if (!dashboard) {
+      return [];
+    }
+
+    const query = productQuery.trim().toLowerCase();
+    if (!query) {
+      return dashboard.products;
+    }
+
+    return dashboard.products.filter((product) =>
+      [
+        product.name,
+        product.slug,
+        product.sku || '',
+        product.category,
+        product.size,
+        product.short,
+        product.badge || '',
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [dashboard, productQuery]);
+
+  const filteredOrders = useMemo(() => {
+    if (!dashboard) {
+      return [];
+    }
+
+    const query = orderQuery.trim().toLowerCase();
+
+    return dashboard.orders.filter((order) => {
+      const matchesStatus =
+        orderStatusFilter === 'all' || order.status === orderStatusFilter;
+      const matchesQuery =
+        !query ||
+        [
+          order.orderNumber,
+          order.customerName,
+          order.customerEmail,
+          order.customerPhone,
+          order.shippingCity || '',
+          order.trackingCode,
+          order.attribution.source || '',
+          order.attribution.campaign || '',
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+
+      return matchesStatus && matchesQuery;
+    });
+  }, [dashboard, orderQuery, orderStatusFilter]);
+
+  const filteredContacts = useMemo(() => {
+    if (!dashboard) {
+      return [];
+    }
+
+    const query = contactQuery.trim().toLowerCase();
+    if (!query) {
+      return dashboard.contactMessages;
+    }
+
+    return dashboard.contactMessages.filter((message) =>
+      [
+        message.name,
+        message.email,
+        message.subject,
+        message.message,
+        message.context || '',
+        message.status,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [dashboard, contactQuery]);
+
+  const filteredNewsletterSubscribers = useMemo(() => {
+    if (!dashboard) {
+      return [];
+    }
+
+    const query = newsletterQuery.trim().toLowerCase();
+    if (!query) {
+      return dashboard.newsletterSubscribers;
+    }
+
+    return dashboard.newsletterSubscribers.filter((subscriber) =>
+      [
+        subscriber.name || '',
+        subscriber.email,
+        subscriber.preferredChannel || '',
+        subscriber.source || '',
+        subscriber.interests.join(' '),
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [dashboard, newsletterQuery]);
+
+  useEffect(() => {
+    if (!filteredOrders.length) {
+      return;
+    }
+
+    if (!filteredOrders.some((order) => order.id === selectedOrderId)) {
+      setSelectedOrderId(filteredOrders[0].id);
+    }
+  }, [filteredOrders, selectedOrderId]);
+
+  useEffect(() => {
+    if (!filteredContacts.length) {
+      return;
+    }
+
+    if (!filteredContacts.some((message) => message.id === selectedContactId)) {
+      setSelectedContactId(filteredContacts[0].id);
+    }
+  }, [filteredContacts, selectedContactId]);
+
   useEffect(() => {
     if (selectedOrder) {
       setOrderStatus(selectedOrder.status);
       setOrderNotes(selectedOrder.adminNotes || '');
+      setOrderIsCustom(selectedOrder.isCustomOrder);
     }
   }, [selectedOrder]);
+
+  useEffect(() => {
+    if (editingProductId || slugManual) {
+      return;
+    }
+
+    setProductForm((current) => ({
+      ...current,
+      slug: current.name ? slugifyProduct(current.name) : '',
+    }));
+  }, [editingProductId, productForm.name, slugManual]);
+
+  useEffect(() => {
+    if (editingProductId || skuManual) {
+      return;
+    }
+
+    setProductForm((current) => ({
+      ...current,
+      sku: current.name
+        ? generateProductSku({
+            category: current.category,
+            size: current.size,
+            name: current.name,
+          })
+        : '',
+    }));
+  }, [editingProductId, productForm.category, productForm.name, productForm.size, skuManual]);
 
   useEffect(() => {
     if (selectedBrief) {
@@ -368,6 +596,8 @@ export function AdminDashboard({ user }: { user: User }) {
             ...productForm,
             price: Number(productForm.price),
             potOnly: productForm.potOnly,
+            gallery: productForm.gallery,
+            image: productForm.image || productForm.gallery[0] || '',
           }),
         }
       );
@@ -381,6 +611,8 @@ export function AdminDashboard({ user }: { user: User }) {
 
       setEditingProductId(null);
       setProductForm(defaultProductForm);
+      setSlugManual(false);
+      setSkuManual(false);
       await loadDashboard();
       setTab('products');
     } catch {
@@ -408,6 +640,8 @@ export function AdminDashboard({ user }: { user: User }) {
       if (editingProductId === id) {
         setEditingProductId(null);
         setProductForm(defaultProductForm);
+        setSlugManual(false);
+        setSkuManual(false);
       }
 
       await loadDashboard();
@@ -452,7 +686,11 @@ export function AdminDashboard({ user }: { user: User }) {
       const response = await fetch(`/api/admin/orders/${selectedOrder.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: orderStatus, adminNotes: orderNotes }),
+        body: JSON.stringify({
+          status: orderStatus,
+          adminNotes: orderNotes,
+          isCustomOrder: orderIsCustom,
+        }),
       });
       const data = (await response.json()) as { ok: boolean; error?: string };
 
@@ -710,7 +948,7 @@ export function AdminDashboard({ user }: { user: User }) {
               <>
                 {tab === 'overview' ? (
                   <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
                       {[
                         ['Products', dashboard.counts.products],
                         ['Orders', dashboard.counts.orders],
@@ -718,6 +956,7 @@ export function AdminDashboard({ user }: { user: User }) {
                         ['Contacts', dashboard.counts.contactMessages],
                         ['Newsletter', dashboard.counts.newsletterSubscribers],
                         ['Review Queue', dashboard.counts.pendingReviews],
+                        ['Signals', dashboard.counts.analyticsEvents],
                       ].map(([label, value]) => (
                         <MetricCard key={label} label={String(label)} value={String(value)} />
                       ))}
@@ -783,6 +1022,144 @@ export function AdminDashboard({ user }: { user: User }) {
                         </div>
                       </PanelShell>
                     </div>
+
+                    <PanelShell
+                      title="Recent signals"
+                      subtitle="Consent-approved first-party events from the storefront."
+                    >
+                      {dashboard.analyticsEvents.length ? (
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {dashboard.analyticsEvents.map((event) => (
+                            <div
+                              key={event.id}
+                              className="rounded-[1.25rem] border px-4 py-4"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                              }}
+                            >
+                              <div
+                                className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ color: 'var(--tp-accent)' }}
+                              >
+                                {event.eventName.replace(/_/g, ' ')}
+                              </div>
+                              <div
+                                className="mt-2 text-sm"
+                                style={{ color: 'var(--tp-heading)' }}
+                              >
+                                {event.path || 'Path unavailable'}
+                              </div>
+                              <div
+                                className="mt-1 text-xs"
+                                style={{
+                                  color:
+                                    'color-mix(in srgb, var(--tp-text) 68%, transparent 32%)',
+                                }}
+                              >
+                                {event.source || 'direct'} · {event.consentLevel}
+                              </div>
+                              <div
+                                className="mt-3 text-xs"
+                                style={{
+                                  color:
+                                    'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)',
+                                }}
+                              >
+                                {formatDate(event.createdAt)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div
+                          className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                          style={{
+                            borderColor: 'var(--tp-border)',
+                            background: 'var(--tp-card)',
+                            color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)',
+                          }}
+                        >
+                          Signals will appear here as soon as consented storefront activity starts
+                          coming through.
+                        </div>
+                      )}
+                    </PanelShell>
+
+                    <PanelShell
+                      title="Attribution"
+                      subtitle="Order-linked acquisition signals for campaigns, channels, and paid traffic."
+                    >
+                      {dashboard.orderAttributionSummary.length ? (
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {dashboard.orderAttributionSummary.map((entry) => (
+                            <div
+                              key={`${entry.label}-${entry.medium}`}
+                              className="rounded-[1.25rem] border px-4 py-4"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                              }}
+                            >
+                              <div
+                                className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ color: 'var(--tp-accent)' }}
+                              >
+                                {entry.medium}
+                              </div>
+                              <div className="mt-2 text-sm" style={{ color: 'var(--tp-heading)' }}>
+                                {entry.label}
+                              </div>
+                              <div
+                                className="mt-2 text-xs"
+                                style={{
+                                  color:
+                                    'color-mix(in srgb, var(--tp-text) 68%, transparent 32%)',
+                                }}
+                              >
+                                {entry.orders} orders · {money(entry.revenue)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div
+                          className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                          style={{
+                            borderColor: 'var(--tp-border)',
+                            background: 'var(--tp-card)',
+                            color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)',
+                          }}
+                        >
+                          Orders will surface here once campaign or referral data is attached to
+                          checkout activity.
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <a
+                          href="/api/admin/orders?format=csv"
+                          className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                          style={{
+                            background: 'var(--tp-accent)',
+                            color: 'var(--tp-btn-primary-text)',
+                          }}
+                        >
+                          Export orders
+                        </a>
+                        <a
+                          href="/api/admin/analytics?format=csv"
+                          className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                          style={{
+                            borderColor: 'var(--tp-border)',
+                            background: 'var(--tp-card)',
+                            color: 'var(--tp-heading)',
+                          }}
+                        >
+                          Export signals
+                        </a>
+                      </div>
+                    </PanelShell>
                   </div>
                 ) : null}
 
@@ -790,28 +1167,38 @@ export function AdminDashboard({ user }: { user: User }) {
                   <div className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
                     <PanelShell
                       title="Product management"
-                      subtitle="Edit live catalog entries, visibility, availability, and storefront pricing."
+                      subtitle="Edit the live catalog, review ratings, manage galleries, and keep every product ready for the storefront."
                     >
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
-                          {dashboard.products.length} products in the live catalog
+                          {productQuery.trim()
+                            ? `${filteredProducts.length} matching product${filteredProducts.length === 1 ? '' : 's'}`
+                            : `${dashboard.products.length} products in the live catalog`}
                         </div>
                         <button
                           type="button"
                           onClick={() => {
                             setEditingProductId(null);
                             setProductForm(defaultProductForm);
+                            setSlugManual(false);
+                            setSkuManual(false);
                           }}
                           className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                          style={{ background: 'var(--tp-accent)', color: '#ffffff' }}
+                          style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
                         >
                           <PackagePlus className="h-4 w-4" />
                           New Product
                         </button>
                       </div>
 
+                      <SearchField
+                        value={productQuery}
+                        onChange={setProductQuery}
+                        placeholder="Search products by name, slug, SKU, category, or size..."
+                      />
+
                       <div className="space-y-3">
-                        {dashboard.products.map((product) => (
+                        {filteredProducts.map((product) => (
                           <div
                             key={product.id}
                             className="grid gap-4 rounded-[1.5rem] border px-4 py-4 md:grid-cols-[88px_1fr_auto]"
@@ -826,12 +1213,23 @@ export function AdminDashboard({ user }: { user: User }) {
                               <div className="mt-1 text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
                                 {product.slug} · {product.category} · {money(product.price)}
                               </div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-accent-soft)', color: 'var(--tp-accent)' }}>
+                                  {product.gallery.length} image{product.gallery.length === 1 ? '' : 's'}
+                                </span>
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                  {(product.price > 0 ? 'Live pricing' : 'Needs pricing')}
+                                </span>
+                              </div>
                               <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
                                 <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
                                   {product.visible ? 'Visible' : 'Hidden'}
                                 </span>
                                 <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
                                   {product.available ? 'Available' : 'Unavailable'}
+                                </span>
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                  {product.sku || 'No SKU'}
                                 </span>
                               </div>
                             </div>
@@ -841,6 +1239,8 @@ export function AdminDashboard({ user }: { user: User }) {
                                 onClick={() => {
                                   setEditingProductId(product.id);
                                   setProductForm(productToForm(product));
+                                  setSlugManual(true);
+                                  setSkuManual(true);
                                 }}
                                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
                                 style={{ background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}
@@ -876,39 +1276,146 @@ export function AdminDashboard({ user }: { user: User }) {
                             </div>
                           </div>
                         ))}
+                        {!filteredProducts.length ? (
+                          <div
+                            className="rounded-[1.5rem] border px-4 py-5 text-sm"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-card)',
+                              color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)',
+                            }}
+                          >
+                            No products match that search yet.
+                          </div>
+                        ) : null}
                       </div>
                     </PanelShell>
 
                     <PanelShell
                       title={editingProductId ? 'Edit product' : 'Create product'}
-                      subtitle="These fields feed the live storefront catalog."
+                      subtitle="Use the guided fields below to build a complete storefront record with gallery images, clear pricing, and easier operator defaults."
                     >
                       <div className="grid gap-4">
-                        {[
-                          ['Name', 'name'],
-                          ['Slug', 'slug'],
-                          ['SKU', 'sku'],
-                          ['Badge', 'badge'],
-                          ['Short line', 'short'],
-                          ['Image URL', 'image'],
-                        ].map(([label, key]) => (
-                          <Field
-                            key={key}
-                            label={String(label)}
-                            value={productForm[key as keyof ProductFormState] as string}
-                            onChange={(value) => setProductForm((current) => ({ ...current, [key]: value }))}
-                          />
-                        ))}
+                        <Field
+                          label="Name"
+                          value={productForm.name}
+                          onChange={(value) =>
+                            setProductForm((current) => ({ ...current, name: value }))
+                          }
+                        />
 
                         <div className="grid gap-4 md:grid-cols-2">
-                          <Field label="Category" value={productForm.category} onChange={(value) => setProductForm((current) => ({ ...current, category: value }))} />
-                          <Field label="Size" value={productForm.size} onChange={(value) => setProductForm((current) => ({ ...current, size: value }))} />
-                          <Field label="Price" value={productForm.price} onChange={(value) => setProductForm((current) => ({ ...current, price: value }))} />
-                          <Field label="Pot only" value={productForm.potOnly} onChange={(value) => setProductForm((current) => ({ ...current, potOnly: value }))} />
+                          <SelectField
+                            label="Category"
+                            value={productForm.category}
+                            options={productCategoryOptions}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, category: value }))
+                            }
+                          />
+                          <SelectField
+                            label="Size"
+                            value={productForm.size}
+                            options={productSizeOptions}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, size: value }))
+                            }
+                          />
                         </div>
 
-                        <Field label="Description" value={productForm.description} multiline onChange={(value) => setProductForm((current) => ({ ...current, description: value }))} />
-                        <Field label="Card description" value={productForm.cardDescription} multiline onChange={(value) => setProductForm((current) => ({ ...current, cardDescription: value }))} />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Field
+                            label="Slug"
+                            value={productForm.slug}
+                            onChange={(value) => {
+                              setSlugManual(true);
+                              setProductForm((current) => ({ ...current, slug: value }));
+                            }}
+                          />
+                          <Field
+                            label="SKU"
+                            value={productForm.sku}
+                            onChange={(value) => {
+                              setSkuManual(true);
+                              setProductForm((current) => ({ ...current, sku: value }));
+                            }}
+                          />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <SelectField
+                            label="Badge"
+                            value={productForm.badge}
+                            options={productBadgeOptions.map((item) => ({
+                              value: item,
+                              label: item || 'No badge',
+                            }))}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, badge: value }))
+                            }
+                          />
+                          <Field
+                            label="Short line"
+                            value={productForm.short}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, short: value }))
+                            }
+                          />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Field
+                            label="Price"
+                            value={productForm.price}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, price: value }))
+                            }
+                          />
+                          <Field
+                            label="Clay form price"
+                            value={productForm.potOnly}
+                            onChange={(value) =>
+                              setProductForm((current) => ({ ...current, potOnly: value }))
+                            }
+                          />
+                        </div>
+
+                        <div className="rounded-[1.25rem] border px-4 py-4 text-sm" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-text)' }}>
+                          Slug and SKU are generated automatically while you are creating a new product. You can still override them manually if needed.
+                        </div>
+
+                        <ProductMediaField
+                          gallery={productForm.gallery}
+                          mainImage={productForm.image}
+                          onChange={({ gallery, mainImage }) =>
+                            setProductForm((current) => ({
+                              ...current,
+                              gallery,
+                              image: mainImage,
+                            }))
+                          }
+                          disabled={pendingKey === 'save-product'}
+                        />
+
+                        <Field
+                          label="Description"
+                          value={productForm.description}
+                          multiline
+                          onChange={(value) =>
+                            setProductForm((current) => ({ ...current, description: value }))
+                          }
+                        />
+                        <Field
+                          label="Card description"
+                          value={productForm.cardDescription}
+                          multiline
+                          onChange={(value) =>
+                            setProductForm((current) => ({
+                              ...current,
+                              cardDescription: value,
+                            }))
+                          }
+                        />
 
                         <div className="grid gap-3 md:grid-cols-2">
                           <ToggleRow label="Visible on storefront" checked={productForm.visible} onChange={(checked) => setProductForm((current) => ({ ...current, visible: checked }))} />
@@ -930,6 +1437,8 @@ export function AdminDashboard({ user }: { user: User }) {
                             onClick={() => {
                               setEditingProductId(null);
                               setProductForm(defaultProductForm);
+                              setSlugManual(false);
+                              setSkuManual(false);
                             }}
                             className="inline-flex min-h-[50px] items-center justify-center rounded-full px-6 text-[11px] font-semibold uppercase tracking-[0.18em]"
                             style={{ background: 'var(--tp-surface)', color: 'var(--tp-heading)', border: '1px solid var(--tp-border)' }}
@@ -943,26 +1452,162 @@ export function AdminDashboard({ user }: { user: User }) {
                 ) : null}
 
                 {tab === 'orders' ? (
-                  <SplitPanel
-                    title="Order management"
-                    subtitle="Review live orders and move each one through fulfillment."
-                    list={dashboard.orders.map((order) => ({
-                      id: order.id,
-                      title: order.orderNumber,
-                      body: `${order.customerName} · ${money(order.totalAmount)} · ${order.status}`,
-                      meta: formatDate(order.createdAt),
-                    }))}
-                    selectedId={selectedOrderId}
-                    onSelect={setSelectedOrderId}
-                    detail={
-                      selectedOrder ? (
-                        <div className="space-y-5">
+                  <div className="grid gap-4">
+                    <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+                      <SearchField
+                        value={orderQuery}
+                        onChange={setOrderQuery}
+                        placeholder="Search orders by order number, customer, email, city, source, or tracking code..."
+                      />
+                      <SelectField
+                        label="Status filter"
+                        value={orderStatusFilter}
+                        options={[
+                          { value: 'all', label: 'All statuses' },
+                          ...orderStatusOptions.map((status) => ({
+                            value: status,
+                            label: status,
+                          })),
+                        ]}
+                        onChange={setOrderStatusFilter}
+                      />
+                    </div>
+                    <SplitPanel
+                      title="Order management"
+                      subtitle="Review live orders and move each one through fulfillment."
+                      list={filteredOrders.map((order) => ({
+                        id: order.id,
+                        title: order.orderNumber,
+                        body: `${order.customerName} · ${money(order.totalAmount)} · ${order.status}`,
+                        meta: formatDate(order.createdAt),
+                      }))}
+                      selectedId={selectedOrderId}
+                      onSelect={setSelectedOrderId}
+                      detail={
+                        selectedOrder ? (
+                          <div className="space-y-5">
                           <DetailIntro title={selectedOrder.orderNumber} subtitle={`${selectedOrder.customerName} · ${selectedOrder.customerEmail}`} />
+                          <div className="flex flex-wrap gap-3">
+                            <a
+                              href="/api/admin/orders?format=csv"
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                              style={{
+                                background: 'var(--tp-accent)',
+                                color: 'var(--tp-btn-primary-text)',
+                              }}
+                            >
+                              Export orders
+                            </a>
+                            <a
+                              href="/api/admin/analytics?format=csv"
+                              className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                                color: 'var(--tp-heading)',
+                              }}
+                            >
+                              Export signals
+                            </a>
+                          </div>
                           <div className="grid gap-4 md:grid-cols-3">
                             <DetailStat label="Status" value={selectedOrder.status} />
                             <DetailStat label="Payment" value={selectedOrder.paymentMethod} />
                             <DetailStat label="Total" value={money(selectedOrder.totalAmount)} />
                           </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <DetailStat
+                              label="Delivery expectation"
+                              value={
+                                selectedOrder.estimatedDeliveryAt
+                                  ? `${selectedOrder.isCustomOrder ? '21 days' : '2 days'} · ${formatDate(selectedOrder.estimatedDeliveryAt)}`
+                                  : 'Pending'
+                              }
+                            />
+                            <DetailStat label="Tracking code" value={selectedOrder.trackingCode} />
+                          </div>
+                          <ToggleRow
+                            label="Custom order timeline"
+                            checked={orderIsCustom}
+                            onChange={setOrderIsCustom}
+                          />
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <DetailStat
+                              label="Source"
+                              value={
+                                selectedOrder.attribution.campaign ||
+                                selectedOrder.attribution.source ||
+                                'Direct / Unattributed'
+                              }
+                            />
+                            <DetailStat
+                              label="Channel"
+                              value={
+                                selectedOrder.attribution.medium ||
+                                (selectedOrder.attribution.gclid
+                                  ? 'cpc'
+                                  : selectedOrder.attribution.fbclid
+                                    ? 'paid-social'
+                                    : 'direct')
+                              }
+                            />
+                          </div>
+                          {selectedOrder.attribution.landingPath ? (
+                            <div
+                              className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                                color: 'var(--tp-heading)',
+                              }}
+                            >
+                              <div
+                                className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ color: 'var(--tp-accent)' }}
+                              >
+                                Landing path
+                              </div>
+                              <div className="mt-2 break-all">{selectedOrder.attribution.landingPath}</div>
+                            </div>
+                          ) : null}
+                          {!!selectedOrder.trackingTimeline.length ? (
+                            <div className="rounded-[1.25rem] border p-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tp-accent)' }}>
+                                Tracking timeline
+                              </div>
+                              <div className="mt-3 space-y-3">
+                                {selectedOrder.trackingTimeline.map((entry: any, index: number) => (
+                                  <div key={`${entry.createdAt}-${index}`} className="rounded-[1rem] bg-[var(--tp-surface)] px-4 py-3">
+                                    <div className="text-sm font-medium tp-heading">{entry.label}</div>
+                                    <div className="mt-1 text-sm tp-text-soft">{entry.detail}</div>
+                                    <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] tp-text-muted">
+                                      {formatDate(entry.createdAt)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          {!!selectedOrder.notificationLog.length ? (
+                            <div className="rounded-[1.25rem] border p-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--tp-accent)' }}>
+                                Notification queue
+                              </div>
+                              <div className="mt-3 space-y-3">
+                                {selectedOrder.notificationLog.slice(-6).reverse().map((entry: any, index: number) => (
+                                  <div key={`${entry.createdAt}-${index}`} className="rounded-[1rem] bg-[var(--tp-surface)] px-4 py-3">
+                                    <div className="text-sm font-medium tp-heading">
+                                      {entry.channel} · {entry.subject}
+                                    </div>
+                                    <div className="mt-1 text-sm tp-text-soft">{entry.detail}</div>
+                                    <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] tp-text-muted">
+                                      {entry.status} · {entry.target || 'No target'}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
                           <div className="space-y-3">
                             {selectedOrder.items.map((item) => (
                               <div key={item.id} className="rounded-[1.25rem] border px-4 py-3" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
@@ -981,10 +1626,11 @@ export function AdminDashboard({ user }: { user: User }) {
                           <button type="button" onClick={() => void saveOrder()} disabled={pendingKey === `order:${selectedOrder.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
                             {pendingKey === `order:${selectedOrder.id}` ? 'Saving…' : 'Save Order'}
                           </button>
-                        </div>
-                      ) : null
-                    }
-                  />
+                          </div>
+                        ) : null
+                      }
+                    />
+                  </div>
                 ) : null}
 
                 {tab === 'studio' ? (
@@ -1158,21 +1804,41 @@ export function AdminDashboard({ user }: { user: User }) {
                 ) : null}
 
                 {tab === 'contact' ? (
-                  <SplitPanel
-                    title="Contact messages"
-                    subtitle="Read each message and mark it as new, read, or handled."
-                    list={dashboard.contactMessages.map((message) => ({
-                      id: message.id,
-                      title: message.name,
-                      body: `${message.subject} · ${message.status}`,
-                      meta: formatDate(message.createdAt),
-                    }))}
-                    selectedId={selectedContactId}
-                    onSelect={setSelectedContactId}
-                    detail={
-                      selectedContact ? (
-                        <div className="space-y-5">
+                  <div className="grid gap-4">
+                    <SearchField
+                      value={contactQuery}
+                      onChange={setContactQuery}
+                      placeholder="Search by sender, subject, status, email, or message context..."
+                    />
+                    <SplitPanel
+                      title="Contact messages"
+                      subtitle="Read each message and mark it as new, read, or handled."
+                      list={filteredContacts.map((message) => ({
+                        id: message.id,
+                        title: message.name,
+                        body: `${message.subject} · ${message.status}`,
+                        meta: formatDate(message.createdAt),
+                      }))}
+                      selectedId={selectedContactId}
+                      onSelect={setSelectedContactId}
+                      detail={
+                        selectedContact ? (
+                          <div className="space-y-5">
                           <DetailIntro title={selectedContact.subject} subtitle={`${selectedContact.name} · ${selectedContact.email}`} />
+                          {selectedContact.context ? (
+                            <div className="rounded-[1.25rem] border px-4 py-4 text-sm" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-accent">
+                                Context
+                              </div>
+                              <div className="mt-2">{selectedContact.context}</div>
+                            </div>
+                          ) : null}
+                          {selectedContact.imageUrl ? (
+                            <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={selectedContact.imageUrl} alt="Support upload" className="h-72 w-full object-cover" />
+                            </div>
+                          ) : null}
                           <div className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
                             {selectedContact.message}
                           </div>
@@ -1186,39 +1852,80 @@ export function AdminDashboard({ user }: { user: User }) {
                                 className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
                                 style={{
                                   background: selectedContact.status === status ? 'var(--tp-accent)' : 'var(--tp-surface)',
-                                  color: selectedContact.status === status ? '#ffffff' : 'var(--tp-heading)',
+                                  color: selectedContact.status === status ? 'var(--tp-btn-primary-text)' : 'var(--tp-heading)',
                                 }}
                               >
                                 {status}
                               </button>
                             ))}
                           </div>
-                        </div>
-                      ) : null
-                    }
-                  />
+                          </div>
+                        ) : null
+                      }
+                    />
+                  </div>
                 ) : null}
 
                 {tab === 'newsletter' ? (
-                  <PanelShell title="Newsletter list" subtitle="Current subscribers collected through the live storefront form.">
+                  <PanelShell title="Newsletter list" subtitle="People who asked to hear from TuloPots, along with the channels and interests they chose.">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div className="text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
-                        {dashboard.newsletterSubscribers.length} subscribers
+                        {newsletterQuery.trim()
+                          ? `${filteredNewsletterSubscribers.length} matching subscriber${filteredNewsletterSubscribers.length === 1 ? '' : 's'}`
+                          : `${dashboard.newsletterSubscribers.length} subscribers`}
                       </div>
-                      <a href="/api/admin/newsletter?format=csv" className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
+                      <a href="/api/admin/newsletter?format=csv" className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}>
                         Export CSV
                       </a>
                     </div>
 
+                    <SearchField
+                      value={newsletterQuery}
+                      onChange={setNewsletterQuery}
+                      placeholder="Search subscribers by name, email, channel, source, or interest..."
+                    />
+
                     <div className="space-y-3">
-                      {dashboard.newsletterSubscribers.map((subscriber) => (
-                        <div key={subscriber.id} className="flex items-center justify-between gap-4 rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
-                          <div style={{ color: 'var(--tp-heading)' }}>{subscriber.email}</div>
+                      {filteredNewsletterSubscribers.map((subscriber) => (
+                        <div key={subscriber.id} className="flex flex-col gap-3 rounded-[1.25rem] border px-4 py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                          <div>
+                            <div style={{ color: 'var(--tp-heading)' }}>
+                              {subscriber.name || 'Newsletter subscriber'}
+                            </div>
+                            <div className="mt-1 text-sm tp-text-soft">{subscriber.email}</div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                              <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                {subscriber.preferredChannel || 'email'}
+                              </span>
+                              {subscriber.source ? (
+                                <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                  {subscriber.source}
+                                </span>
+                              ) : null}
+                              {subscriber.interests.map((interest) => (
+                                <span key={interest} className="rounded-full px-3 py-1" style={{ background: 'var(--tp-accent-soft)', color: 'var(--tp-accent)' }}>
+                                  {interest}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                           <div className="text-xs" style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}>
                             {formatDate(subscriber.createdAt)}
                           </div>
                         </div>
                       ))}
+                      {!filteredNewsletterSubscribers.length ? (
+                        <div
+                          className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                          style={{
+                            borderColor: 'var(--tp-border)',
+                            background: 'var(--tp-card)',
+                            color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)',
+                          }}
+                        >
+                          No subscribers match that search.
+                        </div>
+                      ) : null}
                     </div>
                   </PanelShell>
                 ) : null}
@@ -1422,6 +2129,83 @@ function Field({
   );
 }
 
+function SearchField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block">
+      <span
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}
+      >
+        Search
+      </span>
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2"
+          style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}
+        />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-[1rem] border px-4 py-3 pl-11 text-sm outline-none"
+          style={{
+            borderColor: 'var(--tp-border)',
+            background: 'var(--tp-card)',
+            color: 'var(--tp-heading)',
+          }}
+        />
+      </div>
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em]"
+        style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}
+      >
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+        style={{
+          borderColor: 'var(--tp-border)',
+          background: 'var(--tp-card)',
+          color: 'var(--tp-heading)',
+        }}
+      >
+        {options.map((option) => (
+          <option key={option.value || 'blank'} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function ToggleRow({
   label,
   checked,
@@ -1443,7 +2227,7 @@ function ToggleRow({
         className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
         style={{
           background: checked ? 'var(--tp-accent)' : 'var(--tp-surface)',
-          color: checked ? '#ffffff' : 'var(--tp-heading)',
+          color: checked ? 'var(--tp-btn-primary-text)' : 'var(--tp-heading)',
         }}
       >
         {checked ? 'On' : 'Off'}

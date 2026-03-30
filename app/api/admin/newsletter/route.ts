@@ -16,8 +16,22 @@ export async function GET(request: NextRequest) {
 
   if (format === 'csv') {
     const csv = [
-      'email,createdAt',
-      ...subscribers.map((subscriber) => `${subscriber.email},${subscriber.createdAt.toISOString()}`),
+      'name,email,preferredChannel,interests,source,createdAt',
+      ...subscribers.map(
+        (subscriber) =>
+          [
+            subscriber.name || '',
+            subscriber.email,
+            subscriber.preferredChannel || '',
+            Array.isArray(subscriber.interests)
+              ? subscriber.interests.map((item) => String(item)).join(' | ')
+              : '',
+            subscriber.source || '',
+            subscriber.createdAt.toISOString(),
+          ]
+            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+            .join(',')
+      ),
     ].join('\n');
 
     return new NextResponse(csv, {
@@ -33,7 +47,13 @@ export async function GET(request: NextRequest) {
     ok: true,
     subscribers: subscribers.map((subscriber) => ({
       id: subscriber.id,
+      name: subscriber.name,
       email: subscriber.email,
+      preferredChannel: subscriber.preferredChannel,
+      interests: Array.isArray(subscriber.interests)
+        ? subscriber.interests.map((item) => String(item))
+        : [],
+      source: subscriber.source,
       createdAt: subscriber.createdAt.toISOString(),
     })),
   });

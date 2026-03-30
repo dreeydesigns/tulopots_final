@@ -15,7 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/components/Providers';
 import { LEGAL_ROUTES } from '@/lib/policies';
-import { trackEvent } from '@/lib/tracking';
+import { getTrackingSessionKey, readAttribution, trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
 
 type CheckoutOrder = {
@@ -64,6 +64,8 @@ export default function CartPage() {
       setCustomerName(user.name || '');
       setCustomerEmail(user.email || '');
       if (user.phone) setCustomerPhone(user.phone);
+      if (user.defaultShippingAddress) setShippingAddr1(user.defaultShippingAddress);
+      if (user.defaultShippingCity) setShippingCity(user.defaultShippingCity);
     }
   }, [user]);
 
@@ -165,6 +167,7 @@ export default function CartPage() {
   }
 
   async function createOrder(): Promise<CheckoutOrder> {
+    const attribution = readAttribution();
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,6 +178,8 @@ export default function CartPage() {
         shippingAddr1,
         shippingCity,
         paymentMethod: method === 'mpesa' ? 'MPESA' : 'CARD',
+        attribution,
+        sessionKey: getTrackingSessionKey(),
         items: checkoutItems,
       }),
     });
@@ -368,7 +373,7 @@ export default function CartPage() {
                       {item.name}
                     </div>
                     <div className="mt-2 text-sm text-[var(--tp-text)]/72">
-                      {item.mode === 'plant' ? 'Pot + Plant' : 'Pot Only'}
+                      {item.mode === 'plant' ? 'Pot + Plant' : 'Clay Form'}
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
                     </div>
                     <div className="mt-2 text-sm font-medium text-[var(--tp-text)]/75">

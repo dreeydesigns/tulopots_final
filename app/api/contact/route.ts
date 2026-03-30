@@ -16,6 +16,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const email = String(formData.get('email') ?? '').trim();
     const subject = String(formData.get('subject') ?? '').trim();
     const message = String(formData.get('message') ?? '').trim();
+    const context = String(formData.get('context') ?? '').trim();
+    const imageUrl = String(formData.get('imageUrl') ?? '').trim();
 
     if (company) {
       return NextResponse.json({ ok: true, message: 'Thanks, we received your message.' });
@@ -33,7 +35,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Persist the contact message
     await prisma.contactMessage.create({
-      data: { name, email, subject: subject || '(no subject)', message },
+      data: {
+        name,
+        email,
+        subject: subject || '(no subject)',
+        message,
+        context: context || null,
+        imageUrl: imageUrl || null,
+      },
     });
 
     const response = NextResponse.json({

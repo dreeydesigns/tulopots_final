@@ -3,7 +3,7 @@ import { imageByKey } from './site';
 export type Product = {
   slug: string; category: 'indoor'|'outdoor'|'pots'; size: string; badge?: string; sku: string;
   name: string; short: string; rating: number; reviews: number; price: number; potOnly: number | null;
-  description: string; cardDescription: string; image: string; decorative?: boolean; forcePotOnly?: boolean;
+  description: string; cardDescription: string; image: string; gallery?: string[]; decorative?: boolean; forcePotOnly?: boolean;
   details: Record<string,string>; plantGuide?: Record<string,string>;
 };
 
@@ -61,7 +61,7 @@ export const faqItems = [
   ['Do your pots have drainage holes?', 'All plant-ready pots come with drainage holes. Decorative pieces may not. Always check the product detail page.'],
   ['How do I care for my terracotta pot?', 'Terracotta is naturally porous and breathable. Avoid freezing temperatures, clean with a damp cloth, and occasionally soak in water to prevent salt buildup.'],
   ['Do you deliver outside Nairobi?', 'Yes, we deliver across Kenya. Nairobi deliveries are free for orders above KSh 5,000.'],
-  ['Can I order pots without plants?', 'Absolutely. All eligible paired pots are available as Pot Only, and our full Pots Only collection is ready for customers who already have plants.'],
+  ['Can I order pots without plants?', 'Absolutely. Eligible pairings are available as clay forms, and our Clay Forms collection is ready for customers who already have plants.'],
   ['Do you accept custom orders?', 'Yes. Signed-in customers can use Studio Collection to upload inspirations and start a guided brief.'],
   ['What is your return policy?', 'We offer a 30-day satisfaction guarantee for pots. Contact us if something arrives damaged or not as expected.']
 ] as const;

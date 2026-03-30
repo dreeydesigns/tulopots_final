@@ -3,6 +3,7 @@
 // Set MPESA_CALLBACK_URL=https://YOUR_RAILWAY_DOMAIN/api/payments/mpesa/callback
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server';
+import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
@@ -22,7 +23,13 @@ export async function POST(req: NextRequest) {
     // Find the payment record by requestId
     const payment = await prisma.payment.findFirst({
       where: { providerRequestId: requestId },
-      include: { order: true },
+      include: {
+        order: {
+          include: {
+            user: true,
+          },
+        },
+      },
     });
 
     if (!payment) {
@@ -47,7 +54,27 @@ export async function POST(req: NextRequest) {
 
       await prisma.order.update({
         where: { id: payment.orderId },
-        data: { status: 'PAID' },
+        data: {
+          status: 'PAID',
+          trackingTimeline: appendTrackingEntry(
+            payment.order.trackingTimeline,
+            'PAID',
+            payment.order.isCustomOrder
+          ),
+          notificationLog: appendNotificationEntries(
+            payment.order.notificationLog,
+            buildNotificationEntries(
+              {
+                orderNumber: payment.order.orderNumber,
+                customerEmail: payment.order.customerEmail,
+                customerPhone: payment.order.customerPhone,
+                status: 'PAID',
+                isCustomOrder: payment.order.isCustomOrder,
+              },
+              payment.order.user
+            )
+          ),
+        },
       });
 
       console.log('[mpesa-callback] payment SUCCESS for order:', payment.order.orderNumber);
@@ -63,7 +90,27 @@ export async function POST(req: NextRequest) {
 
       await prisma.order.update({
         where: { id: payment.orderId },
-        data: { status: 'FAILED' },
+        data: {
+          status: 'FAILED',
+          trackingTimeline: appendTrackingEntry(
+            payment.order.trackingTimeline,
+            'FAILED',
+            payment.order.isCustomOrder
+          ),
+          notificationLog: appendNotificationEntries(
+            payment.order.notificationLog,
+            buildNotificationEntries(
+              {
+                orderNumber: payment.order.orderNumber,
+                customerEmail: payment.order.customerEmail,
+                customerPhone: payment.order.customerPhone,
+                status: 'FAILED',
+                isCustomOrder: payment.order.isCustomOrder,
+              },
+              payment.order.user
+            )
+          ),
+        },
       });
 
       console.log('[mpesa-callback] payment FAILED:', resultDesc);

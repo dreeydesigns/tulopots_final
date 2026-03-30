@@ -9,6 +9,7 @@ import {
   Sprout,
   ArrowRight,
 } from 'lucide-react';
+import { CareGuideExplorer } from '@/components/CareGuideExplorer';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -119,6 +120,21 @@ const troubleshooting = [
 ];
 
 export default function CareGuidePage() {
+  const supportEntries = [
+    ...tabs.flatMap((section) =>
+      section.cards.map((card) => ({
+        section: section.title,
+        title: card.title,
+        body: card.text,
+      }))
+    ),
+    ...troubleshooting.map((item) => ({
+      section: 'Troubleshooting',
+      title: item.title,
+      body: item.text,
+    })),
+  ];
+
   return (
     <main className="min-h-screen bg-[var(--tp-bg)]">
       <section className="border-b border-[var(--tp-border)] bg-[var(--tp-card)] pb-14 pt-28">
@@ -213,6 +229,8 @@ export default function CareGuidePage() {
           </div>
         </div>
       </section>
+
+      <CareGuideExplorer entries={supportEntries} />
 
       <section className="container-shell py-14 md:py-20">
         <div

@@ -1,4 +1,4 @@
-import { products } from '@/lib/products';
+import { getCatalogProducts, getSiteSections } from '@/lib/catalog';
 import { CHAT_FAQS, CHAT_KNOWLEDGE } from './chat-knowledge';
 
 export type ChatCard = {
@@ -18,6 +18,12 @@ type ChatMessage = {
   content: string;
 };
 
+type ChatContext = {
+  pathname?: string;
+  search?: string;
+  accountType?: 'guest' | 'customer' | 'admin';
+};
+
 function normalize(text: string) {
   return text
     .toLowerCase()
@@ -29,66 +35,53 @@ function normalize(text: string) {
 function words(text: string) {
   return normalize(text)
     .split(' ')
-    .filter((w) => w.length > 1);
+    .filter((word) => word.length > 1);
 }
 
 function formatPrice(price: number | string) {
   return `KSh ${Number(price).toLocaleString('en-KE')}`;
 }
 
-function productCard(product: any): ChatCard {
-  return {
-    title: product.name,
-    subtitle: formatPrice(product.price),
-    route: `/product/${product.slug}`,
-  };
-}
-
-function productLine(product: any) {
-  return `• ${product.name} — ${formatPrice(product.price)} → /product/${product.slug}`;
-}
-
 function similarity(a: string, b: string) {
-  const x = normalize(a);
-  const y = normalize(b);
-  if (!x || !y) return 0;
-  if (x === y) return 1;
-  if (x.includes(y) || y.includes(x)) return 0.9;
+  const left = normalize(a);
+  const right = normalize(b);
 
-  const ax = words(x);
-  const by = words(y);
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.9;
+
+  const leftWords = words(left);
+  const rightWords = words(right);
   let hits = 0;
 
-  for (const wa of ax) {
-    for (const wb of by) {
-      if (wa === wb) {
+  for (const leftWord of leftWords) {
+    for (const rightWord of rightWords) {
+      if (leftWord === rightWord) {
         hits += 1;
         break;
       }
-      if (wa.length > 3 && wb.length > 3) {
-        if (wa.startsWith(wb.slice(0, 3)) || wb.startsWith(wa.slice(0, 3))) {
+
+      if (leftWord.length > 3 && rightWord.length > 3) {
+        if (
+          leftWord.startsWith(rightWord.slice(0, 3)) ||
+          rightWord.startsWith(leftWord.slice(0, 3))
+        ) {
           hits += 0.7;
-          break;
-        }
-        if (wa.includes(wb.slice(0, 4)) || wb.includes(wa.slice(0, 4))) {
-          hits += 0.6;
           break;
         }
       }
     }
   }
 
-  return hits / Math.max(ax.length, by.length, 1);
+  return hits / Math.max(leftWords.length, rightWords.length, 1);
 }
 
 function resolveIntent(messages: ChatMessage[]) {
   const userMessages = messages
-    .filter((m) => m.role === 'user')
-    .map((m) => m.content.trim());
-
+    .filter((message) => message.role === 'user')
+    .map((message) => message.content.trim());
   const last = userMessages[userMessages.length - 1] || '';
   const previous = userMessages[userMessages.length - 2] || '';
-
   const followUps = ['yes', 'yes please', 'okay', 'ok', 'continue', 'go on', 'tell me more', 'please', 'sure'];
 
   if (followUps.includes(normalize(last)) && previous) {
@@ -98,42 +91,16 @@ function resolveIntent(messages: ChatMessage[]) {
   return userMessages.join(' ');
 }
 
-function findProducts(query: string) {
-  return products
-    .map((product: any) => {
-      const haystack = [
-        product.name,
-        product.short || '',
-        product.category,
-        product.badge || '',
-        product.description || '',
-        product.cardDescription || '',
-        product.sku || '',
-      ].join(' ');
-
-      return {
-        product,
-        score: similarity(query, haystack),
-      };
-    })
-    .filter((x) => x.score > 0.18)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((x) => x.product);
+function productCard(product: any): ChatCard {
+  return {
+    title: product.name,
+    subtitle: `${formatPrice(product.price)} · ${product.category === 'indoor' ? 'For Interior Spaces' : product.category === 'outdoor' ? 'For Open Spaces' : 'Clay Forms'}`,
+    route: `/product/${product.slug}`,
+  };
 }
 
-function findKnowledge(query: string) {
-  return CHAT_KNOWLEDGE
-    .map((entry) => {
-      const haystack = `${entry.title} ${entry.route} ${entry.text} ${(entry.tags || []).join(' ')}`;
-      return {
-        entry,
-        score: similarity(query, haystack),
-      };
-    })
-    .filter((x) => x.score > 0.18)
-    .sort((a, b) => b.score - a.score)
-    .map((x) => x.entry);
+function productLine(product: any) {
+  return `• ${product.name} — ${formatPrice(product.price)} → /product/${product.slug}`;
 }
 
 function findFaq(query: string) {
@@ -142,116 +109,197 @@ function findFaq(query: string) {
       faq,
       score: similarity(query, `${faq.q} ${faq.a}`),
     }))
-    .filter((x) => x.score > 0.18)
-    .sort((a, b) => b.score - a.score)[0]?.faq;
+    .filter((entry) => entry.score > 0.18)
+    .sort((left, right) => right.score - left.score)[0]?.faq;
 }
 
-export function getChatReply(messages: ChatMessage[]): ChatResult {
-  const query = resolveIntent(messages);
-  const q = normalize(query);
+function searchProducts(query: string, products: any[]) {
+  return products
+    .map((product) => {
+      const haystack = [
+        product.name,
+        product.short || '',
+        product.category,
+        product.badge || '',
+        product.description || '',
+        product.cardDescription || '',
+        product.sku || '',
+        product.details?.shape || '',
+        product.details?.finish || '',
+      ].join(' ');
 
-  if (!q) {
+      return {
+        product,
+        score: similarity(query, haystack),
+      };
+    })
+    .filter((entry) => entry.score > 0.18)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 4)
+    .map((entry) => entry.product);
+}
+
+function searchKnowledge(query: string, visibleRoutes: Set<string>) {
+  return CHAT_KNOWLEDGE
+    .filter((entry) => visibleRoutes.has(entry.route) || entry.route.startsWith('/product'))
+    .map((entry) => {
+      const haystack = `${entry.title} ${entry.route} ${entry.text} ${(entry.tags || []).join(' ')}`;
+      return {
+        entry,
+        score: similarity(query, haystack),
+      };
+    })
+    .filter((entry) => entry.score > 0.18)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 4)
+    .map((entry) => entry.entry);
+}
+
+function getContextPrompt(context?: ChatContext) {
+  const parts = [];
+
+  if (context?.pathname) {
+    parts.push(`Current page: ${context.pathname}`);
+  }
+
+  if (context?.search) {
+    parts.push(`Current search: ${context.search}`);
+  }
+
+  if (context?.accountType) {
+    parts.push(`Account type: ${context.accountType}`);
+  }
+
+  return parts.join(' · ');
+}
+
+export async function getChatReply(
+  messages: ChatMessage[],
+  context?: ChatContext
+): Promise<ChatResult> {
+  const query = resolveIntent(messages);
+  const normalizedQuery = normalize(query);
+  const [products, sections] = await Promise.all([
+    getCatalogProducts({ visibleOnly: true }),
+    getSiteSections(),
+  ]);
+  const visibleRoutes = new Set(
+    sections.filter((section) => section.visible && section.route).map((section) => section.route!)
+  );
+  visibleRoutes.add('/care-guide');
+  visibleRoutes.add('/delivery-returns');
+  visibleRoutes.add('/terms');
+  visibleRoutes.add('/privacy-policy');
+  visibleRoutes.add('/contact');
+  visibleRoutes.add('/search');
+
+  if (!normalizedQuery) {
     return {
       reply:
-        'Tell me what you need help with — indoor pots, outdoor pots, pots only, care, payment, delivery, or custom orders.',
+        'Ask me about a clay form, care guidance, delivery timing, order tracking, or Studio support.',
       needsHuman: false,
       cards: [],
     };
   }
 
-  if (['hello', 'hi', 'hey'].includes(q)) {
+  if (['hello', 'hi', 'hey'].includes(normalizedQuery)) {
     return {
       reply:
-        'Hello 🌿 What would you like help with today — indoor, outdoor, pots only, care, payment, or custom orders?',
+        'Tell me what you are trying to do and I will search the website with you: find a form, track an order, compare pieces, review care guidance, or reach the studio team.',
       needsHuman: false,
       cards: [
-        { title: 'Indoor Collection', route: '/indoor' },
-        { title: 'Outdoor Collection', route: '/outdoor' },
-        { title: 'Pots Only', route: '/pots' },
+        { title: 'Search', subtitle: 'Find a clay form', route: '/search' },
+        { title: 'Care Guide', subtitle: 'Plant and terracotta help', route: '/care-guide' },
+        { title: 'Studio', subtitle: 'Custom work and briefs', route: '/studio' },
       ],
     };
   }
 
   if (
-    q.includes('whatsapp') ||
-    q.includes('human') ||
-    q.includes('agent') ||
-    q.includes('talk to someone')
+    normalizedQuery.includes('track') ||
+    normalizedQuery.includes('where is my order') ||
+    normalizedQuery.includes('delivery status')
   ) {
     return {
       reply:
-        'Of course. I can continue this with the TuloPots team on WhatsApp.',
-      needsHuman: true,
-      cards: [],
-    };
-  }
-
-  if (
-    q.includes('living room') ||
-    q.includes('bedroom') ||
-    q.includes('office') ||
-    q.includes('kitchen')
-  ) {
-    const indoor = products.filter((p: any) => p.category === 'indoor').slice(0, 3);
-
-    return {
-      reply:
-        `For that type of indoor space, these are strong options:\n\n${indoor
-          .map(productLine)
-          .join('\n')}\n\nYou can browse more at /indoor.`,
+        'You can check the latest delivery progress from the order tracking flow. Paid standard orders are planned around a 2-day delivery window, while custom work follows a longer studio timeline.',
       needsHuman: false,
-      cards: indoor.map(productCard),
+      cards: [
+        { title: 'Track an Order', subtitle: 'Order progress and delivery timing', route: '/delivery' },
+        { title: 'Delivery & Returns', subtitle: 'Policy and delivery windows', route: '/delivery-returns' },
+      ],
     };
   }
 
   if (
-    q.includes('custom') ||
-    q.includes('studio') ||
-    q.includes('bulk') ||
-    q.includes('project') ||
-    q.includes('wholesale')
+    normalizedQuery.includes('account') ||
+    normalizedQuery.includes('settings') ||
+    normalizedQuery.includes('notifications')
+  ) {
+    const accountType = context?.accountType || 'guest';
+    return {
+      reply:
+        accountType === 'guest'
+          ? 'You will need to sign in before you can manage settings, saved pieces, and notification preferences.'
+          : `You can manage profile details, delivery preferences, and notification channels from Settings. ${getContextPrompt(context)}`.trim(),
+      needsHuman: false,
+      cards: accountType === 'guest'
+        ? [{ title: 'Sign in', subtitle: 'Open the account flow', route: '/settings' }]
+        : [
+            { title: 'Settings', subtitle: 'Profile and notification controls', route: '/settings' },
+            { title: 'Profile', subtitle: 'Saved pieces and account view', route: '/profile' },
+          ],
+    };
+  }
+
+  if (
+    normalizedQuery.includes('studio') ||
+    normalizedQuery.includes('custom') ||
+    normalizedQuery.includes('bulk') ||
+    normalizedQuery.includes('project')
   ) {
     return {
       reply:
-        'For custom or larger orders, the best place to start is Studio Collection.',
+        'Studio is the right place for custom work, larger briefs, and emotionally-led guidance on what belongs in a space.',
       needsHuman: false,
-      cards: [{ title: 'Studio Collection', subtitle: 'Custom orders', route: '/studio' }],
+      cards: [{ title: 'Studio', subtitle: 'Custom orders and briefs', route: '/studio' }],
     };
   }
 
   if (
-    q.includes('care') ||
-    q.includes('clean') ||
-    q.includes('terracotta') ||
-    q.includes('watering') ||
-    q.includes('drainage')
+    normalizedQuery.includes('care') ||
+    normalizedQuery.includes('watering') ||
+    normalizedQuery.includes('terracotta') ||
+    normalizedQuery.includes('drainage') ||
+    normalizedQuery.includes('yellow leaves')
   ) {
     const faq = findFaq(query);
-
     return {
       reply:
         faq?.a ||
-        'Terracotta is breathable and plant-friendly. Clean gently with a soft cloth and water, avoid harsh chemicals, and keep drainage open.',
+        'Terracotta is breathable and dries faster than sealed surfaces, so balance watering with light, airflow, and drainage rather than following a rigid routine.',
       needsHuman: false,
-      cards: [{ title: 'Care Guide', subtitle: 'Plant & pot support', route: '/care-guide' }],
+      cards: [
+        { title: 'Care Guide', subtitle: 'Search support and upload a challenge', route: '/care-guide' },
+        { title: 'Contact', subtitle: 'Ask the team directly', route: '/contact' },
+      ],
     };
   }
 
-  if (q.includes('delivery') || q.includes('shipping')) {
+  if (
+    normalizedQuery.includes('payment') ||
+    normalizedQuery.includes('mpesa') ||
+    normalizedQuery.includes('m-pesa') ||
+    normalizedQuery.includes('card')
+  ) {
     return {
       reply:
-        'TuloPots delivers across Kenya. Nairobi delivery is usually easier and faster, and larger orders may qualify for better delivery terms depending on order value and location.',
+        'The checkout flow supports both M-Pesa and card payment. If something failed during checkout, I can send you to cart or order tracking next.',
       needsHuman: false,
-      cards: [{ title: 'Contact', subtitle: 'Delivery help', route: '/contact' }],
-    };
-  }
-
-  if (q.includes('payment') || q.includes('mpesa') || q.includes('m-pesa') || q.includes('card')) {
-    return {
-      reply:
-        'The website supports M-Pesa and card payment flows. If checkout gives you trouble, I can guide you first before handing you to the team.',
-      needsHuman: false,
-      cards: [{ title: 'Cart / Checkout', subtitle: 'Payment flow', route: '/cart' }],
+      cards: [
+        { title: 'Cart', subtitle: 'Retry checkout', route: '/cart' },
+        { title: 'Track an Order', subtitle: 'Confirm whether payment landed', route: '/delivery' },
+      ],
     };
   }
 
@@ -260,29 +308,29 @@ export function getChatReply(messages: ChatMessage[]): ChatResult {
     return {
       reply: faq.a,
       needsHuman: false,
-      cards: [{ title: 'FAQ', subtitle: 'More answers', route: '/faq' }],
+      cards: [{ title: 'FAQ', subtitle: 'More website answers', route: '/faq' }],
     };
   }
 
-  const matchedProducts = findProducts(query);
-  if (matchedProducts.length > 0) {
+  const matchedProducts = searchProducts(query, products);
+  if (matchedProducts.length) {
     return {
       reply:
-        `Here are the closest matches I found:\n\n${matchedProducts
+        `These are the closest matches I found on the website:\n\n${matchedProducts
           .map(productLine)
-          .join('\n')}\n\nIf you want, tell me your space type, preferred size, or whether you want it with a plant or as pot only.`,
+          .join('\n')}\n\nIf you want, tell me the space, preferred size, or whether you want a full pairing or only the clay form.${getContextPrompt(context) ? `\n\n${getContextPrompt(context)}` : ''}`,
       needsHuman: false,
       cards: matchedProducts.map(productCard),
     };
   }
 
-  const matchedKnowledge = findKnowledge(query);
-  if (matchedKnowledge.length > 0) {
+  const matchedKnowledge = searchKnowledge(query, visibleRoutes);
+  if (matchedKnowledge.length) {
     const top = matchedKnowledge[0];
     return {
       reply: `${top.text}\n\nBest page to open: ${top.route}`,
       needsHuman: false,
-      cards: matchedKnowledge.slice(0, 3).map((entry) => ({
+      cards: matchedKnowledge.map((entry) => ({
         title: entry.title,
         route: entry.route,
       })),
@@ -291,7 +339,7 @@ export function getChatReply(messages: ChatMessage[]): ChatResult {
 
   return {
     reply:
-      'I could not find a confident answer from the website knowledge base alone. I can now continue this with the TuloPots team on WhatsApp.',
+      'I could not find a confident answer from the live website content alone. I can pass this into WhatsApp with the TuloPots team so it does not get lost.',
     needsHuman: true,
     cards: [],
   };

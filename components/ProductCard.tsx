@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ArrowUpRight, Minus, Plus, Check } from 'lucide-react';
+import { Heart, ArrowUpRight, Minus, Plus, Check, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useStore } from './Providers';
 
@@ -28,7 +28,15 @@ function getUseTag(product: any) {
 
   if (category === 'outdoor') return 'Patio Piece';
   if (category === 'indoor') return 'Desk Green';
-  if (category === 'pots') return 'Clay Form';
+  if (category === 'pots') {
+    if (name.includes('bowl')) return 'Table Centre';
+    if (name.includes('jug')) return 'Shelf Accent';
+    if (name.includes('cylinder')) return 'Corner Height';
+    if (name.includes('globe')) return 'Rounded Presence';
+    if (name.includes('wide rim')) return 'Entry Presence';
+    if (name.includes('set')) return 'Layered Styling';
+    return 'Placement Ready';
+  }
 
   return 'Home Piece';
 }
@@ -42,6 +50,10 @@ export function ProductCard({ product }: any) {
 
   const useTag = useMemo(() => getUseTag(product), [product]);
   const isLight = theme === 'light';
+  const displayBadge =
+    product.category === 'pots' && String(product.badge || '').toLowerCase() === 'pot only'
+      ? ''
+      : product.badge;
 
   function handleAdd() {
     addToCart(product, { quantity: qty });
@@ -49,7 +61,7 @@ export function ProductCard({ product }: any) {
   }
 
   const topChipBg = isLight ? 'rgba(255,255,255,0.88)' : 'rgba(20,12,8,0.82)';
-  const topChipText = isLight ? 'var(--tp-heading)' : '#fff7ef';
+  const topChipText = isLight ? 'var(--tp-heading)' : 'var(--tp-heading)';
   const topChipBorder = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.18)';
   const topChipShadow = isLight
     ? '0 6px 16px rgba(0,0,0,0.08)'
@@ -87,7 +99,7 @@ export function ProductCard({ product }: any) {
         </button>
 
         <div className="pointer-events-none absolute left-5 top-5 z-10 flex flex-wrap gap-2">
-          {product.badge ? (
+          {displayBadge ? (
             <span
               className="inline-flex rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]"
               style={{
@@ -98,7 +110,7 @@ export function ProductCard({ product }: any) {
                 boxShadow: topChipShadow,
               }}
             >
-              {product.badge}
+              {displayBadge}
             </span>
           ) : null}
 
@@ -136,7 +148,7 @@ export function ProductCard({ product }: any) {
               style={{
                 background: 'rgba(255,255,255,0.14)',
                 borderColor: 'rgba(255,255,255,0.24)',
-                color: '#ffffff',
+                color: 'var(--tp-btn-primary-text)',
                 backdropFilter: 'blur(8px)',
               }}
               aria-label={`View ${product.name}`}
@@ -158,8 +170,10 @@ export function ProductCard({ product }: any) {
             </p>
           </div>
 
-          <div className="rounded-full border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] tp-border tp-surface tp-text-muted">
-            {useTag}
+          <div className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-semibold tp-border tp-surface">
+            <Star className="h-3.5 w-3.5 fill-[var(--tp-accent-strong)] text-[var(--tp-accent-strong)]" />
+            <span className="tp-heading">{Number(product.rating || 0).toFixed(1)}</span>
+            <span className="tp-text-muted">({product.reviews || 0})</span>
           </div>
         </div>
 
@@ -205,8 +219,14 @@ export function ProductCard({ product }: any) {
           </>
         ) : (
           <>
-            <div className="mt-5 flex items-center gap-2 rounded-2xl bg-[#f3ede6] px-4 py-3 text-sm text-[#5f5147]">
-              <Check className="h-4 w-4 text-[#B66A3C]" />
+            <div
+              className="mt-5 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+              style={{
+                background: 'var(--tp-surface)',
+                color: 'var(--tp-text-soft)',
+              }}
+            >
+              <Check className="h-4 w-4 tp-accent" />
               Added to cart
             </div>
 

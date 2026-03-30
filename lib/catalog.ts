@@ -44,6 +44,14 @@ function asStringRecord(value: Prisma.JsonValue | null | undefined) {
   );
 }
 
+function asStringArray(value: Prisma.JsonValue | null | undefined) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.map((entry) => String(entry)).filter(Boolean);
+}
+
 function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
   return {
     name: product.name,
@@ -58,6 +66,7 @@ function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
     description: product.description,
     cardDescription: product.cardDescription,
     image: product.image,
+    gallery: product.gallery ? product.gallery : [product.image],
     decorative: product.decorative ?? false,
     forcePotOnly: product.forcePotOnly ?? false,
     rating: product.rating,
@@ -88,6 +97,7 @@ export function mapDbProductToCatalog(product: ProductRecord): CatalogProduct {
     description: product.description,
     cardDescription: product.cardDescription,
     image: product.image,
+    gallery: asStringArray(product.gallery) || [product.image],
     decorative: product.decorative,
     forcePotOnly: product.forcePotOnly,
     details: asStringRecord(product.details) || {},

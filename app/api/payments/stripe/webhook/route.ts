@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
+import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -31,6 +32,15 @@ export async function POST(req: NextRequest) {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: { user: true },
+        });
+
+        if (!order) {
+          return NextResponse.json({ received: true });
+        }
+
         await prisma.payment.updateMany({
           where: {
             provider: 'STRIPE',
@@ -44,7 +54,27 @@ export async function POST(req: NextRequest) {
 
         await prisma.order.update({
           where: { id: orderId },
-          data: { status: 'PAID' },
+          data: {
+            status: 'PAID',
+            trackingTimeline: appendTrackingEntry(
+              order.trackingTimeline,
+              'PAID',
+              order.isCustomOrder
+            ),
+            notificationLog: appendNotificationEntries(
+              order.notificationLog,
+              buildNotificationEntries(
+                {
+                  orderNumber: order.orderNumber,
+                  customerEmail: order.customerEmail,
+                  customerPhone: order.customerPhone,
+                  status: 'PAID',
+                  isCustomOrder: order.isCustomOrder,
+                },
+                order.user
+              )
+            ),
+          },
         });
       }
     }
@@ -57,6 +87,15 @@ export async function POST(req: NextRequest) {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: { user: true },
+        });
+
+        if (!order) {
+          return NextResponse.json({ received: true });
+        }
+
         await prisma.payment.updateMany({
           where: {
             provider: 'STRIPE',
@@ -70,7 +109,27 @@ export async function POST(req: NextRequest) {
 
         await prisma.order.update({
           where: { id: orderId },
-          data: { status: 'FAILED' },
+          data: {
+            status: 'FAILED',
+            trackingTimeline: appendTrackingEntry(
+              order.trackingTimeline,
+              'FAILED',
+              order.isCustomOrder
+            ),
+            notificationLog: appendNotificationEntries(
+              order.notificationLog,
+              buildNotificationEntries(
+                {
+                  orderNumber: order.orderNumber,
+                  customerEmail: order.customerEmail,
+                  customerPhone: order.customerPhone,
+                  status: 'FAILED',
+                  isCustomOrder: order.isCustomOrder,
+                },
+                order.user
+              )
+            ),
+          },
         });
       }
     }

@@ -108,7 +108,7 @@ export function ProductPageClient({
   const [careOpen, setCareOpen] = useState(!!product.plantGuide);
   const [justAdded, setJustAdded] = useState(false);
 
-  const gallery = [product.image, product.image, product.image, product.image];
+  const gallery = product.gallery?.length ? product.gallery : [product.image];
   const [activeImage, setActiveImage] = useState(gallery[0]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewCount, setReviewCount] = useState(product.reviews);
@@ -152,12 +152,16 @@ export function ProductPageClient({
       ? 'Pot + Plant'
       : product.forcePotOnly || product.decorative
       ? 'Clay Form'
-      : 'Pot Only';
+      : 'Clay Form';
 
   const modeSupport =
     mode === 'plant'
       ? 'A complete piece, ready for the space you have in mind.'
       : 'Choose the clay form now and style it with your own plant later.';
+
+  useEffect(() => {
+    setActiveImage(gallery[0]);
+  }, [product.slug, product.image, product.gallery]);
 
   useEffect(() => {
     let active = true;
@@ -444,7 +448,7 @@ export function ProductPageClient({
             <div className="serif-display text-5xl text-[var(--tp-heading)]">{money(unit)}</div>
             {canToggleModes && mode === 'plant' && product.potOnly && (
               <div className="pb-1 text-sm text-[var(--tp-text)]/60">
-                Pot only: {money(Math.round(product.potOnly * size.multiplier))}
+                Clay form: {money(Math.round(product.potOnly * size.multiplier))}
               </div>
             )}
           </div>
@@ -479,7 +483,7 @@ export function ProductPageClient({
                       : 'border border-[var(--tp-border)] bg-[var(--tp-card)] text-[var(--tp-text)]/75'
                     }`}
                   >
-                  Pot Only
+                  Clay Form
                 </button>
               </div>
             </div>

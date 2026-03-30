@@ -23,6 +23,12 @@ model User {
   acceptedPolicyVersion String?
   marketingConsent      Boolean          @default(false)
   marketingConsentAt    DateTime?
+  emailNotifications    Boolean          @default(true)
+  smsNotifications      Boolean          @default(false)
+  whatsappNotifications Boolean          @default(false)
+  preferredContactChannel String         @default("email")
+  defaultShippingAddress String?
+  defaultShippingCity   String?
   lastSignInAt          DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @default(now()) @updatedAt
@@ -57,6 +63,7 @@ model Product {
   description     String   @db.Text
   cardDescription String   @db.Text
   image           String
+  gallery         Json?
   decorative      Boolean  @default(false)
   forcePotOnly    Boolean  @default(false)
   rating          Float    @default(0)
@@ -73,9 +80,11 @@ model Product {
 model Order {
   id            String        @id @default(cuid())
   orderNumber   String        @unique
+  trackingCode  String?       @unique
   userId        String?
   status        OrderStatus   @default(PENDING)
   paymentMethod PaymentMethod
+  isCustomOrder Boolean       @default(false)
   customerName  String
   customerEmail String
   customerPhone String
@@ -87,6 +96,19 @@ model Order {
   shippingAddr2 String?
   shippingCity  String?
   shippingNotes String?
+  attributionSource String?
+  attributionMedium String?
+  attributionCampaign String?
+  attributionTerm String?
+  attributionContent String?
+  gclid         String?
+  fbclid        String?
+  landingPath   String?
+  trackingSessionKey String?
+  estimatedDispatchAt DateTime?
+  estimatedDeliveryAt DateTime?
+  trackingTimeline Json?
+  notificationLog Json?
   adminNotes    String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -151,6 +173,8 @@ model ContactMessage {
   email     String
   subject   String
   message   String               @db.Text
+  context   String?
+  imageUrl  String?
   status    ContactMessageStatus @default(NEW)
   readAt    DateTime?
   handledAt DateTime?
@@ -159,9 +183,13 @@ model ContactMessage {
 }
 
 model NewsletterSubscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String?
+  preferredChannel String?
+  interests        Json?
+  source           String?
+  createdAt        DateTime @default(now())
 }
 
 model SiteSection {

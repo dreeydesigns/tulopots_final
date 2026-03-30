@@ -1,6 +1,7 @@
 import type { ContactMessageStatus, OrderStatus, StudioBriefStatus } from '@prisma/client';
 import { syncCatalogToDatabase } from '@/lib/catalog';
 import { getCurrentUser } from '@/lib/auth';
+import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
 import { prisma } from '@/lib/prisma';
 
 export const adminOrderStatuses: OrderStatus[] = [
@@ -37,12 +38,15 @@ export async function requireAdminUser() {
 }
 
 export function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
+  return slugifyProduct(value);
+}
+
+export function generateSku(input: {
+  category: string;
+  size: string;
+  name: string;
+}) {
+  return generateProductSku(input);
 }
 
 export async function getAdminDashboardData() {
@@ -61,6 +65,7 @@ export async function getAdminDashboardData() {
     newsletterCount,
     reviewCount,
     pendingReviewCount,
+    analyticsEventCount,
     products,
     orders,
     studioBriefs,
@@ -68,6 +73,7 @@ export async function getAdminDashboardData() {
     newsletterSubscribers,
     siteSections,
     reviews,
+    analyticsEvents,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count(),
@@ -80,6 +86,7 @@ export async function getAdminDashboardData() {
         approved: false,
       },
     }),
+    prisma.analyticsEvent.count(),
     prisma.product.findMany({
       orderBy: { updatedAt: 'desc' },
       take: 60,
@@ -115,6 +122,18 @@ export async function getAdminDashboardData() {
             slug: true,
           },
         },
+      },
+    }),
+    prisma.analyticsEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 18,
+      select: {
+        id: true,
+        eventName: true,
+        source: true,
+        path: true,
+        consentLevel: true,
+        createdAt: true,
       },
     }),
   ]);
@@ -159,6 +178,33 @@ export async function getAdminDashboardData() {
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 10);
 
+  const attributionSummary = Array.from(
+    orders.reduce((summary, order) => {
+      const label =
+        order.attributionCampaign ||
+        order.attributionSource ||
+        (order.gclid ? 'Google Ads' : order.fbclid ? 'Meta Ads' : 'Direct / Unattributed');
+      const medium =
+        order.attributionMedium ||
+        (order.gclid ? 'cpc' : order.fbclid ? 'paid-social' : 'direct');
+      const key = `${label}__${medium}`;
+      const current = summary.get(key) || {
+        label,
+        medium,
+        orders: 0,
+        revenue: 0,
+      };
+
+      current.orders += 1;
+      current.revenue += order.totalAmount;
+      summary.set(key, current);
+      return summary;
+    }, new Map<string, { label: string; medium: string; orders: number; revenue: number }>())
+  )
+    .map(([, value]) => value)
+    .sort((left, right) => right.revenue - left.revenue || right.orders - left.orders)
+    .slice(0, 6);
+
   return {
     counts: {
       products: productCount,
@@ -168,6 +214,7 @@ export async function getAdminDashboardData() {
       newsletterSubscribers: newsletterCount,
       reviews: reviewCount,
       pendingReviews: pendingReviewCount,
+      analyticsEvents: analyticsEventCount,
     },
     activity,
     products: products.map((product) => ({
@@ -184,6 +231,10 @@ export async function getAdminDashboardData() {
       description: product.description,
       cardDescription: product.cardDescription,
       image: product.image,
+      gallery:
+        Array.isArray(product.gallery) && product.gallery.length
+          ? product.gallery.map((entry) => String(entry))
+          : [product.image],
       visible: product.visible,
       available: product.available,
       updatedAt: product.updatedAt.toISOString(),
@@ -202,6 +253,20 @@ export async function getAdminDashboardData() {
       shippingCity: order.shippingCity,
       adminNotes: order.adminNotes,
       createdAt: order.createdAt.toISOString(),
+      trackingCode: order.trackingCode,
+      isCustomOrder: order.isCustomOrder,
+      estimatedDispatchAt: order.estimatedDispatchAt?.toISOString() || null,
+      estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || null,
+      trackingTimeline: Array.isArray(order.trackingTimeline) ? order.trackingTimeline : [],
+      notificationLog: Array.isArray(order.notificationLog) ? order.notificationLog : [],
+      attribution: {
+        source: order.attributionSource,
+        medium: order.attributionMedium,
+        campaign: order.attributionCampaign,
+        landingPath: order.landingPath,
+        gclid: order.gclid,
+        fbclid: order.fbclid,
+      },
       itemCount: order.items.length,
       items: order.items.map((item) => ({
         id: item.id,
@@ -212,6 +277,7 @@ export async function getAdminDashboardData() {
         image: item.image,
       })),
     })),
+    orderAttributionSummary: attributionSummary,
     studioBriefs: studioBriefs.map((brief) => ({
       id: brief.id,
       referenceCode: brief.referenceCode,
@@ -232,6 +298,8 @@ export async function getAdminDashboardData() {
       email: message.email,
       subject: message.subject,
       message: message.message,
+      context: message.context,
+      imageUrl: message.imageUrl,
       status: message.status,
       createdAt: message.createdAt.toISOString(),
       readAt: message.readAt?.toISOString() || null,
@@ -239,7 +307,11 @@ export async function getAdminDashboardData() {
     })),
     newsletterSubscribers: newsletterSubscribers.map((subscriber) => ({
       id: subscriber.id,
+      name: subscriber.name,
       email: subscriber.email,
+      preferredChannel: subscriber.preferredChannel,
+      interests: Array.isArray(subscriber.interests) ? subscriber.interests.map((entry) => String(entry)) : [],
+      source: subscriber.source,
       createdAt: subscriber.createdAt.toISOString(),
     })),
     siteSections: siteSections.map((section) => ({
@@ -262,6 +334,14 @@ export async function getAdminDashboardData() {
         name: review.product.name,
         slug: review.product.slug,
       },
+    })),
+    analyticsEvents: analyticsEvents.map((event) => ({
+      id: event.id,
+      eventName: event.eventName,
+      source: event.source,
+      path: event.path,
+      consentLevel: event.consentLevel,
+      createdAt: event.createdAt.toISOString(),
     })),
   };
 }

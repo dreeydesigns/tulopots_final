@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminUser, slugify } from '@/lib/admin';
+import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
@@ -15,11 +15,14 @@ export async function POST(request: NextRequest) {
   const slug = slugify(slugInput || name);
   const category = String(body.category || 'pots').trim() || 'pots';
   const size = String(body.size || 'medium').trim() || 'medium';
-  const image = String(body.image || '').trim();
+  const gallery = Array.isArray(body.gallery)
+    ? body.gallery.map((entry) => String(entry || '').trim()).filter(Boolean)
+    : [];
+  const image = String(body.image || gallery[0] || '').trim();
   const description = String(body.description || '').trim();
   const short = String(body.short || name).trim() || name;
   const cardDescription = String(body.cardDescription || description || short).trim() || short;
-  const sku = String(body.sku || `TP-${slug.toUpperCase()}`).trim();
+  const sku = String(body.sku || generateSku({ category, size, name })).trim();
   const badge = String(body.badge || '').trim();
   const price = Number(body.price || 0);
   const potOnly = body.potOnly === '' || body.potOnly == null ? null : Number(body.potOnly);
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
       description,
       cardDescription,
       image,
+      gallery: gallery.length ? gallery : [image],
       visible,
       available,
       details: {

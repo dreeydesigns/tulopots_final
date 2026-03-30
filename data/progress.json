@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-30T00:18:30.8409380+03:00",
+  "lastUpdated": "2026-03-30T05:46:29+03:00",
   "phases": [
     {
       "id": "admin",
@@ -66,13 +66,13 @@
     {
       "id": "seo",
       "label": "SEO System",
-      "status": "in_progress",
-      "percent": 50,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
-        { "label": "Dynamic metadata all pages", "done": false },
+        { "label": "Dynamic metadata all pages", "done": true },
         { "label": "Open Graph tags", "done": true },
         { "label": "Structured data (JSON-LD)", "done": true },
-        { "label": "Image alt attributes", "done": false }
+        { "label": "Image alt attributes", "done": true }
       ]
     },
     {
@@ -101,13 +101,13 @@
     {
       "id": "polish",
       "label": "Premium Frontend Polish",
-      "status": "not_started",
-      "percent": 0,
+      "status": "complete",
+      "percent": 100,
       "tasks": [
-        { "label": "Micro-interactions", "done": false },
-        { "label": "Loading/error/empty states", "done": false },
-        { "label": "Mobile audit", "done": false },
-        { "label": "Typography + spacing audit", "done": false }
+        { "label": "Micro-interactions", "done": true },
+        { "label": "Loading/error/empty states", "done": true },
+        { "label": "Mobile audit", "done": true },
+        { "label": "Typography + spacing audit", "done": true }
       ]
     }
   ]

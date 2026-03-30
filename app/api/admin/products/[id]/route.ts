@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminUser, slugify } from '@/lib/admin';
+import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 export async function PATCH(
@@ -27,8 +27,16 @@ export async function PATCH(
     body.category == null ? existing.category : String(body.category).trim() || existing.category;
   const nextSize =
     body.size == null ? existing.size : String(body.size).trim() || existing.size;
+  const nextGallery =
+    body.gallery == null
+      ? (Array.isArray(existing.gallery) ? existing.gallery : [existing.image])
+      : Array.isArray(body.gallery)
+        ? body.gallery.map((entry) => String(entry || '').trim()).filter(Boolean)
+        : [existing.image];
   const nextImage =
-    body.image == null ? existing.image : String(body.image).trim() || existing.image;
+    body.image == null
+      ? String(nextGallery[0] || existing.image)
+      : String(body.image).trim() || String(nextGallery[0] || existing.image);
   const nextDescription =
     body.description == null
       ? existing.description
@@ -40,7 +48,9 @@ export async function PATCH(
       ? existing.cardDescription
       : String(body.cardDescription).trim() || existing.cardDescription;
   const nextSku =
-    body.sku == null ? existing.sku : String(body.sku).trim() || existing.sku;
+    body.sku == null
+      ? existing.sku
+      : String(body.sku).trim() || existing.sku || generateSku({ category: nextCategory, size: nextSize, name: nextName });
 
   const product = await prisma.product.update({
     where: { id },
@@ -63,6 +73,7 @@ export async function PATCH(
       description: nextDescription,
       cardDescription: nextCardDescription,
       image: nextImage,
+      gallery: nextGallery.length ? nextGallery : [nextImage],
       visible: body.visible == null ? existing.visible : Boolean(body.visible),
       available: body.available == null ? existing.available : Boolean(body.available),
     },

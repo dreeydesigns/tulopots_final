@@ -16,6 +16,7 @@ import { trackEvent } from '@/lib/tracking';
 type OrderData = {
   id: string;
   orderNumber: string;
+  trackingCode: string;
   status: string;
   paymentMethod: string;
   totalAmount: number;
@@ -25,6 +26,15 @@ type OrderData = {
   customerName: string;
   customerEmail: string;
   shippingCity?: string;
+  isCustomOrder?: boolean;
+  estimatedDispatchAt?: string;
+  estimatedDeliveryAt?: string;
+  trackingTimeline?: Array<{
+    status: string;
+    label: string;
+    detail: string;
+    createdAt: string;
+  }>;
   createdAt: string;
   items: Array<{
     productSlug?: string;
@@ -255,6 +265,18 @@ function OrderConfirmationInner() {
             <ShoppingBag className="h-4 w-4 text-[var(--tp-accent)]" />
             {order.orderNumber}
           </div>
+
+          <div className="mt-3 text-xs uppercase tracking-[0.16em] text-[var(--tp-text)]/55">
+            Tracking code: {order.trackingCode}
+          </div>
+
+          {order.estimatedDeliveryAt ? (
+            <div className="mt-4 text-sm text-[var(--tp-text)]/65">
+              {order.isCustomOrder
+                ? `Custom order timeline: up to 21 days · estimated delivery ${new Date(order.estimatedDeliveryAt).toLocaleDateString('en-KE')}`
+                : `Standard delivery target: about 2 days · estimated delivery ${new Date(order.estimatedDeliveryAt).toLocaleDateString('en-KE')}`}
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-6 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6">
@@ -290,7 +312,7 @@ function OrderConfirmationInner() {
                       {item.name}
                     </div>
                     <div className="text-xs text-[var(--tp-text)]/65">
-                      {item.mode === 'plant' ? 'With Plant' : 'Pot Only'}
+                      {item.mode === 'plant' ? 'With Plant' : 'Clay Form'}
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
                       {` · Qty ${item.quantity}`}
                     </div>
@@ -332,6 +354,12 @@ function OrderConfirmationInner() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link href="/" className="btn-primary flex-1 text-center">
             Continue Shopping
+          </Link>
+          <Link
+            href={`/delivery?tracking=${encodeURIComponent(order.trackingCode)}&order=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`}
+            className="btn-secondary flex-1 text-center"
+          >
+            Track Order
           </Link>
           <a
             href={`https://wa.me/254743817931?text=${encodeURIComponent(

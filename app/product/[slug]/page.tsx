@@ -33,6 +33,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const title = `${product.name} · ${categoryLabel}`;
   const description = `${product.name} by ${BRAND.name}. Handcrafted terracotta form from Nairobi, Kenya, shaped for calm placement, lasting presence, and thoughtful living.`;
   const image = product.image;
+  const gallery = product.gallery?.length ? product.gallery : [product.image];
 
   return {
     title,
@@ -81,6 +82,8 @@ export default async function Page({ params }: ProductPageProps) {
 
   if (!product) notFound();
 
+  const gallery = product.gallery?.length ? product.gallery : [product.image];
+
   const relatedProducts = (await getCatalogProducts({ category: product.category }))
     .filter((item) => item.slug !== product.slug)
     .slice(0, 2);
@@ -90,7 +93,7 @@ export default async function Page({ params }: ProductPageProps) {
     '@type': 'Product',
     name: product.name,
     description: product.description,
-    image: [product.image],
+    image: gallery,
     sku: product.sku,
     brand: {
       '@type': 'Brand',

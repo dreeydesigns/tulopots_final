@@ -16,6 +16,12 @@ export type SessionUser = {
   isAdmin: boolean;
   avatar?: string;
   marketingConsent: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  whatsappNotifications: boolean;
+  preferredContactChannel: string;
+  defaultShippingAddress?: string;
+  defaultShippingCity?: string;
   acceptedPolicyVersion?: string;
   hasAcceptedPolicies: boolean;
 };
@@ -29,6 +35,12 @@ type SessionUserRecord = Pick<
   | 'isAdmin'
   | 'avatar'
   | 'marketingConsent'
+  | 'emailNotifications'
+  | 'smsNotifications'
+  | 'whatsappNotifications'
+  | 'preferredContactChannel'
+  | 'defaultShippingAddress'
+  | 'defaultShippingCity'
   | 'acceptedTermsAt'
   | 'acceptedPrivacyAt'
   | 'acceptedPolicyVersion'
@@ -47,6 +59,12 @@ export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | nul
     isAdmin: user.isAdmin,
     avatar: user.avatar || undefined,
     marketingConsent: user.marketingConsent,
+    emailNotifications: user.emailNotifications,
+    smsNotifications: user.smsNotifications,
+    whatsappNotifications: user.whatsappNotifications,
+    preferredContactChannel: user.preferredContactChannel,
+    defaultShippingAddress: user.defaultShippingAddress || undefined,
+    defaultShippingCity: user.defaultShippingCity || undefined,
     acceptedPolicyVersion: user.acceptedPolicyVersion || undefined,
     hasAcceptedPolicies: hasAcceptedPolicies({
       acceptedTermsAt: user.acceptedTermsAt,
