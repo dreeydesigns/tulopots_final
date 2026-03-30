@@ -64,33 +64,41 @@ export function Footer() {
     <footer
       className="border-t"
       style={{
-        background:
-          'linear-gradient(180deg, color-mix(in srgb, var(--tp-heading) 96%, black 4%) 0%, color-mix(in srgb, var(--tp-heading) 92%, var(--tp-accent) 8%) 100%)',
-        borderColor: 'rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.92)',
+        borderColor: 'var(--tp-border)',
+        backgroundColor: 'var(--tp-surface-2)',
+        backgroundImage:
+          'linear-gradient(180deg, var(--tp-surface) 0%, var(--tp-surface-2) 100%)',
+        color: 'var(--tp-text)',
       }}
     >
       <div className="container-shell py-14">
         <div className="grid gap-10 lg:grid-cols-2 xl:grid-cols-[1.05fr_0.72fr_0.72fr_0.88fr_1.15fr]">
           <div>
-            <div className="serif-display text-4xl">
+            <div className="serif-display text-4xl tp-heading">
               Tulo<span style={{ color: 'var(--tp-accent)' }}>Pots</span>
             </div>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/58">
+            <p className="mt-4 max-w-md text-sm leading-7 tp-text-soft">
               Handcrafted terracotta from Nairobi, Kenya, shaped for interior spaces,
               open spaces, and homes that want warmth without noise.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/about"
-                className="rounded-full border border-white/12 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80 transition hover:border-white/24 hover:text-white"
+                className="btn-secondary"
+                style={{
+                  background: 'var(--tp-card-strong)',
+                  borderColor: 'var(--tp-border-strong)',
+                  color: 'var(--tp-heading)',
+                }}
               >
                 About Us
               </Link>
               <Link
                 href="/contact"
-                className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white"
-                style={{ background: 'var(--tp-accent)' }}
+                className="btn-primary"
+                style={{
+                  boxShadow: 'var(--tp-shadow-soft)',
+                }}
               >
                 Contact
               </Link>
@@ -98,57 +106,57 @@ export function Footer() {
           </div>
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] tp-text-muted">
               Shop
             </div>
-            <div className="mt-5 flex flex-col gap-3 text-sm text-white/65">
+            <div className="mt-5 flex flex-col gap-3 text-sm tp-text-soft">
               {isSectionVisible('collections.indoor') ? (
-                <Link href="/indoor" className="transition hover:text-white">
+                <Link href="/indoor" className="transition hover:tp-heading">
                   For Interior Spaces
                 </Link>
               ) : null}
               {isSectionVisible('collections.outdoor') ? (
-                <Link href="/outdoor" className="transition hover:text-white">
+                <Link href="/outdoor" className="transition hover:tp-heading">
                   For Open Spaces
                 </Link>
               ) : null}
               {isSectionVisible('collections.pots') ? (
-                <Link href="/pots" className="transition hover:text-white">
+                <Link href="/pots" className="transition hover:tp-heading">
                   Clay Forms
                 </Link>
               ) : null}
-              <Link href="/search" className="transition hover:text-white">
+              <Link href="/search" className="transition hover:tp-heading">
                 Search
               </Link>
             </div>
           </div>
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] tp-text-muted">
               Explore
             </div>
-            <div className="mt-5 flex flex-col gap-3 text-sm text-white/65">
-              <Link href="/about" className="transition hover:text-white">
+            <div className="mt-5 flex flex-col gap-3 text-sm tp-text-soft">
+              <Link href="/about" className="transition hover:tp-heading">
                 About Us
               </Link>
               {isSectionVisible('studio.entry') ? (
-                <Link href="/studio" className="transition hover:text-white">
+                <Link href="/studio" className="transition hover:tp-heading">
                   Studio
                 </Link>
               ) : null}
               {isSectionVisible('contact.entry') ? (
-                <Link href="/contact" className="transition hover:text-white">
+                <Link href="/contact" className="transition hover:tp-heading">
                   Contact Us
                 </Link>
               ) : null}
-              <Link href="/care-guide" className="transition hover:text-white">
+              <Link href="/care-guide" className="transition hover:tp-heading">
                 Care Guide
               </Link>
             </div>
           </div>
 
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] tp-text-muted">
               Reach Us
             </div>
             <div className="mt-5 grid gap-3">
@@ -159,23 +167,36 @@ export function Footer() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-start gap-3 rounded-[1.25rem] border border-white/8 bg-white/5 px-4 py-4 text-sm text-white/72"
+                  className="flex items-start gap-3 rounded-[1.25rem] border px-4 py-4 text-sm"
+                  style={{
+                    borderColor: 'var(--tp-border)',
+                    background: 'var(--tp-card-strong)',
+                    color: 'var(--tp-text)',
+                    boxShadow: 'var(--tp-shadow-soft)',
+                  }}
                 >
-                  <item.icon className="mt-0.5 h-4 w-4 text-[var(--tp-accent)]" />
+                  <item.icon className="mt-0.5 h-4 w-4" style={{ color: 'var(--tp-accent)' }} />
                   <span>{item.label}</span>
                 </div>
               ))}
-              <Link href="/delivery" className="text-sm text-white/65 transition hover:text-white">
+              <Link href="/delivery" className="text-sm tp-text-soft transition hover:tp-heading">
                 Track a paid order
               </Link>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/6 p-6">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+          <div
+            className="rounded-[2rem] border p-6"
+            style={{
+              borderColor: 'var(--tp-border)',
+              background: 'var(--tp-card-strong)',
+              boxShadow: 'var(--tp-shadow-soft)',
+            }}
+          >
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] tp-text-muted">
               Join the TuloPots Community
             </div>
-            <p className="mt-4 text-sm leading-7 text-white/58">
+            <p className="mt-4 text-sm leading-7 tp-text-soft">
               Choose the updates you actually want: new arrivals, care guidance,
               open-space ideas, and launch notes.
             </p>
@@ -186,22 +207,24 @@ export function Footer() {
                   name="name"
                   type="text"
                   placeholder="Your name"
-                  className="min-w-0 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
+                  className="tp-input min-w-0 rounded-full px-5 py-3 text-sm outline-none"
+                  style={{ borderWidth: '1px' }}
                 />
                 <input
                   name="email"
                   type="email"
                   placeholder="Your email"
-                  className="min-w-0 rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/25"
+                  className="tp-input min-w-0 rounded-full px-5 py-3 text-sm outline-none"
+                  style={{ borderWidth: '1px' }}
                   required
                 />
               </div>
 
               <select
                 name="preferredChannel"
-                className="w-full rounded-full border border-white/10 bg-white/8 px-5 py-3 text-sm text-white outline-none focus:border-white/25"
+                className="tp-input w-full rounded-full px-5 py-3 text-sm outline-none"
                 defaultValue="email"
-                style={{ colorScheme: 'dark' }}
+                style={{ borderWidth: '1px' }}
               >
                 <option value="email">Email updates</option>
                 <option value="sms">SMS updates</option>
@@ -223,13 +246,13 @@ export function Footer() {
                     style={{
                       borderColor: selectedInterests.includes(value)
                         ? 'var(--tp-accent)'
-                        : 'rgba(255,255,255,0.12)',
+                        : 'var(--tp-border)',
                       background: selectedInterests.includes(value)
-                        ? 'rgba(255,255,255,0.12)'
-                        : 'transparent',
-                      color: selectedInterests.includes(value)
                         ? 'var(--tp-accent-soft)'
-                        : 'rgba(255,255,255,0.72)',
+                        : 'var(--tp-card)',
+                      color: selectedInterests.includes(value)
+                        ? 'var(--tp-accent)'
+                        : 'var(--tp-text)',
                     }}
                   >
                     {label}
@@ -237,18 +260,13 @@ export function Footer() {
                 ))}
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
-                style={{ background: 'var(--tp-accent)' }}
-              >
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full disabled:opacity-60">
                 {isSubmitting ? 'Joining...' : 'Join the List'}
               </button>
             </form>
-            <p className="mt-3 text-xs leading-6 text-white/35">
+            <p className="mt-3 text-xs leading-6 tp-text-muted">
               By joining, you agree to our{' '}
-              <Link href={LEGAL_ROUTES.privacy} className="underline">
+              <Link href={LEGAL_ROUTES.privacy} className="tp-accent underline">
                 Privacy Policy
               </Link>{' '}
               and can unsubscribe at any time.
@@ -259,12 +277,12 @@ export function Footer() {
                 style={{
                   background:
                     newsletterTone === 'error'
-                      ? 'rgba(208, 138, 87, 0.14)'
-                      : 'rgba(255,255,255,0.08)',
+                      ? 'color-mix(in srgb, var(--tp-accent) 10%, var(--tp-card) 90%)'
+                      : 'color-mix(in srgb, var(--tp-success) 12%, var(--tp-card) 88%)',
                   color:
                     newsletterTone === 'error'
                       ? 'var(--tp-accent)'
-                      : 'rgba(255,255,255,0.82)',
+                      : 'var(--tp-heading)',
                 }}
               >
                 {newsletterState}
@@ -274,20 +292,20 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/8 py-5">
-        <div className="container-shell flex flex-col gap-3 text-center text-xs text-white/30 md:flex-row md:items-center md:justify-between md:text-left">
+      <div className="border-t py-5" style={{ borderColor: 'var(--tp-border)' }}>
+        <div className="container-shell flex flex-col gap-3 text-center text-xs tp-text-muted md:flex-row md:items-center md:justify-between md:text-left">
           <div>© 2026 TuloPots. All rights reserved.</div>
           <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end">
-            <Link href={LEGAL_ROUTES.terms} className="transition hover:text-white">
+            <Link href={LEGAL_ROUTES.terms} className="transition hover:tp-heading">
               Terms
             </Link>
-            <Link href={LEGAL_ROUTES.privacy} className="transition hover:text-white">
+            <Link href={LEGAL_ROUTES.privacy} className="transition hover:tp-heading">
               Privacy
             </Link>
-            <Link href={LEGAL_ROUTES.cookies} className="transition hover:text-white">
+            <Link href={LEGAL_ROUTES.cookies} className="transition hover:tp-heading">
               Cookies
             </Link>
-            <Link href={LEGAL_ROUTES.delivery} className="transition hover:text-white">
+            <Link href={LEGAL_ROUTES.delivery} className="transition hover:tp-heading">
               Delivery & Returns
             </Link>
           </div>
