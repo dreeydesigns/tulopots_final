@@ -12,7 +12,7 @@ import {
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { products } from '../../lib/products';
+import { products, type Product } from '../../lib/products';
 import { imageByKey } from '../../lib/site';
 import { useStore } from '../Providers';
 
@@ -236,6 +236,7 @@ const SLIDES: Slide[] = [
 const CARD_WIDTHS = [210, 195, 180];
 const CARD_HEIGHTS = [290, 272, 255];
 const CARD_MARGINS = [0, 28, -8];
+const DESKTOP_SCENE_QUERY = '(min-width: 768px)';
 
 type ThemePalette = {
   sceneText: string;
@@ -508,6 +509,185 @@ function MagneticPotScene({
   );
 }
 
+function MobileScenePanel({
+  slide,
+  palette,
+  productMap,
+  onBuyNow,
+}: {
+  slide: Slide;
+  palette: ThemePalette;
+  productMap: Record<string, Product>;
+  onBuyNow: (product: Product) => void;
+}) {
+  if (slide.storyMode) {
+    return (
+      <div className="mt-8 md:hidden">
+        <Link
+          href="/about"
+          className="block overflow-hidden rounded-[1.75rem] border"
+          style={{
+            background: palette.cardShell,
+            borderColor: palette.cardBorder,
+            boxShadow: '0 18px 38px rgba(0,0,0,0.22)',
+          }}
+        >
+          <div className="relative aspect-[5/4]">
+            <Image
+              src={imageByKey.clay}
+              alt="TuloPots story"
+              fill
+              sizes="(max-width: 767px) 88vw, 360px"
+              className="object-cover"
+            />
+            <div className="absolute inset-0" style={{ background: palette.storyOverlay }} />
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: palette.sceneTextFaint }}>
+                Nairobi since 2016
+              </div>
+              <div className="serif-display mt-2 text-[2rem] leading-none" style={{ color: palette.sceneText }}>
+                Our Story
+              </div>
+            </div>
+          </div>
+        </Link>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            href="/about"
+            className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{
+              background: palette.primaryBtnBg,
+              color: palette.primaryBtnText,
+            }}
+          >
+            Read Story
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{
+              background: palette.secondaryBtnBg,
+              color: palette.secondaryBtnText,
+              border: `1px solid ${palette.secondaryBtnBorder}`,
+            }}
+          >
+            Contact
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (slide.potMode) {
+    return (
+      <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: palette.sceneTextFaint }}>
+          Shape First
+        </div>
+        <div className="serif-display mt-3 text-[2rem] leading-none" style={{ color: palette.potPanelText }}>
+          Signature Clay Form
+        </div>
+        <p className="mt-3 text-sm leading-6" style={{ color: palette.potPanelMuted }}>
+          Start with the form, then decide where it belongs. Shelf, table, entry, terrace, or patio.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Link
+            href="/pots"
+            className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{
+              background: palette.primaryBtnBg,
+              color: palette.primaryBtnText,
+            }}
+          >
+            Shop Forms
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{
+              background: palette.secondaryBtnBg,
+              color: palette.secondaryBtnText,
+              border: `1px solid ${palette.secondaryBtnBorder}`,
+            }}
+          >
+            Contact Studio
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const leadItem = slide.cardItems.find((item) => productMap[item.slug]);
+  if (!leadItem) {
+    return null;
+  }
+
+  const product = productMap[leadItem.slug];
+  const presentation = CARD_LIBRARY[leadItem.slug];
+  const imageSrc = presentation?.image || product.image;
+  const displayName = presentation?.displayName || product.name;
+
+  return (
+    <div className="mt-8 md:hidden">
+      <Link
+        href={`/product/${product.slug}`}
+        className="block overflow-hidden rounded-[1.75rem] border"
+        style={{
+          background: palette.cardShell,
+          borderColor: palette.cardBorder,
+          boxShadow: '0 18px 38px rgba(0,0,0,0.22)',
+        }}
+      >
+        <div className="relative aspect-[5/4]">
+          <Image
+            src={imageSrc}
+            alt={displayName}
+            fill
+            sizes="(max-width: 767px) 88vw, 360px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/12 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+              Featured form
+            </div>
+            <div className="serif-display mt-2 text-[1.9rem] leading-none">{displayName}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/80">
+              <span>KSh {Number(product.price).toLocaleString()}</span>
+              <span>{product.rating.toFixed(1)} rating</span>
+              <span>{product.reviews} reviews</span>
+            </div>
+          </div>
+        </div>
+      </Link>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => onBuyNow(product)}
+          type="button"
+          className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+          style={{
+            background: palette.primaryBtnBg,
+            color: palette.primaryBtnText,
+          }}
+        >
+          Buy Now
+        </button>
+        <Link
+          href={`/product/${product.slug}`}
+          className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+          style={{
+            background: palette.secondaryBtnBg,
+            color: palette.secondaryBtnText,
+            border: `1px solid ${palette.secondaryBtnBorder}`,
+          }}
+        >
+          View Item
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function LoggedInHome() {
   const { addToCart, theme } = useStore();
   const router = useRouter();
@@ -516,6 +696,7 @@ export default function LoggedInHome() {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
+  const [isSceneMode, setIsSceneMode] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const sceneRefs = useRef<(HTMLElement | null)[]>([]);
 
@@ -523,7 +704,22 @@ export default function LoggedInHome() {
   const palette = getPalette(isLight);
 
   useEffect(() => {
+    const media = window.matchMedia(DESKTOP_SCENE_QUERY);
+    const syncMode = () => setIsSceneMode(media.matches);
+    syncMode();
+    media.addEventListener('change', syncMode);
+    return () => media.removeEventListener('change', syncMode);
+  }, []);
+
+  useEffect(() => {
     const html = document.documentElement;
+    if (!isSceneMode) {
+      html.classList.remove('page-fullscreen');
+      html.style.overflow = '';
+      document.body.style.overflow = '';
+      return;
+    }
+
     html.classList.add('page-fullscreen');
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -532,7 +728,7 @@ export default function LoggedInHome() {
       html.style.overflow = '';
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [isSceneMode]);
 
   const replaySceneAnimations = (idx: number) => {
     const scene = sceneRefs.current[idx];
@@ -559,16 +755,19 @@ export default function LoggedInHome() {
   const goNext = () => goTo(current + 1);
   const goPrev = () => goTo(current - 1);
 
-  const handleBuyNow = (product: (typeof products)[number]) => {
+  const handleBuyNow = (product: Product) => {
     addToCart(product, { quantity: 1 });
     router.push('/cart');
   };
 
   useEffect(() => {
+    if (!isSceneMode) return;
     replaySceneAnimations(0);
-  }, []);
+  }, [isSceneMode]);
 
   useEffect(() => {
+    if (!isSceneMode) return;
+
     const onWheel = (e: WheelEvent) => {
       if (animating || Math.abs(e.deltaY) < 14) return;
       e.preventDefault();
@@ -612,10 +811,10 @@ export default function LoggedInHome() {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [animating, current]);
+  }, [animating, current, isSceneMode]);
 
   return (
-    <main className={`fixed inset-0 overflow-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
+    <main className={`relative overflow-x-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
         const isActive = index === current;
         const isPrev = index === prev;
@@ -668,7 +867,7 @@ export default function LoggedInHome() {
               </div>
             )}
 
-            <div className="relative z-20 mx-auto flex h-screen max-w-[1600px] items-center px-[4.5%] pb-[84px] pt-[84px]">
+            <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-[1600px] items-end px-5 pb-12 pt-28 sm:px-6 md:h-screen md:items-center md:px-[4.5%] md:pb-[84px] md:pt-[84px]">
               <div className="grid w-full items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] xl:gap-20">
                 <div className="relative z-30 max-w-[430px]">
                   {slide.kicker ? (
@@ -745,7 +944,7 @@ export default function LoggedInHome() {
                   </div>
 
                   <div
-                    className="fade-item fade-5 mt-11 grid max-w-[420px] grid-cols-3 gap-8 pt-6"
+                    className="fade-item fade-5 mt-11 grid max-w-[420px] grid-cols-3 gap-4 pt-6 sm:gap-6 md:gap-8"
                     style={{ borderTop: `1px solid ${palette.statBorder}` }}
                   >
                     {slide.stats.map((stat) => (
@@ -778,6 +977,13 @@ export default function LoggedInHome() {
                       {slide.nextLabel}
                     </div>
                   ) : null}
+
+                  <MobileScenePanel
+                    slide={slide}
+                    palette={palette}
+                    productMap={productMap}
+                    onBuyNow={handleBuyNow}
+                  />
                 </div>
 
                 <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
@@ -1037,7 +1243,7 @@ export default function LoggedInHome() {
         Scroll to explore
       </div>
 
-      <div className="absolute bottom-7 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5">
+      <div className="absolute bottom-7 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-1.5 md:flex">
         {SLIDES.map((slide, index) => (
           <button
             key={slide.id}
@@ -1054,7 +1260,7 @@ export default function LoggedInHome() {
       </div>
 
       <div
-        className="absolute bottom-7 right-24 z-40 text-[10px] uppercase tracking-[0.18em] md:right-28"
+        className="absolute bottom-7 right-24 z-40 hidden text-[10px] uppercase tracking-[0.18em] md:block md:right-28"
         style={{ color: palette.sceneTextMuted }}
       >
         <span style={{ color: palette.sceneTextSoft }}>{String(current + 1).padStart(2, '0')}</span> /{' '}
@@ -1062,12 +1268,14 @@ export default function LoggedInHome() {
       </div>
 
       <style jsx global>{`
-        html,
-        body {
-          overflow: hidden !important;
-          height: 100% !important;
-          max-height: 100vh !important;
-          overscroll-behavior: none;
+        @media (min-width: 768px) {
+          html,
+          body {
+            overflow: hidden !important;
+            height: 100% !important;
+            max-height: 100vh !important;
+            overscroll-behavior: none;
+          }
         }
       `}</style>
 
@@ -1249,6 +1457,37 @@ export default function LoggedInHome() {
           100% {
             opacity: 0;
             transform: translateX(-80px) rotate(-3deg);
+          }
+        }
+
+        @media (max-width: 767px) {
+          .scene,
+          .scene.active,
+          .scene.prev {
+            position: relative;
+            inset: auto;
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+            min-height: 100svh;
+            transition: none;
+          }
+
+          .scene.active .fade-item,
+          .scene .fade-item,
+          .scene.active .card-stage,
+          .scene .card-stage {
+            opacity: 1;
+            transform: none;
+            animation: none !important;
+          }
+
+          .tp-scene-light .scene + .scene {
+            border-top: 1px solid rgba(35, 23, 17, 0.08);
+          }
+
+          .tp-scene-dark .scene + .scene {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
           }
         }
 

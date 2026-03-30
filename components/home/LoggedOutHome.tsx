@@ -25,7 +25,10 @@ export default function LoggedOutHome() {
               Handcrafted in Kenya
             </p>
 
-            <h1 className="serif-display max-w-xl text-6xl leading-[0.92] md:text-7xl xl:text-[84px] tp-heading">
+            <h1
+              className="serif-display max-w-xl leading-[0.92] tp-heading"
+              style={{ fontSize: 'clamp(3.15rem, 11vw, 5.25rem)' }}
+            >
               Terracotta made to warm a home.
             </h1>
 
@@ -50,7 +53,7 @@ export default function LoggedOutHome() {
               </Link>
             </div>
 
-            <div className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t pt-7 tp-border">
+            <div className="mt-12 grid max-w-md grid-cols-3 gap-4 border-t pt-7 sm:gap-6 tp-border">
               <div>
                 <div className="text-xl font-semibold tp-text">120+</div>
                 <div className="mt-1 text-[10px] uppercase tracking-[0.18em] tp-text-muted">
@@ -75,37 +78,74 @@ export default function LoggedOutHome() {
           {/* RIGHT */}
           <div className="md:col-span-7">
             <div className="grid gap-5 md:grid-cols-[1fr_0.55fr]">
-              <div className="overflow-hidden rounded-[1.5rem] tp-card">
+              <Link
+                href="/pots"
+                className="group block overflow-hidden rounded-[1.5rem] tp-card"
+              >
                 <div className="relative aspect-[4/5] tp-surface-soft">
                   <Image
                     src={imageByKey.hero}
                     alt="Handcrafted terracotta hero"
                     fill
+                    priority
+                    sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 40vw"
                     className="object-cover transition duration-700 hover:scale-[1.04]"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+                      Collection
+                    </p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="serif-display text-[28px] leading-none">
+                        Clay Forms
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </Link>
 
               <div className="flex flex-col gap-5">
-                <div className="overflow-hidden rounded-[1.5rem] tp-card">
+                <Link
+                  href="/indoor"
+                  className="group block overflow-hidden rounded-[1.5rem] tp-card"
+                >
                   <div className="relative aspect-[4/4.6] tp-surface-soft">
                     <Image
                       src={imageByKey.indoor1}
                       alt="Indoor terracotta styling"
                       fill
+                      sizes="(max-width: 767px) 100vw, (max-width: 1279px) 25vw, 22vw"
                       className="object-cover transition duration-700 hover:scale-[1.04]"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/42 via-black/8 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+                        For
+                      </p>
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <span className="serif-display text-[22px] leading-none">
+                          Interior Spaces
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0" />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </Link>
 
-                <div className="rounded-[1.5rem] p-6 tp-card">
+                <Link href="/studio" className="block rounded-[1.5rem] p-6 tp-card">
                   <p className="text-[10px] uppercase tracking-[0.18em] tp-accent">
                     Studio Note
                   </p>
                   <p className="mt-3 serif-display text-[26px] leading-tight tp-heading">
                     Each piece is shaped with warmth, patience, and intention.
                   </p>
-                </div>
+                  <div className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] tp-accent">
+                    Explore Studio
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </Link>
               </div>
             </div>
           </div>
@@ -130,6 +170,7 @@ export default function LoggedOutHome() {
                   src={img as string}
                   alt={label as string}
                   fill
+                  sizes="(max-width: 767px) 100vw, 33vw"
                   className="object-cover transition duration-700 group-hover:scale-[1.05]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/8 to-transparent" />
@@ -178,6 +219,7 @@ export default function LoggedOutHome() {
                     src={product.image}
                     alt={product.name}
                     fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
                     className="object-cover transition duration-700 hover:scale-[1.04]"
                   />
                 </div>
@@ -220,16 +262,29 @@ export default function LoggedOutHome() {
       <section className="container-shell py-16 md:py-20 xl:py-24">
         <div className="grid items-center gap-12 md:grid-cols-12 md:gap-16">
           <div className="md:col-span-6">
-            <div className="overflow-hidden rounded-[1.5rem] tp-card">
+            <Link href="/about" className="group block overflow-hidden rounded-[1.5rem] tp-card">
               <div className="relative aspect-[5/6] tp-surface-soft">
                 <Image
                   src={imageByKey.clay}
                   alt="TuloPots story"
                   fill
-                  className="object-cover"
+                  sizes="(max-width: 767px) 100vw, 48vw"
+                  className="object-cover transition duration-700 group-hover:scale-[1.04]"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between p-5 text-white">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+                      Story
+                    </p>
+                    <div className="serif-display mt-2 text-[28px] leading-none">
+                      Our Studio
+                    </div>
+                  </div>
+                  <ArrowRight className="h-5 w-5 shrink-0" />
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
 
           <div className="md:col-span-6">
