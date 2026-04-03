@@ -17,7 +17,7 @@ or your custom domain once that is ready.
 Example:
 
 ```text
-https://your-project.vercel.app
+https://tulopots-final.vercel.app
 ```
 
 ---
@@ -67,10 +67,10 @@ Add these keys:
 Set these values immediately:
 
 ```text
-NEXT_PUBLIC_SITE_URL=https://your-project.vercel.app
-GOOGLE_REDIRECT_URI=https://your-project.vercel.app/api/auth/oauth/callback/google
-APPLE_REDIRECT_URI=https://your-project.vercel.app/api/auth/oauth/callback/apple
-MPESA_CALLBACK_URL=https://your-project.vercel.app/api/payments/mpesa/callback
+NEXT_PUBLIC_SITE_URL=https://tulopots-final.vercel.app
+GOOGLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/google
+APPLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
+MPESA_CALLBACK_URL=https://tulopots-final.vercel.app/api/payments/mpesa/callback
 STRIPE_KES_TO_USD_RATE=130
 ```
 
@@ -93,10 +93,10 @@ Use:
 
 ```text
 Authorized JavaScript origin:
-https://your-project.vercel.app
+https://tulopots-final.vercel.app
 
 Authorized redirect URI:
-https://your-project.vercel.app/api/auth/oauth/callback/google
+https://tulopots-final.vercel.app/api/auth/oauth/callback/google
 ```
 
 ### Apple Sign In
@@ -105,7 +105,7 @@ Use:
 
 ```text
 Return URL:
-https://your-project.vercel.app/api/auth/oauth/callback/apple
+https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
 ```
 
 ### Stripe webhook
@@ -113,7 +113,7 @@ https://your-project.vercel.app/api/auth/oauth/callback/apple
 Use:
 
 ```text
-https://your-project.vercel.app/api/payments/stripe/webhook
+https://tulopots-final.vercel.app/api/payments/stripe/webhook
 ```
 
 ### M-Pesa callback
@@ -121,7 +121,7 @@ https://your-project.vercel.app/api/payments/stripe/webhook
 Use:
 
 ```text
-https://your-project.vercel.app/api/payments/mpesa/callback
+https://tulopots-final.vercel.app/api/payments/mpesa/callback
 ```
 
 ### Search Console
@@ -129,7 +129,7 @@ https://your-project.vercel.app/api/payments/mpesa/callback
 Use the Vercel production URL as the property:
 
 ```text
-https://your-project.vercel.app/
+https://tulopots-final.vercel.app/
 ```
 
 ---

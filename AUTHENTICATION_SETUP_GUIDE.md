@@ -19,9 +19,7 @@ Before you open any dashboard, keep these four things written down in one note:
 3. Your Vercel project name
 4. Your current production database connection string
 
-For the current app, replace `YOUR_HOST` everywhere in this guide with your real live URL.
-
-Example:
+For the current app, use this live host everywhere in the setup:
 
 ```text
 https://tulopots-final.vercel.app
@@ -35,22 +33,22 @@ These values are already fixed by the app and should not be guessed.
 
 ### Google callback
 ```text
-YOUR_HOST/api/auth/oauth/callback/google
+https://tulopots-final.vercel.app/api/auth/oauth/callback/google
 ```
 
 ### Apple callback
 ```text
-YOUR_HOST/api/auth/oauth/callback/apple
+https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
 ```
 
 ### Stripe webhook
 ```text
-YOUR_HOST/api/payments/stripe/webhook
+https://tulopots-final.vercel.app/api/payments/stripe/webhook
 ```
 
 ### M-Pesa callback
 ```text
-YOUR_HOST/api/payments/mpesa/callback
+https://tulopots-final.vercel.app/api/payments/mpesa/callback
 ```
 
 ### Search Console verification token env var
@@ -121,10 +119,10 @@ OPERATIONS_AUTOMATION_SECRET
 ### Add these values now
 
 ```text
-NEXT_PUBLIC_SITE_URL=YOUR_HOST
-GOOGLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/google
-APPLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/apple
-MPESA_CALLBACK_URL=YOUR_HOST/api/payments/mpesa/callback
+NEXT_PUBLIC_SITE_URL=https://tulopots-final.vercel.app
+GOOGLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/google
+APPLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
+MPESA_CALLBACK_URL=https://tulopots-final.vercel.app/api/payments/mpesa/callback
 STRIPE_KES_TO_USD_RATE=130
 ```
 
@@ -170,7 +168,7 @@ Developer contact information: the Gmail you control
 If Google shows:
 
 ```text
-Missing domain: your-project.vercel.app
+Missing domain: tulopots-final.vercel.app
 ```
 
 do this:
@@ -200,8 +198,8 @@ Use these exact values:
 
 ```text
 Name: TuloPots Web
-Authorized JavaScript origins: YOUR_HOST
-Authorized redirect URIs: YOUR_HOST/api/auth/oauth/callback/google
+Authorized JavaScript origins: https://tulopots-final.vercel.app
+Authorized redirect URIs: https://tulopots-final.vercel.app/api/auth/oauth/callback/google
 ```
 
 Click `Create`.
@@ -220,7 +218,7 @@ Go back to Vercel and add:
 ```text
 GOOGLE_CLIENT_ID=the Client ID from Google
 GOOGLE_CLIENT_SECRET=the Client Secret from Google
-GOOGLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/google
+GOOGLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/google
 ```
 
 ### Step 5.7: Redeploy
@@ -260,7 +258,7 @@ This gives you website traffic and behavior tracking.
 2. Enter your website URL:
 
 ```text
-YOUR_HOST
+https://tulopots-final.vercel.app
 ```
 
 3. Stream name:
@@ -310,7 +308,7 @@ Because you do not own `tulopots.com` yet, use `URL prefix`, not `Domain`.
 5. Enter:
 
 ```text
-YOUR_HOST/
+https://tulopots-final.vercel.app/
 ```
 
 ### Step 7.2: Choose HTML tag verification
@@ -388,7 +386,7 @@ sk_test_
 4. Use this URL:
 
 ```text
-YOUR_HOST/api/payments/stripe/webhook
+https://tulopots-final.vercel.app/api/payments/stripe/webhook
 ```
 
 5. Select these events:
@@ -472,7 +470,7 @@ https://sandbox.safaricom.co.ke
 Use this callback:
 
 ```text
-YOUR_HOST/api/payments/mpesa/callback
+https://tulopots-final.vercel.app/api/payments/mpesa/callback
 ```
 
 ### Step 9.4: Put the M-Pesa values into Vercel
@@ -485,7 +483,7 @@ MPESA_CONSUMER_KEY=your consumer key
 MPESA_CONSUMER_SECRET=your consumer secret
 MPESA_SHORTCODE=your shortcode
 MPESA_PASSKEY=your passkey
-MPESA_CALLBACK_URL=YOUR_HOST/api/payments/mpesa/callback
+MPESA_CALLBACK_URL=https://tulopots-final.vercel.app/api/payments/mpesa/callback
 ```
 
 ### Step 9.5: Redeploy
@@ -545,7 +543,7 @@ Use:
 
 ```text
 Domain: your live host without https://
-Return URL: YOUR_HOST/api/auth/oauth/callback/apple
+Return URL: https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
 ```
 
 Example domain:
@@ -574,7 +572,7 @@ APPLE_CLIENT_ID=...
 APPLE_TEAM_ID=...
 APPLE_KEY_ID=...
 APPLE_PRIVATE_KEY=...
-APPLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/apple
+APPLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
 ```
 
 ### Step 10.5: Redeploy
@@ -637,7 +635,7 @@ It is for the next automation phase.
 
 ## 13. When You Buy `tulopots.com`
 
-After the custom domain is live, replace `YOUR_HOST` everywhere with:
+After the custom domain is live, replace the current Vercel URL everywhere with:
 
 ```text
 https://tulopots.com

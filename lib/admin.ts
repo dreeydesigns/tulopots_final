@@ -1,5 +1,6 @@
 import type { ContactMessageStatus, OrderStatus, StudioBriefStatus } from '@prisma/client';
 import { syncCatalogToDatabase } from '@/lib/catalog';
+import { getHubSpotConfig } from '@/lib/hubspot';
 import { getCurrentUser } from '@/lib/auth';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
 import { normalizeAvailableSizes, normalizeModeContent } from '@/lib/product-variants';
@@ -51,6 +52,7 @@ export function generateSku(input: {
 }
 
 export async function getAdminDashboardData() {
+  const hubspotConfig = getHubSpotConfig();
   const initialProductCount = await prisma.product.count();
   const initialSectionCount = await prisma.siteSection.count();
 
@@ -215,7 +217,17 @@ export async function getAdminDashboardData() {
       newsletterSubscribers: newsletterCount,
       reviews: reviewCount,
       pendingReviews: pendingReviewCount,
-      analyticsEvents: analyticsEventCount,
+    analyticsEvents: analyticsEventCount,
+    },
+    newsletterMarketing: {
+      provider: hubspotConfig.provider,
+      enabled: hubspotConfig.enabled,
+      hasListId: hubspotConfig.hasListId,
+      portalId: hubspotConfig.portalId || null,
+      listId: hubspotConfig.listId || null,
+      manageUrl: hubspotConfig.manageUrl,
+      contactsUrl: hubspotConfig.contactsUrl,
+      listsUrl: hubspotConfig.listsUrl,
     },
     activity,
     products: products.map((product) => ({

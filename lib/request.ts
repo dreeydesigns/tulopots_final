@@ -29,7 +29,7 @@ export function getSiteUrlFallback() {
   return trimTrailingSlash(
     process.env.NEXT_PUBLIC_SITE_URL ||
       vercelProductionUrl ||
-      'https://tulopots.com'
+      'https://tulopots-final.vercel.app'
   );
 }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { syncNewsletterSubscriberToHubSpot } from '@/lib/hubspot';
 import { prisma } from '@/lib/prisma';
 
 // POST /api/newsletter
@@ -68,10 +69,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         source,
       },
     });
+    let marketingSync: Awaited<ReturnType<typeof syncNewsletterSubscriberToHubSpot>> | null = null;
+
+    try {
+      marketingSync = await syncNewsletterSubscriberToHubSpot({
+        email,
+        name,
+        preferredChannel,
+        interests,
+        source,
+      });
+    } catch (error) {
+      console.error('[api/newsletter] hubspot sync failed:', error);
+    }
 
     const response = NextResponse.json({
       ok: true,
       message: 'You are on the list. We will send only the kind of updates you asked for.',
+      marketingSync,
     });
     response.headers.set('Cache-Control', 'no-store');
     return response;

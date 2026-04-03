@@ -15,7 +15,7 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   asHttpsUrl(process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL) ||
   asHttpsUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
-  'https://tulopots.com';
+  'https://tulopots-final.vercel.app';
 
 export const imageByKey = {
   hero: '/images/catalog/workshop-pottery-shelf.jpg',

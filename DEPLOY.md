@@ -15,7 +15,7 @@ This project now treats Vercel as the primary hosting platform.
 Example:
 
 ```text
-https://your-project.vercel.app
+https://tulopots-final.vercel.app
 ```
 
 ---
@@ -59,14 +59,14 @@ Add:
 
 ## 3. Use these callback values
 
-Replace `YOUR_HOST` with your live Vercel URL.
+Use your live Vercel URL in these values:
 
 ```text
-NEXT_PUBLIC_SITE_URL=YOUR_HOST
-GOOGLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/google
-APPLE_REDIRECT_URI=YOUR_HOST/api/auth/oauth/callback/apple
-MPESA_CALLBACK_URL=YOUR_HOST/api/payments/mpesa/callback
-Stripe webhook=YOUR_HOST/api/payments/stripe/webhook
+NEXT_PUBLIC_SITE_URL=https://tulopots-final.vercel.app
+GOOGLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/google
+APPLE_REDIRECT_URI=https://tulopots-final.vercel.app/api/auth/oauth/callback/apple
+MPESA_CALLBACK_URL=https://tulopots-final.vercel.app/api/payments/mpesa/callback
+Stripe webhook=https://tulopots-final.vercel.app/api/payments/stripe/webhook
 ```
 
 ---

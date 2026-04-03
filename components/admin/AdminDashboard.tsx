@@ -48,6 +48,16 @@ type DashboardData = {
     pendingReviews: number;
     analyticsEvents: number;
   };
+  newsletterMarketing: {
+    provider: string;
+    enabled: boolean;
+    hasListId: boolean;
+    portalId: string | null;
+    listId: string | null;
+    manageUrl: string;
+    contactsUrl: string;
+    listsUrl: string;
+  };
   activity: Array<{
     id: string;
     type: string;
@@ -205,6 +215,16 @@ type AutomationResponse = {
     deliveryCheckInOrders: string[];
     reviewRequestsQueued: number;
     reviewRequestOrders: string[];
+  };
+  error?: string;
+};
+
+type NewsletterSyncResponse = {
+  ok: boolean;
+  summary?: {
+    total: number;
+    synced: number;
+    failed: number;
   };
   error?: string;
 };
@@ -384,6 +404,7 @@ export function AdminDashboard({ user }: { user: User }) {
   const [automationMessage, setAutomationMessage] = useState('');
   const [lastLoadedAt, setLastLoadedAt] = useState('');
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [newsletterSyncMessage, setNewsletterSyncMessage] = useState('');
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
@@ -487,6 +508,33 @@ export function AdminDashboard({ user }: { user: User }) {
       await loadDashboard();
     } catch {
       setError('Unable to run the operations pass.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function syncNewsletterToHubSpot() {
+    try {
+      setPendingKey('newsletter:sync');
+      setError('');
+      setNewsletterSyncMessage('');
+
+      const response = await fetch('/api/admin/newsletter/sync', {
+        method: 'POST',
+      });
+      const data = (await response.json()) as NewsletterSyncResponse;
+
+      if (!response.ok || !data.ok || !data.summary) {
+        setError(data.error || 'Unable to sync subscribers to HubSpot.');
+        return;
+      }
+
+      setNewsletterSyncMessage(
+        `${data.summary.synced} synced · ${data.summary.failed} failed · ${data.summary.total} total`
+      );
+      await loadDashboard();
+    } catch {
+      setError('Unable to sync subscribers to HubSpot.');
     } finally {
       setPendingKey(null);
     }
@@ -2075,6 +2123,102 @@ export function AdminDashboard({ user }: { user: User }) {
 
                 {tab === 'newsletter' ? (
                   <PanelShell title="Newsletter list" subtitle="People who asked to hear from TuloPots, along with the channels and interests they chose.">
+                    <div
+                      className="mb-4 rounded-[1.5rem] border p-5"
+                      style={{
+                        borderColor: 'var(--tp-border)',
+                        background: 'var(--tp-card)',
+                      }}
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <div
+                            className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                            style={{ color: 'var(--tp-accent)' }}
+                          >
+                            Email marketing
+                          </div>
+                          <div className="mt-2 text-lg font-semibold" style={{ color: 'var(--tp-heading)' }}>
+                            {dashboard.newsletterMarketing.enabled
+                              ? 'HubSpot is connected to newsletter signups'
+                              : 'HubSpot is not connected yet'}
+                          </div>
+                          <div className="mt-2 text-sm leading-7 tp-text-soft">
+                            TuloPots keeps the signup form on-site, then HubSpot becomes the place where
+                            you build, segment, and send newsletters.
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                            <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                              provider: {dashboard.newsletterMarketing.provider}
+                            </span>
+                            <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                              list: {dashboard.newsletterMarketing.hasListId ? 'connected' : 'not set'}
+                            </span>
+                            {dashboard.newsletterMarketing.portalId ? (
+                              <span className="rounded-full px-3 py-1" style={{ background: 'var(--tp-surface)' }}>
+                                portal: {dashboard.newsletterMarketing.portalId}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => void syncNewsletterToHubSpot()}
+                            disabled={
+                              pendingKey === 'newsletter:sync' ||
+                              !dashboard.newsletterMarketing.enabled
+                            }
+                            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                            style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                          >
+                            {pendingKey === 'newsletter:sync' ? 'Syncing…' : 'Sync to HubSpot'}
+                          </button>
+                          <a
+                            href={dashboard.newsletterMarketing.manageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-card)',
+                              color: 'var(--tp-heading)',
+                            }}
+                          >
+                            Open email builder
+                          </a>
+                          <a
+                            href={dashboard.newsletterMarketing.listsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-card)',
+                              color: 'var(--tp-heading)',
+                            }}
+                          >
+                            Open lists
+                          </a>
+                        </div>
+                      </div>
+
+                      {!dashboard.newsletterMarketing.enabled ? (
+                        <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4 text-sm leading-7 tp-text-soft">
+                          Add `HUBSPOT_PRIVATE_APP_TOKEN` first, then optionally add
+                          `HUBSPOT_NEWSLETTER_LIST_ID`, `HUBSPOT_PORTAL_ID`, and `HUBSPOT_APP_BASE_URL`
+                          in Vercel environment variables.
+                        </div>
+                      ) : null}
+
+                      {newsletterSyncMessage ? (
+                        <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4 text-sm" style={{ color: 'var(--tp-heading)' }}>
+                          {newsletterSyncMessage}
+                        </div>
+                      ) : null}
+                    </div>
+
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div className="text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
                         {newsletterQuery.trim()
