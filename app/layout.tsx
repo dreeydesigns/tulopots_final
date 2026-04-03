@@ -104,7 +104,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="cursor-halo-on">
+      <body>
         <LoadingScreen />
         <Providers initialUser={user} initialSiteSections={siteSections}>
           <TrackingProvider />

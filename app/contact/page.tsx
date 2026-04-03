@@ -63,8 +63,8 @@ export default async function Page() {
   }
 
   return (
-    <main className="tp-page min-h-screen pb-20 pt-24">
-      <section className="container-shell grid gap-8 xl:grid-cols-[1fr_0.92fr] xl:items-start">
+    <main className="tp-page min-h-screen pb-28 pt-28 lg:pt-32">
+      <section className="container-shell grid gap-10 xl:min-h-[calc(100svh-7rem)] xl:grid-cols-[1fr_0.92fr] xl:items-center xl:gap-16">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.24em] tp-accent">
             {content.eyebrow}
@@ -72,10 +72,10 @@ export default async function Page() {
           <h1 className="mt-4 serif-display text-5xl leading-[0.95] tp-heading md:text-7xl">
             {content.title}
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 tp-text-soft md:text-lg">
+          <p className="mt-8 max-w-xl text-base leading-9 tp-text-soft md:text-lg">
             {content.intro}
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-3">
             <Link href={content.primaryCta.href} className="btn-primary">
               {content.primaryCta.label}
             </Link>
@@ -85,24 +85,24 @@ export default async function Page() {
           </div>
         </div>
 
-        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6 md:p-7">
+        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-7 md:p-8 xl:p-10">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] tp-accent">
             {content.pathwaysEyebrow}
           </div>
-          <div className="mt-5 grid gap-3">
+          <div className="mt-6 grid gap-4">
             {content.pathways.map(({ href, title, body, icon }) => {
               const Icon = pathwayIconMap[icon];
               return (
               <Link
                 key={title}
                 href={href}
-                className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-5 transition hover:border-[var(--tp-border-strong)]"
+                className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 py-6 transition hover:border-[var(--tp-border-strong)]"
               >
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
                   <Icon className="h-3.5 w-3.5 tp-accent" />
                   {title}
                 </div>
-                <p className="mt-3 text-sm leading-7 tp-text-soft">{body}</p>
+                <p className="mt-4 text-sm leading-8 tp-text-soft">{body}</p>
               </Link>
               );
             })}
@@ -110,13 +110,14 @@ export default async function Page() {
         </div>
       </section>
 
-      <section className="container-shell mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="container-shell mt-16 xl:mt-0 xl:flex xl:min-h-[78svh] xl:items-center">
+        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {content.info.map(({ icon, title, text }) => {
           const Icon = infoIconMap[icon];
           return (
             <div
               key={title}
-              className="rounded-[1.75rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-5 py-5"
+              className="rounded-[1.75rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-6 py-6 xl:px-7 xl:py-7"
             >
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-full"
@@ -127,22 +128,23 @@ export default async function Page() {
                   style={{ color: 'var(--tp-accent)' }}
                 />
               </div>
-              <div className="mt-4 serif-display text-3xl tp-heading">{title}</div>
-              <div className="mt-3 text-sm leading-7 tp-text-soft">{text}</div>
+              <div className="mt-5 serif-display text-3xl leading-[1.08] tp-heading">{title}</div>
+              <div className="mt-4 text-sm leading-8 tp-text-soft">{text}</div>
             </div>
           );
         })}
+        </div>
       </section>
 
-      <section className="container-shell mt-12 grid gap-8 xl:grid-cols-[1.02fr_0.98fr]">
-        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6 md:p-8">
+      <section className="container-shell mt-16 grid gap-8 xl:mt-0 xl:min-h-[100svh] xl:grid-cols-[1.02fr_0.98fr] xl:items-center">
+        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-7 md:p-9 xl:p-10">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
             {content.formEyebrow}
           </div>
-          <h2 className="mt-4 serif-display text-4xl tp-heading md:text-5xl">
+          <h2 className="mt-5 serif-display text-4xl leading-[1.06] tp-heading md:text-5xl xl:text-[3.25rem]">
             {content.formTitle}
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 tp-text-soft">
+          <p className="mt-4 max-w-2xl text-sm leading-8 tp-text-soft">
             {content.formIntro}
           </p>
 
@@ -150,15 +152,15 @@ export default async function Page() {
         </div>
 
         <div className="grid gap-6">
-          <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6 md:p-8">
+          <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-7 md:p-9 xl:p-10">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
               {content.beforeWriteEyebrow}
             </div>
-            <div className="mt-5 grid gap-3">
+            <div className="mt-6 grid gap-4">
               {content.beforeWrite.map((item) => (
                 <div
                   key={item}
-                  className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-4 py-4 text-sm leading-7 tp-text-soft"
+                  className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-5 py-5 text-sm leading-8 tp-text-soft"
                 >
                   {item}
                 </div>
@@ -187,14 +189,14 @@ export default async function Page() {
               color: 'var(--tp-btn-primary-text)',
             }}
           >
-            <div className="px-6 py-7 md:px-8">
+            <div className="px-7 py-8 md:px-9 xl:px-10">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">
                 {content.responsePromiseEyebrow}
               </div>
-              <p className="mt-4 serif-display text-4xl leading-[1.02] text-white">
+              <p className="mt-5 serif-display text-4xl leading-[1.06] text-white xl:text-[3.15rem]">
                 {content.responsePromiseTitle}
               </p>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-white/72">
+              <p className="mt-5 max-w-xl text-sm leading-8 text-white/72">
                 {content.responsePromiseBody}
               </p>
             </div>

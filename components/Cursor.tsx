@@ -15,33 +15,61 @@ export default function CursorHalo() {
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (window.innerWidth < 1024) return;
+    const pointerMedia = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
+    const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let enabled = false;
 
-    document.body.classList.add('cursor-halo-on');
+    const syncSupport = () => {
+      enabled = pointerMedia.matches && !reducedMotionMedia.matches;
 
-    const move = (e: MouseEvent) => {
+      if (!enabled) {
+        document.body.classList.remove('cursor-halo-on');
+        setVisible(false);
+        setActive(false);
+        setPressed(false);
+        return;
+      }
+
+      document.body.classList.add('cursor-halo-on');
+    };
+
+    const move = (e: PointerEvent) => {
+      if (!enabled || e.pointerType !== 'mouse') return;
+
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
       setVisible(true);
 
       if (dotRef.current) {
-        dotRef.current.style.left = `${e.clientX}px`;
-        dotRef.current.style.top = `${e.clientY}px`;
+        dotRef.current.style.left = `${mouse.current.x}px`;
+        dotRef.current.style.top = `${mouse.current.y}px`;
         dotRef.current.style.opacity = '1';
       }
     };
 
-    const enter = () => setVisible(true);
+    const enter = (e?: PointerEvent) => {
+      if (!enabled) return;
+      if (e && e.pointerType !== 'mouse') return;
+      setVisible(true);
+    };
     const leave = () => {
       setVisible(false);
       setActive(false);
       setPressed(false);
     };
 
-    const down = () => setPressed(true);
-    const up = () => setPressed(false);
+    const down = (e: PointerEvent) => {
+      if (!enabled || e.pointerType !== 'mouse') return;
+      setPressed(true);
+    };
+    const up = (e: PointerEvent) => {
+      if (!enabled || e.pointerType !== 'mouse') return;
+      setPressed(false);
+    };
 
-    const over = (e: MouseEvent) => {
+    const over = (e: PointerEvent) => {
+      if (!enabled || e.pointerType !== 'mouse') return;
+
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
@@ -65,30 +93,37 @@ export default function CursorHalo() {
       rafRef.current = window.requestAnimationFrame(animate);
     };
 
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseover', over);
-    window.addEventListener('mouseenter', enter);
-    window.addEventListener('mouseleave', leave);
-    window.addEventListener('mousedown', down);
-    window.addEventListener('mouseup', up);
+    syncSupport();
+
+    pointerMedia.addEventListener('change', syncSupport);
+    reducedMotionMedia.addEventListener('change', syncSupport);
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerover', over);
+    window.addEventListener('pointerenter', enter as EventListener);
+    window.addEventListener('pointerleave', leave);
+    window.addEventListener('pointerdown', down);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('blur', leave);
 
     rafRef.current = window.requestAnimationFrame(animate);
 
     return () => {
       document.body.classList.remove('cursor-halo-on');
-
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseover', over);
-      window.removeEventListener('mouseenter', enter);
-      window.removeEventListener('mouseleave', leave);
-      window.removeEventListener('mousedown', down);
-      window.removeEventListener('mouseup', up);
+      pointerMedia.removeEventListener('change', syncSupport);
+      reducedMotionMedia.removeEventListener('change', syncSupport);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerover', over);
+      window.removeEventListener('pointerenter', enter as EventListener);
+      window.removeEventListener('pointerleave', leave);
+      window.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('blur', leave);
 
       if (rafRef.current) {
         window.cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [visible]);
+  }, []);
 
   return (
     <>

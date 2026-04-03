@@ -9,6 +9,7 @@ import {
   useState,
   type FormEvent as ReactFormEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -370,7 +371,9 @@ function MagneticPotScene({
   const [tilt, setTilt] = useState({ x: 0, y: 0, tx: 0, ty: 0 });
   const [glow, setGlow] = useState({ x: 50, y: 50 });
 
-  const handleMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+  const handleMove = (
+    e: ReactMouseEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>
+  ) => {
     const el = potRef.current;
     if (!el) return;
 
@@ -423,9 +426,9 @@ function MagneticPotScene({
           />
           <div
             ref={potRef}
-            onMouseEnter={() => setHovered(true)}
-            onMouseMove={handleMove}
-            onMouseLeave={handleLeave}
+            onPointerEnter={() => setHovered(true)}
+            onPointerMove={handleMove}
+            onPointerLeave={handleLeave}
             className="absolute left-1/2 top-1/2 flex h-[318px] w-[318px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center"
             style={{
               transform: `perspective(520px) translate3d(${tilt.tx}px, ${tilt.ty}px, 0) rotateY(${tilt.y}deg) rotateX(${tilt.x}deg) scale(${hovered ? 1.03 : 1})`,

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { products } from "../../lib/products";
@@ -14,8 +14,23 @@ export default function LoggedOutHome() {
   const { addToCart, user } = useStore();
   const displayCurrency = user?.preferredCurrency || 'KES';
   const displayLanguage = user?.preferredLanguage || 'en';
+  const [recentlyAddedSlug, setRecentlyAddedSlug] = useState<string | null>(null);
 
   const featuredProducts = useMemo(() => products.slice(0, 3), []);
+
+  useEffect(() => {
+    if (!recentlyAddedSlug) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setRecentlyAddedSlug(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [recentlyAddedSlug]);
+
+  function handleAddToCart(product: (typeof products)[number]) {
+    addToCart(product, { quantity: 1 });
+    setRecentlyAddedSlug(product.slug);
+  }
 
   return (
     <main className="tp-page transition-colors">
@@ -250,13 +265,23 @@ export default function LoggedOutHome() {
                       language: displayLanguage,
                     })}
                   </div>
+                </div>
 
+                <div className="mt-5 grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => addToCart(product, { quantity: 1 })}
-                    className="tp-btn-secondary rounded-full px-5 py-2 text-[11px]"
+                    type="button"
+                    onClick={() => handleAddToCart(product)}
+                    className="tp-btn-primary min-h-[44px] rounded-full px-5 py-2 text-[11px]"
                   >
-                    Add to cart
+                    {recentlyAddedSlug === product.slug ? 'Added' : 'Add to cart'}
                   </button>
+
+                  <Link
+                    href={`/product/${product.slug}`}
+                    className="tp-btn-secondary inline-flex min-h-[44px] items-center justify-center rounded-full px-5 py-2 text-[11px]"
+                  >
+                    View item
+                  </Link>
                 </div>
               </div>
             </article>

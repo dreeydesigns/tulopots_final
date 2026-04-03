@@ -80,22 +80,22 @@ export function HistoryPage({ content }: HistoryPageProps) {
   }, []);
 
   return (
-    <main className="tp-page overflow-x-hidden pb-20 pt-24 md:pb-24 lg:pt-28">
-      <section className="container-shell">
+    <main className="tp-page overflow-x-hidden pb-28 pt-28 lg:pt-32">
+      <section className="container-shell lg:flex lg:min-h-[calc(100svh-7rem)] lg:items-center">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-10 xl:grid-cols-[0.92fr_1.08fr] xl:items-end xl:gap-14">
-            <div className="max-w-2xl">
+          <div className="grid gap-12 xl:grid-cols-[0.92fr_1.08fr] xl:items-end xl:gap-20">
+            <div className="max-w-2xl xl:max-w-[34rem]">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] tp-accent">
                 {content.eyebrow}
               </div>
               <h1 className="mt-5 serif-display text-5xl leading-[0.92] tp-heading md:text-6xl xl:text-7xl">
                 {content.title}
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-8 tp-text-soft md:text-lg">
+              <p className="mt-8 max-w-xl text-base leading-9 tp-text-soft md:text-lg">
                 {content.intro}
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-10 flex flex-wrap gap-3">
                 <Link href={content.primaryCta.href} className="btn-primary">
                   {content.primaryCta.label}
                 </Link>
@@ -106,7 +106,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
             </div>
 
             <div className="overflow-hidden rounded-[2.4rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
-              <div className="relative aspect-[4/4.9] overflow-hidden sm:aspect-[5/4.8] xl:aspect-[4/4.7]">
+              <div className="relative aspect-[4/4.9] overflow-hidden sm:aspect-[5/4.8] xl:aspect-[4/4.7] xl:min-h-[42rem]">
                 <Image
                   src={resolveImage(content.leadImage.src)}
                   alt={content.leadImage.alt}
@@ -117,11 +117,11 @@ export function HistoryPage({ content }: HistoryPageProps) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[rgba(20,12,8,0.56)] via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                  <div className="max-w-xl rounded-[1.65rem] border border-white/18 bg-[rgba(20,12,8,0.52)] px-5 py-5 backdrop-blur-md">
+                  <div className="max-w-xl rounded-[1.65rem] border border-white/18 bg-[rgba(20,12,8,0.52)] px-6 py-6 backdrop-blur-md">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgba(247,242,234,0.72)]">
                       The Line
                     </div>
-                    <div className="mt-3 serif-display text-2xl leading-[1.08] text-[var(--tp-cream)] md:text-[2.35rem]">
+                    <div className="mt-4 serif-display text-2xl leading-[1.14] text-[var(--tp-cream)] md:text-[2.35rem]">
                       {content.quote}
                     </div>
                   </div>
@@ -130,12 +130,12 @@ export function HistoryPage({ content }: HistoryPageProps) {
             </div>
           </div>
 
-          <div className="mt-14 flex justify-center md:mt-20">
+          <div className="mt-16 flex justify-center md:mt-24 xl:mt-28">
             <div className="max-w-4xl text-center">
               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] tp-accent">
                 The Story of Tulo
               </div>
-              <p className="mx-auto mt-4 max-w-3xl serif-display text-3xl leading-[1.18] tp-heading md:text-4xl lg:text-[3.25rem]">
+              <p className="mx-auto mt-5 max-w-3xl serif-display text-3xl leading-[1.22] tp-heading md:text-4xl lg:text-[3.25rem]">
                 A room does not change when more things enter it. It changes when the right
                 presence arrives.
               </p>
@@ -144,7 +144,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
         </div>
       </section>
 
-      <section className="container-shell mt-16 space-y-20 md:mt-24 md:space-y-28 xl:space-y-36">
+      <section className="container-shell mt-20 space-y-24 md:mt-28 md:space-y-32 xl:space-y-40">
         {chapters.map((chapter, index) => {
           const revealed = !hasMounted || index === 0 || Boolean(visibleKeys[chapter.label]);
           const reverse = index % 2 === 1;
@@ -156,7 +156,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
                 chapterRefs.current[index] = node;
               }}
               data-history-key={chapter.label}
-              className="grid gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14"
+              className="grid gap-10 lg:min-h-[92svh] lg:grid-cols-12 lg:items-center lg:gap-12 xl:gap-16"
             >
               <div className={`lg:col-span-5 ${reverse ? 'lg:order-2' : ''}`}>
                 <div className="lg:sticky lg:top-28">
@@ -166,7 +166,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
                     }`}
                     style={{ borderColor: 'var(--tp-border)' }}
                   >
-                    <div className="relative aspect-[5/5.4] overflow-hidden md:aspect-[5/4.3] lg:aspect-[4/4.8]">
+                    <div className="relative aspect-[5/5.5] overflow-hidden md:aspect-[5/4.4] lg:aspect-[4/4.9]">
                       <Image
                         src={chapter.imageSrc}
                         alt={chapter.image.alt}
@@ -190,7 +190,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
                     0{index + 1}
                   </div>
 
-                  <div className="relative rounded-[2.2rem] border bg-[var(--tp-card)] px-6 py-7 md:px-8 md:py-8 xl:px-10 xl:py-10">
+                  <div className="relative rounded-[2.2rem] border bg-[var(--tp-card)] px-7 py-8 md:px-9 md:py-10 xl:px-12 xl:py-12">
                     <div
                       className="inline-flex rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
                       style={{
@@ -201,22 +201,22 @@ export function HistoryPage({ content }: HistoryPageProps) {
                       {chapter.label}
                     </div>
 
-                    <h2 className="mt-5 max-w-3xl serif-display text-4xl leading-[1.02] tp-heading md:text-5xl xl:text-[3.65rem]">
+                    <h2 className="mt-6 max-w-3xl serif-display text-4xl leading-[1.08] tp-heading md:text-5xl xl:text-[3.65rem]">
                       {chapter.title}
                     </h2>
 
-                    <p className="mt-6 max-w-3xl text-base leading-8 tp-text-soft md:text-lg">
+                    <p className="mt-8 max-w-3xl text-base leading-9 tp-text-soft md:text-lg">
                       {chapter.body}
                     </p>
 
                     <div
-                      className="mt-7 max-w-3xl border-l-2 pl-5 text-lg leading-8 tp-heading md:text-xl"
+                      className="mt-9 max-w-3xl border-l-2 pl-6 text-lg leading-9 tp-heading md:text-xl"
                       style={{ borderColor: 'var(--tp-accent)' }}
                     >
                       {chapter.highlight}
                     </div>
 
-                    <div className="mt-8 flex flex-wrap gap-3">
+                    <div className="mt-10 flex flex-wrap gap-3">
                       {chapter.facts.map((fact) => (
                         <span
                           key={fact}
@@ -239,21 +239,21 @@ export function HistoryPage({ content }: HistoryPageProps) {
         })}
       </section>
 
-      <section className="container-shell mt-20 md:mt-28">
-        <div className="rounded-[2.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-6 py-8 md:px-8 md:py-10 xl:px-10">
+      <section className="container-shell mt-24 md:mt-32 lg:flex lg:min-h-[92svh] lg:items-center">
+        <div className="w-full rounded-[2.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-7 py-10 md:px-10 md:py-12 xl:px-12 xl:py-14">
           <div className="max-w-3xl">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
               {content.galleryEyebrow}
             </div>
-            <h2 className="mt-4 serif-display text-4xl leading-[1.04] tp-heading md:text-5xl">
+            <h2 className="mt-5 serif-display text-4xl leading-[1.08] tp-heading md:text-5xl xl:text-[3.4rem]">
               {content.galleryTitle}
             </h2>
-            <p className="mt-5 max-w-2xl text-base leading-8 tp-text-soft">
+            <p className="mt-6 max-w-2xl text-base leading-9 tp-text-soft">
               {content.galleryIntro}
             </p>
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
             {galleryImages.map((item) => (
               <div
                 key={item.title}
@@ -268,11 +268,11 @@ export function HistoryPage({ content }: HistoryPageProps) {
                     className="object-cover"
                   />
                 </div>
-                <div className="px-5 py-5">
-                  <h3 className="serif-display text-[2rem] leading-[1.05] tp-heading">
+                <div className="px-6 py-6">
+                  <h3 className="serif-display text-[2rem] leading-[1.1] tp-heading">
                     {item.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-7 tp-text-soft">{item.caption}</p>
+                  <p className="mt-4 text-sm leading-8 tp-text-soft">{item.caption}</p>
                 </div>
               </div>
             ))}
@@ -280,18 +280,18 @@ export function HistoryPage({ content }: HistoryPageProps) {
         </div>
       </section>
 
-      <section className="container-shell mt-20 md:mt-28">
-        <div className="rounded-[2.6rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-6 py-10 text-center md:px-10 md:py-14">
+      <section className="container-shell mt-24 md:mt-32 lg:flex lg:min-h-[92svh] lg:items-center">
+        <div className="w-full rounded-[2.6rem] border border-[var(--tp-border)] bg-[var(--tp-card)] px-7 py-12 text-center md:px-12 md:py-16 xl:px-14 xl:py-20">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
             {content.closingEyebrow}
           </div>
-          <h2 className="mx-auto mt-4 max-w-4xl serif-display text-4xl leading-[1.02] tp-heading md:text-5xl xl:text-[3.7rem]">
+          <h2 className="mx-auto mt-5 max-w-4xl serif-display text-4xl leading-[1.08] tp-heading md:text-5xl xl:text-[3.7rem]">
             {content.closingTitle}
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 tp-text-soft md:text-lg">
+          <p className="mx-auto mt-8 max-w-2xl text-base leading-9 tp-text-soft md:text-lg">
             {content.closingBody}
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link href={content.primaryCta.href} className="btn-primary">
               {content.primaryCta.label}
             </Link>

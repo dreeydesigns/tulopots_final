@@ -24,8 +24,8 @@ export default async function Page() {
   const content = await getManagedPageContent('about.page');
 
   return (
-    <main className="tp-page pb-20 pt-24">
-      <section className="container-shell grid gap-8 xl:grid-cols-[0.96fr_1.04fr] xl:items-center">
+    <main className="tp-page pb-28 pt-28 lg:pt-32">
+      <section className="container-shell grid gap-10 lg:min-h-[calc(100svh-7rem)] lg:items-center xl:grid-cols-[0.92fr_1.08fr] xl:gap-20">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.24em] tp-accent">
             {content.eyebrow}
@@ -33,10 +33,10 @@ export default async function Page() {
           <h1 className="mt-4 serif-display text-5xl leading-[0.92] tp-heading md:text-7xl">
             {content.title}
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 tp-text-soft md:text-lg">
+          <p className="mt-8 max-w-xl text-base leading-9 tp-text-soft md:text-lg">
             {content.intro}
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-3">
             <Link href={content.primaryCta.href} className="btn-primary">
               {content.primaryCta.label}
             </Link>
@@ -46,14 +46,14 @@ export default async function Page() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-[1.02fr_0.98fr]">
+        <div className="grid gap-5 sm:grid-cols-[1.02fr_0.98fr]">
           <div className="overflow-hidden rounded-[2.4rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
             <Image
               src={resolveCmsImage(content.heroImage.src)}
               alt={content.heroImage.alt}
               width={1200}
               height={1400}
-              className="h-full min-h-[24rem] w-full object-cover"
+              className="h-full min-h-[30rem] w-full object-cover xl:min-h-[42rem]"
             />
           </div>
           <div className="grid gap-4">
@@ -63,14 +63,14 @@ export default async function Page() {
                 alt={content.studioImage.alt}
                 width={900}
                 height={900}
-                className="h-56 w-full object-cover"
+                className="h-64 w-full object-cover xl:h-80"
               />
             </div>
-            <div className="rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6">
+            <div className="rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-7 xl:p-8">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] tp-accent">
                 {content.highlightEyebrow}
               </div>
-              <p className="mt-3 serif-display text-3xl leading-[1.05] tp-heading">
+              <p className="mt-4 serif-display text-3xl leading-[1.12] tp-heading xl:text-[2.6rem]">
                 {content.highlightTitle}
               </p>
             </div>
@@ -78,59 +78,61 @@ export default async function Page() {
         </div>
       </section>
 
-      <section className="container-shell mt-16">
-        <div className="rounded-[2.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6 md:p-8">
+      <section className="container-shell mt-20 lg:mt-0 lg:flex lg:min-h-[100svh] lg:items-center">
+        <div className="w-full rounded-[2.5rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-7 md:p-10 xl:p-12">
           <div className="mb-8 max-w-2xl">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
               {content.journeyEyebrow}
             </div>
-            <h2 className="mt-4 serif-display text-4xl tp-heading md:text-5xl">
+            <h2 className="mt-5 serif-display text-4xl leading-[1.05] tp-heading md:text-5xl xl:text-[3.6rem]">
               {content.journeyTitle}
             </h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-3">
             {content.journey.map((item) => (
               <div
                 key={item.label}
-                className="rounded-[1.75rem] bg-[var(--tp-surface)] px-5 py-6"
+                className="rounded-[1.75rem] bg-[var(--tp-surface)] px-6 py-7 xl:px-7 xl:py-8"
               >
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] tp-accent">
                   {item.label}
                 </div>
-                <div className="mt-3 serif-display text-3xl tp-heading">{item.title}</div>
-                <p className="mt-4 text-sm leading-7 tp-text-soft">{item.body}</p>
+                <div className="mt-4 serif-display text-3xl leading-[1.08] tp-heading xl:text-[2.35rem]">
+                  {item.title}
+                </div>
+                <p className="mt-5 text-sm leading-8 tp-text-soft">{item.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="container-shell mt-16 grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
-        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6 md:p-8">
+      <section className="container-shell mt-20 grid gap-6 lg:mt-0 lg:min-h-[100svh] lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
+        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-7 md:p-9 xl:p-10">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
             {content.valuesEyebrow}
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap gap-2.5">
             {content.values.map((item) => (
               <span key={item} className="chip">
                 {item}
               </span>
             ))}
           </div>
-          <p className="mt-6 max-w-2xl text-sm leading-8 tp-text-soft">
+          <p className="mt-8 max-w-2xl text-sm leading-9 tp-text-soft">
             {content.valuesBody}
           </p>
         </div>
 
-        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6 md:p-8">
+        <div className="rounded-[2.25rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-7 md:p-9 xl:p-10">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
             {content.continueEyebrow}
           </div>
-          <p className="mt-5 serif-display text-4xl leading-[1.04] tp-heading">
+          <p className="mt-6 serif-display text-4xl leading-[1.08] tp-heading xl:text-[3.35rem]">
             {content.continueTitle}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-3">
             <Link href={content.continuePrimaryCta.href} className="btn-primary">
               {content.continuePrimaryCta.label}
             </Link>

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  ArrowLeft,
   Search,
   ShoppingCart,
   LogOut,
@@ -15,52 +14,86 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useStore } from './Providers';
 
-function resolveFallbackRoute(pathname: string) {
-  const firstSegment = pathname.split('/')[1] || '';
+const BREADCRUMB_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  content: 'Content',
+  newsletter: 'Newsletter Workspace',
+  profile: 'Profile',
+  settings: 'Settings',
+  search: 'Search',
+  about: 'About',
+  contact: 'Contact Us',
+  indoor: 'For Interior Spaces',
+  outdoor: 'For Open Spaces',
+  pots: 'Clay Forms',
+  faq: 'Help',
+  'care-guide': 'Care Guide',
+  delivery: 'Track an Order',
+  'delivery-returns': 'Delivery & Returns',
+  'privacy-policy': 'Privacy Policy',
+  'cookie-policy': 'Cookie Policy',
+  terms: 'Terms',
+  launch: 'Launch',
+  new: 'Our History',
+  limited: 'Limited',
+  studio: 'Studio',
+  inbox: 'Inbox',
+  journal: 'Journal',
+  cart: 'Cart',
+  progress: 'Progress',
+};
 
-  if (pathname === '/admin') return '/';
-  if (pathname.startsWith('/admin/')) return '/admin';
-  if (pathname.startsWith('/product/')) return '/pots';
-  if (pathname.startsWith('/journal/')) return '/journal';
-  if (pathname.startsWith('/studio/inbox')) return '/admin';
-  if (pathname.startsWith('/studio')) return '/';
-  if (pathname.startsWith('/checkout')) return '/cart';
-  if (pathname.startsWith('/order-confirmation')) return '/cart';
-
-  switch (firstSegment) {
-    case 'cart':
-      return '/pots';
-    case 'journal':
-      return '/journal';
-    case 'profile':
-    case 'settings':
-    case 'search':
-    case 'about':
-    case 'contact':
-    case 'indoor':
-    case 'outdoor':
-    case 'pots':
-    case 'faq':
-    case 'care-guide':
-    case 'delivery':
-    case 'delivery-returns':
-    case 'privacy-policy':
-    case 'cookie-policy':
-    case 'terms':
-    case 'launch':
-    case 'new':
-    case 'limited':
-      return '/';
-    default:
-      return '/';
-  }
+function titleCase(value: string) {
+  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function isInternalBackTarget(route: string, currentRoute: string) {
-  return Boolean(route) && route.startsWith('/') && route !== currentRoute;
+function labelForSegment(
+  segment: string,
+  segments: string[],
+  index: number,
+  pathname: string
+) {
+  if (segments[0] === 'product') {
+    return index === 0 ? 'Clay Forms' : 'Product';
+  }
+
+  if (segments[0] === 'journal') {
+    return index === 0 ? 'Journal' : 'Article';
+  }
+
+  if (segments[0] === 'admin' && segment === 'studio') {
+    return 'Studio';
+  }
+
+  if (segments[0] === 'studio' && segment === 'inbox') {
+    return 'Inbox';
+  }
+
+  if (pathname === '/order-confirmation') {
+    return index === 0 ? 'Cart' : 'Order Confirmation';
+  }
+
+  return BREADCRUMB_LABELS[segment] || titleCase(segment.replace(/-/g, ' '));
+}
+
+function buildBreadcrumbs(pathname: string): Array<[string, string]> {
+  if (pathname === '/') {
+    return [];
+  }
+
+  const segments = pathname.split('/').filter(Boolean);
+  const items: Array<[string, string]> = [['Home', '/']];
+  let path = '';
+
+  segments.forEach((segment, index) => {
+    path += `/${segment}`;
+    items.push([labelForSegment(segment, segments, index, pathname), path]);
+  });
+
+  return items;
 }
 
 export function Nav() {
@@ -75,22 +108,17 @@ export function Nav() {
     setTheme,
   } = useStore();
 
-  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isTinyViewport, setIsTinyViewport] = useState(false);
-  const [previousRoute, setPreviousRoute] = useState('');
-
-  const currentSearch = searchParams.toString();
-  const currentRoute = currentSearch ? `${pathname}?${currentSearch}` : pathname;
 
   const count = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart]
   );
+  const breadcrumbItems = useMemo(() => buildBreadcrumbs(pathname), [pathname]);
 
   const links = [
     { label: 'Home', href: '/', visible: true },
@@ -121,10 +149,6 @@ export function Nav() {
   const isLoggedOutHome = isHome && !isLoggedIn;
   const isLoggedInHome = isHome && isLoggedIn;
   const isInternalPage = !isHome;
-  const fallbackRoute = resolveFallbackRoute(pathname);
-  const backTarget = isInternalBackTarget(previousRoute, currentRoute)
-    ? previousRoute
-    : fallbackRoute;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -167,24 +191,6 @@ export function Nav() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const storedCurrent = window.sessionStorage.getItem('tp-current-route') || '';
-    const storedPrevious = window.sessionStorage.getItem('tp-previous-route') || '';
-
-    if (storedCurrent && storedCurrent !== currentRoute) {
-      window.sessionStorage.setItem('tp-previous-route', storedCurrent);
-    }
-
-    window.sessionStorage.setItem('tp-current-route', currentRoute);
-
-    const nextPrevious =
-      storedCurrent && storedCurrent !== currentRoute ? storedCurrent : storedPrevious;
-
-    setPreviousRoute(nextPrevious !== currentRoute ? nextPrevious : '');
-  }, [currentRoute]);
-
   let headerClass = '';
   if (isLoggedOutHome) {
     headerClass = isScrolled
@@ -225,20 +231,13 @@ export function Nav() {
   const mobileBackdropClass = isLightSurface
     ? 'bg-[rgba(247,242,234,0.24)] backdrop-blur-xl'
     : 'bg-[rgba(10,6,4,0.28)] backdrop-blur-xl';
-
-  function handleBack() {
-    setMenuOpen(false);
-    setAccountOpen(false);
-    router.push(backTarget);
-  }
-
   return (
     <>
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-300 ${resolvedHeaderClass}`}
       >
         <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-4 sm:px-6 md:px-10">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <button
               onClick={() => setMenuOpen((s) => !s)}
               className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 transition lg:hidden ${ghostButtonClass}`}
@@ -247,29 +246,51 @@ export function Nav() {
               {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
 
-            {isInternalPage ? (
-              <button
-                type="button"
-                onClick={handleBack}
-                className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full border px-3 py-2.5 transition ${ghostButtonClass}`}
-                aria-label="Go back"
-                title="Go back"
+            <div className="min-w-0">
+              <Link
+                href="/"
+                className={`serif-display text-[1.9rem] tracking-tight transition sm:text-3xl ${brandClass}`}
               >
-                <ArrowLeft className="h-4 w-4" />
-                {!isTinyViewport ? (
-                  <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] sm:inline">
-                    Back
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
+                Tulo<span className={accentClass}>Pots</span>
+              </Link>
 
-            <Link
-              href="/"
-              className={`serif-display text-[1.9rem] tracking-tight transition sm:text-3xl ${brandClass}`}
-            >
-              Tulo<span className={accentClass}>Pots</span>
-            </Link>
+              {isInternalPage ? (
+                <nav
+                  aria-label="Breadcrumb"
+                  className={`mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-medium uppercase tracking-[0.16em] ${
+                    isLightSurface ? 'tp-text-muted' : 'text-white/68'
+                  }`}
+                >
+                  {breadcrumbItems.map(([label, href], index) => {
+                    const isLast = index === breadcrumbItems.length - 1;
+
+                    return (
+                      <span key={href} className="flex min-w-0 items-center gap-2">
+                        {isLast ? (
+                          <span
+                            className={`truncate ${
+                              isLightSurface ? 'tp-heading' : 'text-white'
+                            }`}
+                          >
+                            {label}
+                          </span>
+                        ) : (
+                          <Link
+                            href={href}
+                            className={`truncate transition ${
+                              isLightSurface ? 'hover:tp-heading' : 'hover:text-white'
+                            }`}
+                          >
+                            {label}
+                          </Link>
+                        )}
+                        {!isLast ? <span>/</span> : null}
+                      </span>
+                    );
+                  })}
+                </nav>
+              ) : null}
+            </div>
           </div>
 
           <nav className="hidden items-center gap-7 lg:flex">
