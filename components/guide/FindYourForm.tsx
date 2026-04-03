@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
 import { useStore } from '@/components/Providers';
 import { PotMark } from '@/components/PotMark';
 import { GuideQuestion } from './GuideQuestion';
@@ -9,7 +10,7 @@ import { GuideTimer } from './GuideTimer';
 
 const LOCAL_GUIDE_KEY = 'tulopots_guide_seen';
 const SESSION_GUIDE_KEY = 'tulopots_guide_prompted';
-const TIMER_SECONDS = 8;
+const TIMER_SECONDS = 15;
 
 const QUESTIONS = [
   {
@@ -58,6 +59,7 @@ export function FindYourForm() {
   const [phase, setPhase] = useState<Phase>('hidden');
   const [questionIndex, setQuestionIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const timers = useRef<number[]>([]);
   const startedAt = useRef(0);
@@ -81,12 +83,13 @@ export function FindYourForm() {
     startedAt.current = Date.now();
     setSecondsLeft(TIMER_SECONDS);
     setQuestionIndex(0);
+    setHasInteracted(false);
     setAnswers({});
     setPhase('questions');
   }, [hasSeenGuide, isLoggedIn, phase]);
 
   useEffect(() => {
-    if (!isOpen || phase !== 'questions') {
+    if (!isOpen || phase !== 'questions' || hasInteracted) {
       return;
     }
 
@@ -104,7 +107,7 @@ export function FindYourForm() {
     return () => {
       window.clearInterval(interval);
     };
-  }, [isOpen, phase]);
+  }, [hasInteracted, isOpen, phase]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -170,6 +173,7 @@ export function FindYourForm() {
   }
 
   function handleSelect(value: string) {
+    setHasInteracted(true);
     const key = QUESTIONS[questionIndex].key;
     const nextAnswers = { ...answers, [key]: value } as Answers;
 
@@ -220,8 +224,27 @@ export function FindYourForm() {
           }}
         >
           <div className="mx-auto flex max-w-[420px] flex-col">
-            <div className="flex justify-center">
-              <PotMark className="h-10 w-10 text-[var(--tp-accent)]" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="w-10" />
+              <div className="flex justify-center">
+                <PotMark className="h-10 w-10 text-[var(--tp-accent)]" />
+              </div>
+              <button
+                type="button"
+                onClick={dismissGuide}
+                aria-label="Close Find Your Form"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border transition"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--tp-accent) 28%, transparent 72%)',
+                  background:
+                    theme === 'dark'
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(20,12,8,0.03)',
+                  color: 'var(--tp-accent)',
+                }}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             {phase === 'questions' ? (
@@ -265,7 +288,11 @@ export function FindYourForm() {
                     I know what I want
                   </button>
 
-                  <GuideTimer secondsLeft={secondsLeft} duration={TIMER_SECONDS} />
+                  <GuideTimer
+                    secondsLeft={secondsLeft}
+                    duration={TIMER_SECONDS}
+                    paused={hasInteracted}
+                  />
                 </div>
               </>
             ) : (
