@@ -34,6 +34,9 @@ export default async function AdminNewsletterPage() {
     <NewsletterWorkspace
       hubspot={{
         enabled: hubspot.enabled,
+        hasListId: hubspot.hasListId,
+        portalId: hubspot.portalId,
+        listId: hubspot.listId,
         manageUrl: hubspot.manageUrl,
         listsUrl: hubspot.listsUrl,
         contactsUrl: hubspot.contactsUrl,

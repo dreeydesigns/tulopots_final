@@ -18,6 +18,9 @@ type NewsletterArticle = {
 
 type HubSpotMarketingConfig = {
   enabled: boolean;
+  hasListId: boolean;
+  portalId: string | null;
+  listId: string | null;
   manageUrl: string;
   listsUrl: string;
   contactsUrl: string;
@@ -93,6 +96,40 @@ export function NewsletterWorkspace({
         </div>
 
         <div className="mt-8 rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-5 md:p-6">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <span
+              className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{
+                background: hubspot.enabled
+                  ? 'var(--tp-accent-soft)'
+                  : 'color-mix(in srgb, var(--tp-surface) 88%, transparent 12%)',
+                color: hubspot.enabled ? 'var(--tp-accent)' : 'var(--tp-heading)',
+              }}
+            >
+              {hubspot.enabled ? 'HubSpot Connected' : 'HubSpot Needs Setup'}
+            </span>
+
+            {hubspot.enabled && hubspot.hasListId ? (
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                style={{
+                  background: 'color-mix(in srgb, var(--tp-accent-soft) 70%, transparent 30%)',
+                  color: 'var(--tp-accent)',
+                }}
+              >
+                List Ready
+              </span>
+            ) : null}
+
+            {hubspot.portalId ? (
+              <span className="text-xs text-[var(--tp-text)]/68">Portal ID: {hubspot.portalId}</span>
+            ) : null}
+
+            {hubspot.listId ? (
+              <span className="text-xs text-[var(--tp-text)]/68">List ID: {hubspot.listId}</span>
+            ) : null}
+          </div>
+
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent)]">
@@ -154,9 +191,36 @@ export function NewsletterWorkspace({
           </div>
 
           {!hubspot.enabled ? (
-            <div className="mt-5 rounded-[1.5rem] bg-[var(--tp-surface)] px-4 py-4 text-sm leading-7 text-[var(--tp-text)]/72">
-              HubSpot is not connected yet. Add `HUBSPOT_PRIVATE_APP_TOKEN`,
-              `HUBSPOT_NEWSLETTER_LIST_ID`, and `HUBSPOT_PORTAL_ID` in Vercel, then reopen this page.
+            <div className="mt-5 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent)]">
+                Connect HubSpot
+              </div>
+              <div className="mt-3 space-y-3 text-sm leading-7 text-[var(--tp-text)]/72">
+                <p>Use this quick path so TuloPots newsletter signups start flowing into HubSpot.</p>
+                <p>1. Open HubSpot.</p>
+                <p>2. Click the settings icon in the top bar.</p>
+                <p>3. In the left menu, click `Integrations`, then `Private Apps`.</p>
+                <p>4. Create a private app and turn on: contacts read, contacts write, lists read, lists write.</p>
+                <p>5. Copy the private app token.</p>
+                <p>6. In HubSpot, open `Contacts`, then `Lists`, and create your newsletter list.</p>
+                <p>7. Copy the List ID and Portal ID.</p>
+                <p>8. In Vercel, open `Settings`, then `Environment Variables`, and add:</p>
+              </div>
+              <pre className="mt-4 overflow-auto rounded-[1rem] bg-[var(--tp-card)] p-4 text-xs leading-6 text-[var(--tp-text)]/78">
+HUBSPOT_PRIVATE_APP_TOKEN=...
+HUBSPOT_NEWSLETTER_LIST_ID=...
+HUBSPOT_PORTAL_ID=...
+HUBSPOT_APP_BASE_URL=https://app.hubspot.com
+              </pre>
+              <div className="mt-4 text-sm leading-7 text-[var(--tp-text)]/72">
+                After you save them in Vercel, redeploy once, then come back here and click the HubSpot links.
+              </div>
+            </div>
+          ) : !hubspot.hasListId ? (
+            <div className="mt-5 rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4 text-sm leading-7 text-[var(--tp-text)]/72">
+              HubSpot is connected, but the newsletter list is still missing. Add
+              `HUBSPOT_NEWSLETTER_LIST_ID` in Vercel, redeploy, then this page will be ready for
+              direct list syncing.
             </div>
           ) : null}
         </div>

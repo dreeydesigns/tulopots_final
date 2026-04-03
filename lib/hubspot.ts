@@ -18,14 +18,43 @@ function trimTrailingSlash(value: string) {
 
 function getHubSpotAppBaseUrl() {
   return trimTrailingSlash(
-    process.env.HUBSPOT_APP_BASE_URL || 'https://app.hubspot.com'
+    process.env.HUBSPOT_APP_BASE_URL ||
+      process.env.HUBSPOT_BASE_URL ||
+      'https://app.hubspot.com'
+  );
+}
+
+function getHubSpotAccessToken() {
+  return (
+    process.env.HUBSPOT_PRIVATE_APP_TOKEN ||
+    process.env.HUBSPOT_ACCESS_TOKEN ||
+    process.env.HUBSPOT_TOKEN ||
+    ''
+  );
+}
+
+function getHubSpotPortalId() {
+  return (
+    process.env.HUBSPOT_PORTAL_ID ||
+    process.env.HUBSPOT_ACCOUNT_ID ||
+    process.env.HUBSPOT_PORTAL ||
+    ''
+  );
+}
+
+function getHubSpotListId() {
+  return (
+    process.env.HUBSPOT_NEWSLETTER_LIST_ID ||
+    process.env.HUBSPOT_LIST_ID ||
+    process.env.HUBSPOT_NEWSLETTER_LIST ||
+    ''
   );
 }
 
 export function getHubSpotConfig() {
-  const accessToken = process.env.HUBSPOT_PRIVATE_APP_TOKEN || '';
-  const portalId = process.env.HUBSPOT_PORTAL_ID || '';
-  const listId = process.env.HUBSPOT_NEWSLETTER_LIST_ID || '';
+  const accessToken = getHubSpotAccessToken();
+  const portalId = getHubSpotPortalId();
+  const listId = getHubSpotListId();
 
   return {
     provider: 'hubspot' as const,
@@ -66,7 +95,7 @@ function normalizeEmail(email: string) {
 }
 
 async function hubSpotFetch<T>(path: string, init: RequestInit) {
-  const token = process.env.HUBSPOT_PRIVATE_APP_TOKEN;
+  const token = getHubSpotAccessToken();
 
   if (!token) {
     throw new Error('HubSpot private app token is missing.');
