@@ -1,6 +1,7 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 
 import { Nav } from '../components/Nav';
 import { Footer } from '../components/Footer';
@@ -116,6 +117,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Footer />
           <CookieBanner />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
