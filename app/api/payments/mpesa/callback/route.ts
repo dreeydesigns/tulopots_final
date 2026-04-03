@@ -1,6 +1,6 @@
 // ─── M-Pesa STK Callback Handler ──────────────────────────────────────────────
 // Safaricom calls this URL after the customer completes (or cancels) payment.
-// Set MPESA_CALLBACK_URL=https://YOUR_RAILWAY_DOMAIN/api/payments/mpesa/callback
+// Set MPESA_CALLBACK_URL=https://YOUR_DOMAIN/api/payments/mpesa/callback
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';

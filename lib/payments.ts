@@ -51,7 +51,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
 
   if (!secretKey) {
     throw new Error(
-      'Missing STRIPE_SECRET_KEY. Add it in Railway Variables before taking card payments live.'
+      'Missing STRIPE_SECRET_KEY. Add it to your deployment environment before taking card payments live.'
     );
   }
 

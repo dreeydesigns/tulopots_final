@@ -4,6 +4,11 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
 
+function asHttpsUrl(hostname?: string | null) {
+  const value = String(hostname || '').trim();
+  return value ? `https://${value.replace(/^https?:\/\//, '')}` : null;
+}
+
 function parseOrigin(value?: string | null) {
   if (!value) {
     return null;
@@ -17,8 +22,14 @@ function parseOrigin(value?: string | null) {
 }
 
 export function getSiteUrlFallback() {
+  const vercelProductionUrl =
+    asHttpsUrl(process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL) ||
+    asHttpsUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+
   return trimTrailingSlash(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://tulopots.com'
+    process.env.NEXT_PUBLIC_SITE_URL ||
+      vercelProductionUrl ||
+      'https://tulopots.com'
   );
 }
 

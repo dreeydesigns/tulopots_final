@@ -1,0 +1,9 @@
+.git
+.next
+.codex
+.vscode
+node_modules
+build-debug.log
+tsconfig.tsbuildinfo
+DEPLOY.md
+railway.toml

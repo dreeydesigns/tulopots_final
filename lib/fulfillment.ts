@@ -6,6 +6,7 @@ export type TrackingEntry = {
   label: string;
   detail: string;
   createdAt: string;
+  kind?: string;
 };
 
 export type NotificationEntry = {
@@ -15,6 +16,7 @@ export type NotificationEntry = {
   status: 'queued';
   createdAt: string;
   target?: string | null;
+  kind?: string;
 };
 
 type NotificationUser = {
@@ -113,33 +115,13 @@ function buildTrackingCopy(status: string, isCustomOrder: boolean) {
   }
 }
 
-export function appendTrackingEntry(
-  current: Prisma.JsonValue | null | undefined,
-  status: string,
-  isCustomOrder: boolean,
-  createdAt = new Date()
-) {
-  const nextEntry = {
-    status,
-    createdAt: createdAt.toISOString(),
-    ...buildTrackingCopy(status, isCustomOrder),
-  } satisfies TrackingEntry;
-
-  return [...readTrackingTimeline(current), nextEntry];
-}
-
-export function buildNotificationEntries(
+function resolveNotificationChannels(
   order: {
-    orderNumber: string;
     customerEmail: string;
     customerPhone: string;
-    status: string;
-    isCustomOrder: boolean;
   },
-  user?: NotificationUser | null,
-  createdAt = new Date()
+  user?: NotificationUser | null
 ) {
-  const copy = buildTrackingCopy(order.status, order.isCustomOrder);
   const channels = new Set<NotificationEntry['channel']>();
 
   if (user?.emailNotifications !== false && order.customerEmail) {
@@ -158,17 +140,100 @@ export function buildNotificationEntries(
     channels.add('email');
   }
 
-  return Array.from(channels).map((channel) => ({
+  return Array.from(channels);
+}
+
+export function appendTrackingEntry(
+  current: Prisma.JsonValue | null | undefined,
+  status: string,
+  isCustomOrder: boolean,
+  createdAt = new Date()
+) {
+  const nextEntry = {
+    status,
+    createdAt: createdAt.toISOString(),
+    kind: 'order_status',
+    ...buildTrackingCopy(status, isCustomOrder),
+  } satisfies TrackingEntry;
+
+  return [...readTrackingTimeline(current), nextEntry];
+}
+
+export function appendUniqueTrackingEntry(
+  current: Prisma.JsonValue | null | undefined,
+  entry: TrackingEntry,
+  matcher?: (existing: TrackingEntry) => boolean
+) {
+  const existing = readTrackingTimeline(current);
+  const exists = matcher
+    ? existing.some(matcher)
+    : existing.some(
+        (item) =>
+          item.status === entry.status &&
+          item.label === entry.label &&
+          item.kind === entry.kind
+      );
+
+  return exists ? existing : [...existing, entry];
+}
+
+export function buildCustomNotificationEntries(
+  input: {
+    customerEmail: string;
+    customerPhone: string;
+    subject: string;
+    detail: string;
+    kind?: string;
+  },
+  user?: NotificationUser | null,
+  createdAt = new Date()
+) {
+  const channels = resolveNotificationChannels(
+    {
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+    },
+    user
+  );
+
+  return channels.map((channel) => ({
     channel,
-    subject: `${copy.label} · ${order.orderNumber}`,
-    detail: copy.detail,
+    subject: input.subject,
+    detail: input.detail,
+    kind: input.kind || 'custom',
     status: 'queued' as const,
     createdAt: createdAt.toISOString(),
     target:
       channel === 'email'
-        ? order.customerEmail
-        : order.customerPhone || user?.phone || null,
+        ? input.customerEmail
+        : input.customerPhone || user?.phone || null,
   }));
+}
+
+export function buildNotificationEntries(
+  order: {
+    orderNumber: string;
+    customerEmail: string;
+    customerPhone: string;
+    status: string;
+    isCustomOrder: boolean;
+  },
+  user?: NotificationUser | null,
+  createdAt = new Date()
+) {
+  const copy = buildTrackingCopy(order.status, order.isCustomOrder);
+
+  return buildCustomNotificationEntries(
+    {
+      customerEmail: order.customerEmail,
+      customerPhone: order.customerPhone,
+      subject: `${copy.label} · ${order.orderNumber}`,
+      detail: copy.detail,
+      kind: 'order_status',
+    },
+    user,
+    createdAt
+  );
 }
 
 export function appendNotificationEntries(
@@ -176,4 +241,35 @@ export function appendNotificationEntries(
   entries: NotificationEntry[]
 ) {
   return [...readNotificationLog(current), ...entries];
+}
+
+function notificationSignature(entry: NotificationEntry) {
+  return [
+    entry.kind || 'legacy',
+    entry.channel,
+    entry.subject,
+    entry.target || '',
+  ].join('::');
+}
+
+export function appendUniqueNotificationEntries(
+  current: Prisma.JsonValue | null | undefined,
+  entries: NotificationEntry[]
+) {
+  const existing = readNotificationLog(current);
+  const seen = new Set(existing.map(notificationSignature));
+  const next = [...existing];
+
+  for (const entry of entries) {
+    const signature = notificationSignature(entry);
+
+    if (seen.has(signature)) {
+      continue;
+    }
+
+    seen.add(signature);
+    next.push(entry);
+  }
+
+  return next;
 }

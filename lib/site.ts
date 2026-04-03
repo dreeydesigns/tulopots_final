@@ -1,3 +1,8 @@
+function asHttpsUrl(hostname?: string | null) {
+  const value = String(hostname || '').trim();
+  return value ? `https://${value.replace(/^https?:\/\//, '')}` : null;
+}
+
 export const BRAND = {
   name: 'TuloPots',
   tagline: 'Handcrafted Terracotta from Kenya',
@@ -6,7 +11,11 @@ export const BRAND = {
   emailSecondary: 'tulopots@outlook.com'
 };
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tulopots.com';
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  asHttpsUrl(process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL) ||
+  asHttpsUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+  'https://tulopots.com';
 
 export const imageByKey = {
   hero: '/images/catalog/workshop-pottery-shelf.jpg',

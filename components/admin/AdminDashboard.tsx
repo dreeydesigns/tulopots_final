@@ -195,6 +195,20 @@ type DashboardResponse = {
   error?: string;
 };
 
+type AutomationResponse = {
+  ok: boolean;
+  summary?: {
+    processedAt: string;
+    advancedOrders: number;
+    advancedOrderNumbers: string[];
+    deliveryCheckInsQueued: number;
+    deliveryCheckInOrders: string[];
+    reviewRequestsQueued: number;
+    reviewRequestOrders: string[];
+  };
+  error?: string;
+};
+
 type ProductFormState = {
   name: string;
   slug: string;
@@ -367,6 +381,7 @@ export function AdminDashboard({ user }: { user: User }) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [automationMessage, setAutomationMessage] = useState('');
   const [lastLoadedAt, setLastLoadedAt] = useState('');
   const [pendingKey, setPendingKey] = useState<string | null>(null);
 
@@ -434,6 +449,48 @@ export function AdminDashboard({ user }: { user: User }) {
   useEffect(() => {
     void loadDashboard();
   }, []);
+
+  async function runAutomationPass() {
+    try {
+      setPendingKey('automation:operations');
+      setError('');
+      setAutomationMessage('');
+
+      const response = await fetch('/api/admin/automation', {
+        method: 'POST',
+      });
+      const data = (await response.json()) as AutomationResponse;
+
+      if (!response.ok || !data.ok || !data.summary) {
+        setError(data.error || 'Unable to run the operations pass.');
+        return;
+      }
+
+      const nextParts = [
+        data.summary.advancedOrders
+          ? `${data.summary.advancedOrders} order${data.summary.advancedOrders === 1 ? '' : 's'} advanced`
+          : '',
+        data.summary.deliveryCheckInsQueued
+          ? `${data.summary.deliveryCheckInsQueued} delivery check-in${data.summary.deliveryCheckInsQueued === 1 ? '' : 's'} queued`
+          : '',
+        data.summary.reviewRequestsQueued
+          ? `${data.summary.reviewRequestsQueued} review request${data.summary.reviewRequestsQueued === 1 ? '' : 's'} queued`
+          : '',
+      ].filter(Boolean);
+
+      setAutomationMessage(
+        nextParts.length
+          ? `${nextParts.join(' · ')}.`
+          : 'No due automation actions were found in this pass.'
+      );
+
+      await loadDashboard();
+    } catch {
+      setError('Unable to run the operations pass.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
 
   const selectedOrder = useMemo(
     () => dashboard?.orders.find((order) => order.id === selectedOrderId) || null,
@@ -1063,6 +1120,32 @@ export function AdminDashboard({ user }: { user: User }) {
                         subtitle="Move directly into the highest-frequency controls."
                       >
                         <div className="grid gap-3">
+                          <button
+                            type="button"
+                            onClick={() => void runAutomationPass()}
+                            disabled={pendingKey === 'automation:operations'}
+                            className="rounded-[1.25rem] px-4 py-4 text-left text-sm font-semibold disabled:opacity-60"
+                            style={{
+                              background: 'var(--tp-accent)',
+                              color: 'var(--tp-btn-primary-text)',
+                            }}
+                          >
+                            {pendingKey === 'automation:operations'
+                              ? 'Running operations pass...'
+                              : 'Run operations pass'}
+                          </button>
+                          {automationMessage ? (
+                            <div
+                              className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                                color: 'var(--tp-heading)',
+                              }}
+                            >
+                              {automationMessage}
+                            </div>
+                          ) : null}
                           {[
                             ['Add a product', 'products'],
                             ['Review newest order', 'orders'],
