@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { ContentWorkspace } from '@/components/admin/ContentWorkspace';
 import { AdminLoginPanel } from '@/components/admin/AdminLoginPanel';
 import { getCurrentUser } from '@/lib/auth';
+import { listManagedPages } from '@/lib/cms';
 
 export const metadata = {
   title: 'Admin Content | TuloPots',
@@ -19,5 +20,7 @@ export default async function AdminContentPage() {
     redirect('/');
   }
 
-  return <AdminDashboard user={user} initialTab="content" />;
+  const pages = await listManagedPages();
+
+  return <ContentWorkspace initialPages={pages} />;
 }

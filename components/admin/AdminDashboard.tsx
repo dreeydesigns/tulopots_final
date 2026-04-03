@@ -2507,7 +2507,7 @@ export function AdminDashboard({
                     <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
                       <PanelShell
                         title="Managed pages"
-                        subtitle="Choose a page to edit its live JSON payload. Arrays let you add, remove, and reorder sections."
+                        subtitle="Choose a page, then open the structured content workspace to update text, images, and repeated sections without touching code."
                       >
                         <div className="mb-4 flex flex-wrap gap-3">
                           <Link
@@ -2562,7 +2562,7 @@ export function AdminDashboard({
 
                       <PanelShell
                         title="Page editor"
-                        subtitle="Edit the selected page payload directly. Save writes to the database and updates the live page."
+                        subtitle="Use the dedicated content workspace for clean text fields, image uploads, and section-by-section editing."
                       >
                         {selectedManagedPage ? (
                           <div className="space-y-4">
@@ -2596,58 +2596,30 @@ export function AdminDashboard({
                               </div>
                             </div>
 
-                            <label className="block">
-                              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}>
-                                Page JSON
-                              </span>
-                              <textarea
-                                value={managedPageEditor}
-                                onChange={(event) => setManagedPageEditor(event.target.value)}
-                                spellCheck={false}
-                                rows={26}
-                                className="w-full rounded-[1.5rem] border px-4 py-4 text-sm outline-none"
-                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)', fontFamily: 'Consolas, Monaco, monospace' }}
-                              />
-                            </label>
+                            <div className="rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)' }}>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--tp-accent)' }}>
+                                Workspace note
+                              </div>
+                              <div className="mt-3 text-sm leading-7 tp-text-soft">
+                                Edit this page with normal text fields, section cards, and image upload controls in the Content Workspace. Changes there save directly to the live page without needing JSON or code.
+                              </div>
+                            </div>
 
                             <div className="flex flex-wrap gap-3">
-                              <button
-                                type="button"
-                                onClick={() => void saveManagedPage()}
-                                disabled={!selectedManagedPage || pendingKey === `page:${selectedManagedPage.key}`}
-                                className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                              <Link
+                                href="/admin/content"
+                                className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
                                 style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
                               >
-                                {selectedManagedPage && pendingKey === `page:${selectedManagedPage.key}` ? 'Saving...' : 'Save page'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (selectedManagedPage) {
-                                    setManagedPageEditor(prettyJson(selectedManagedPage.payload));
-                                    setManagedPageMessage('Reverted to the last saved version.');
-                                    setError('');
-                                  }
-                                }}
+                                Open Content Workspace
+                              </Link>
+                              <Link
+                                href="/admin/newsletter"
                                 className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
                                 style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
                               >
-                                Revert changes
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (selectedManagedPage) {
-                                    setManagedPageEditor(prettyJson(selectedManagedPage.defaultPayload));
-                                    setManagedPageMessage('Loaded the original template for this page.');
-                                    setError('');
-                                  }
-                                }}
-                                className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
-                              >
-                                Load default template
-                              </button>
+                                Open Newsletter Workspace
+                              </Link>
                             </div>
 
                             {managedPageMessage ? (

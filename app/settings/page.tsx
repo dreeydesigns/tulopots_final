@@ -42,6 +42,56 @@ function inputStyle() {
   };
 }
 
+function BinaryToggle({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4 border-b border-[var(--tp-border)] py-4 last:border-0 md:flex-row md:items-center md:justify-between">
+      <div>
+        <div className="text-sm font-medium tp-heading">{label}</div>
+        <div className="text-xs leading-6 tp-text-muted">{description}</div>
+      </div>
+
+      <div className="flex min-w-[180px] items-center gap-3">
+        {[
+          { label: 'Off', nextValue: false },
+          { label: 'On', nextValue: true },
+        ].map((option) => {
+          const active = value === option.nextValue;
+
+          return (
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => onChange(option.nextValue)}
+              aria-pressed={active}
+              className="min-h-[44px] flex-1 rounded-full border px-4 py-3 text-sm font-semibold transition"
+              style={{
+                borderColor: active ? 'var(--tp-accent)' : 'var(--tp-border)',
+                background: active ? 'var(--tp-accent)' : 'var(--tp-surface)',
+                color: active ? 'var(--tp-btn-primary-text)' : 'var(--tp-heading)',
+                boxShadow: active
+                  ? '0 12px 24px color-mix(in srgb, var(--tp-accent) 22%, transparent 78%)'
+                  : 'none',
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { isLoggedIn, user, theme, setTheme, setShowAuthModal, setUser } = useStore();
   const [saved, setSaved] = useState('');
@@ -504,71 +554,13 @@ export default function SettingsPage() {
             </div>
 
             {toggles.map((item) => (
-              <div
+              <BinaryToggle
                 key={item.label}
-                className="flex items-center justify-between gap-4 border-b border-[var(--tp-border)] py-3 last:border-0"
-              >
-                <div>
-                  <div className="text-sm font-medium tp-heading">{item.label}</div>
-                  <div className="text-xs leading-6 tp-text-muted">
-                    {item.description}
-                  </div>
-                </div>
-                <div className="flex min-w-[92px] flex-col items-end gap-2">
-                  <span
-                    className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                    style={{
-                      background: item.value
-                        ? 'var(--tp-accent-soft)'
-                        : 'color-mix(in srgb, var(--tp-surface) 84%, transparent 16%)',
-                      color: item.value ? 'var(--tp-accent)' : 'var(--tp-text)',
-                    }}
-                  >
-                    {item.value ? 'On' : 'Off'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => item.setValue(!item.value)}
-                    aria-pressed={item.value}
-                    aria-label={`${item.value ? 'Turn off' : 'Turn on'} ${item.label}`}
-                    className="relative h-9 w-[78px] rounded-full border transition-all"
-                    style={{
-                      background: item.value
-                        ? 'var(--tp-accent)'
-                        : 'color-mix(in srgb, var(--tp-border-strong) 78%, var(--tp-bg) 22%)',
-                      borderColor: item.value ? 'var(--tp-accent)' : 'var(--tp-border)',
-                      boxShadow: item.value
-                        ? '0 10px 24px color-mix(in srgb, var(--tp-accent) 28%, transparent 72%)'
-                        : 'none',
-                    }}
-                  >
-                    <span
-                      className={`absolute inset-y-0 left-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity ${
-                        item.value ? 'opacity-100' : 'opacity-0'
-                      }`}
-                      style={{ color: 'var(--tp-btn-primary-text)' }}
-                    >
-                      On
-                    </span>
-                    <span
-                      className={`absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity ${
-                        item.value ? 'opacity-0' : 'opacity-100'
-                      }`}
-                      style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}
-                    >
-                      Off
-                    </span>
-                    <span
-                      className={`absolute top-0.5 h-7 w-7 rounded-full shadow transition-transform ${
-                        item.value ? 'translate-x-[46px]' : 'translate-x-0.5'
-                      }`}
-                      style={{
-                        background: item.value ? 'var(--tp-btn-primary-text)' : '#ffffff',
-                      }}
-                    />
-                  </button>
-                </div>
-              </div>
+                label={item.label}
+                description={item.description}
+                value={item.value}
+                onChange={item.setValue}
+              />
             ))}
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
