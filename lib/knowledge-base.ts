@@ -4,8 +4,10 @@ import {
   getManagedPageContent,
   type ManagedPageKey,
 } from '@/lib/cms';
+import { getEditorialArticles } from '@/lib/editorial-articles';
 
 export type KnowledgeCategory =
+  | 'articles'
   | 'products'
   | 'delivery'
   | 'care'
@@ -17,7 +19,7 @@ export type KnowledgeCategory =
 export type KnowledgeEntry = {
   id: string;
   category: KnowledgeCategory;
-  kind: 'product' | 'answer';
+  kind: 'product' | 'answer' | 'article';
   title: string;
   summary: string;
   href: string;
@@ -52,6 +54,8 @@ function trimText(value: string, limit = 180) {
 
 function categoryLabel(category: KnowledgeCategory) {
   switch (category) {
+    case 'articles':
+      return 'Article';
     case 'products':
       return 'Product';
     case 'delivery':
@@ -82,6 +86,7 @@ export async function getKnowledgeBaseEntries(products: Product[]): Promise<Know
     termsPage,
     privacyPage,
     cookiePage,
+    articles,
   ] = await Promise.all([
     readManagedPage('about.page'),
     readManagedPage('contact.page'),
@@ -92,6 +97,7 @@ export async function getKnowledgeBaseEntries(products: Product[]): Promise<Know
     readManagedPage('terms.page'),
     readManagedPage('privacy-policy.page'),
     readManagedPage('cookie-policy.page'),
+    getEditorialArticles(products),
   ]);
 
   const productEntries: KnowledgeEntry[] = products.map((product) => ({
@@ -363,7 +369,30 @@ export async function getKnowledgeBaseEntries(products: Product[]): Promise<Know
     },
   ];
 
+  const articleEntries: KnowledgeEntry[] = articles.map((article) => ({
+    id: article.id,
+    category: 'articles',
+    kind: 'article',
+    title: article.title,
+    summary: trimText(article.summary),
+    href: `/journal/${article.slug}`,
+    label: categoryLabel('articles'),
+    image: article.heroImage,
+    keywords: uniqueKeywords([
+      article.title,
+      article.summary,
+      article.intro,
+      article.newsletter.subject,
+      article.newsletter.preheader,
+      article.cta.text,
+      ...article.keywords,
+      ...article.sections.flatMap((section) => [section.heading, ...section.paragraphs]),
+      ...article.poemLines,
+    ]),
+  }));
+
   return [
+    ...articleEntries,
     ...productEntries,
     ...faqEntries,
     ...careEntries,

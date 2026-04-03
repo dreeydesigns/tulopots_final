@@ -6,5 +6,5 @@ export default async function SearchPage() {
   const products = await getCatalogProducts({ visibleOnly: true });
   const entries = await getKnowledgeBaseEntries(products);
 
-  return <SearchPageClient products={products} entries={entries} />;
+  return <SearchPageClient entries={entries} />;
 }
