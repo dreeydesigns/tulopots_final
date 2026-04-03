@@ -99,6 +99,7 @@ export function CollectionTemplate({
   products,
   studioCard,
   guideSelection,
+  initialFilter,
 }: {
   route: string;
   title: string;
@@ -109,11 +110,27 @@ export function CollectionTemplate({
   showing: string;
   studioCard?: typeof studioCardDef;
   guideSelection?: GuideSelection;
+  initialFilter?: string;
 }) {
-  const [activeFilter, setActiveFilter] = useState(filters[0]);
+  const normalizedInitialFilter = useMemo(() => {
+    if (!initialFilter) {
+      return filters[0];
+    }
+
+    const match = filters.find(
+      (filter) => filter.toLowerCase() === initialFilter.trim().toLowerCase()
+    );
+
+    return match || filters[0];
+  }, [filters, initialFilter]);
+  const [activeFilter, setActiveFilter] = useState(normalizedInitialFilter);
   const [sort, setSort] = useState('featured');
   const [guideActive, setGuideActive] = useState(Boolean(guideSelection?.enabled));
   const { isLoggedIn } = useStore();
+
+  useEffect(() => {
+    setActiveFilter(normalizedInitialFilter);
+  }, [normalizedInitialFilter]);
 
   useEffect(() => {
     if (!guideSelection?.enabled || route !== 'pots') {

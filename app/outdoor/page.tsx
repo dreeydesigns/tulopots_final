@@ -4,6 +4,14 @@ import { CollectionTemplate } from '@/components/Templates';
 import { getCatalogProducts, isSiteSectionVisible } from '@/lib/catalog';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
+function firstParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
 export const metadata: Metadata = {
   title: 'For Open Spaces',
   description:
@@ -34,7 +42,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const isVisible = await isSiteSectionVisible('collections.outdoor');
 
   if (!isVisible) {
@@ -42,6 +54,16 @@ export default async function Page() {
   }
 
   const products = await getCatalogProducts({ category: 'outdoor' });
+  const resolvedSearchParams = await searchParams;
+  const requestedFilter = firstParam(resolvedSearchParams.filter)
+    ?.toLowerCase()
+    .replace(/-/g, ' ');
+  const initialFilter =
+    requestedFilter === 'decorative' || requestedFilter === 'new arrivals'
+      ? requestedFilter
+      : requestedFilter === 'medium' || requestedFilter === 'large'
+        ? requestedFilter
+        : undefined;
 
   return (
     <CollectionTemplate
@@ -52,6 +74,7 @@ export default async function Page() {
       filters={['all', 'medium', 'large', 'decorative', 'new arrivals']}
       products={products}
       showing={`Showing ${products.length} of ${products.length} products`}
+      initialFilter={initialFilter}
     />
   );
 }

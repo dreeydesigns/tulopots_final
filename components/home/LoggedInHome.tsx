@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type FormEvent as ReactFormEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
@@ -37,6 +38,7 @@ type Slide = {
   featured: { label: string; stars: number } | null;
   storyMode: boolean;
   potMode: boolean;
+  newsletterMode: boolean;
   sideLabel: string;
   cardItems: SlideCardItem[];
 };
@@ -88,7 +90,7 @@ const SLIDES: Slide[] = [
     description:
       'Clay presence shaped for rooms that ask for warmth, balance, and quiet calm.',
     primaryCta: { label: 'View Collection', href: '/indoor' },
-    secondaryCta: { label: 'Clay Forms', href: '/pots' },
+    secondaryCta: { label: 'Care Guide', href: '/care-guide' },
     stats: [
       { value: '120+', label: 'Forms' },
       { value: '8yr', label: 'Craft' },
@@ -99,6 +101,7 @@ const SLIDES: Slide[] = [
     featured: null,
     storyMode: false,
     potMode: false,
+    newsletterMode: false,
     sideLabel: 'Studio Selection',
     cardItems: [
       { slug: 'ribbed-globe-peace-lily' },
@@ -115,7 +118,7 @@ const SLIDES: Slide[] = [
     description:
       'Pieces for shelves, tables, corners, and rooms that feel better when presence is placed well.',
     primaryCta: { label: 'View Interior', href: '/indoor' },
-    secondaryCta: { label: 'Clay Forms', href: '/pots' },
+    secondaryCta: { label: 'New Arrivals', href: '/indoor?filter=new-arrivals' },
     stats: [
       { value: '36+', label: 'Selections' },
       { value: '4.8', label: 'Rated' },
@@ -126,6 +129,7 @@ const SLIDES: Slide[] = [
     featured: { label: 'Interior Selection', stars: 5 },
     storyMode: false,
     potMode: false,
+    newsletterMode: false,
     sideLabel: 'Desk, Shelf, Corner',
     cardItems: [
       { slug: 'ribbed-globe-peace-lily' },
@@ -142,7 +146,7 @@ const SLIDES: Slide[] = [
     description:
       'Pieces for terraces, entrances, gardens, courtyards, and open-air living with restraint.',
     primaryCta: { label: 'View Open Spaces', href: '/outdoor' },
-    secondaryCta: { label: 'Clay Forms', href: '/pots' },
+    secondaryCta: { label: 'Decorative', href: '/outdoor?filter=decorative' },
     stats: [
       { value: '28+', label: 'Selections' },
       { value: 'Natural', label: 'Clay' },
@@ -153,6 +157,7 @@ const SLIDES: Slide[] = [
     featured: { label: 'Outdoor Selection', stars: 5 },
     storyMode: false,
     potMode: false,
+    newsletterMode: false,
     sideLabel: 'Patio, Balcony, Garden',
     cardItems: [
       { slug: 'hut-sculpture-garden' },
@@ -180,6 +185,7 @@ const SLIDES: Slide[] = [
     featured: { label: 'Clay Forms', stars: 5 },
     storyMode: false,
     potMode: true,
+    newsletterMode: false,
     sideLabel: 'Shape First',
     cardItems: [],
   },
@@ -191,7 +197,7 @@ const SLIDES: Slide[] = [
     titleBottom: 'in Craft',
     description:
       'Made with patience, material honesty, and the quiet character that gives each piece its own life.',
-    primaryCta: { label: 'Clay Forms', href: '/pots' },
+    primaryCta: { label: 'Our History', href: '/new' },
     secondaryCta: { label: 'Contact Studio', href: '/contact' },
     stats: [
       { value: 'Handmade', label: 'Method' },
@@ -203,12 +209,9 @@ const SLIDES: Slide[] = [
     featured: { label: 'Material & Process', stars: 5 },
     storyMode: false,
     potMode: false,
-    sideLabel: 'Material, Shape, Finish',
-    cardItems: [
-      { slug: 'pedestal-bowl-succulents' },
-      { slug: 'hut-sculpture-garden' },
-      { slug: 'wide-rim-bougainvillea' },
-    ],
+    newsletterMode: true,
+    sideLabel: 'Join the List',
+    cardItems: [],
   },
   {
     id: 'story',
@@ -219,7 +222,7 @@ const SLIDES: Slide[] = [
     description:
       'Handcrafted terracotta from Nairobi, shaped through craft rather than trend and made to live beautifully over time.',
     primaryCta: { label: 'Read Our Story', href: '/about' },
-    secondaryCta: { label: 'Contact Us', href: '/contact' },
+    secondaryCta: { label: 'Track an Order', href: '/delivery' },
     stats: [
       { value: '2016', label: 'Founded' },
       { value: 'Nairobi', label: 'Origin' },
@@ -230,6 +233,7 @@ const SLIDES: Slide[] = [
     featured: null,
     storyMode: true,
     potMode: false,
+    newsletterMode: false,
     sideLabel: 'Our Studio',
     cardItems: [],
   },
@@ -528,6 +532,223 @@ function MagneticPotScene({
   );
 }
 
+function NewsletterScenePanel({
+  palette,
+  initialName = '',
+  initialEmail = '',
+  mobile = false,
+}: {
+  palette: ThemePalette;
+  initialName?: string;
+  initialEmail?: string;
+  mobile?: boolean;
+}) {
+  const [name, setName] = useState(initialName);
+  const [email, setEmail] = useState(initialEmail);
+  const [preferredChannel, setPreferredChannel] = useState('email');
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([
+    'new-arrivals',
+    'care-guidance',
+  ]);
+  const [status, setStatus] = useState('');
+  const [tone, setTone] = useState<'idle' | 'error' | 'success'>('idle');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const interestOptions: Array<[string, string]> = [
+    ['new-arrivals', 'New arrivals'],
+    ['care-guidance', 'Care guidance'],
+    ['launch-notes', 'Launch notes'],
+    ['open-space-ideas', 'Open-space ideas'],
+  ];
+
+  function toggleInterest(value: string) {
+    setSelectedInterests((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  }
+
+  async function handleSubmit(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setStatus('');
+    setTone('idle');
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          preferredChannel,
+          interests: selectedInterests,
+          source: 'logged-in-home',
+        }),
+      });
+
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Unable to join right now.');
+      }
+
+      setTone('success');
+      setStatus(data.message || 'You are on the list.');
+    } catch (error: any) {
+      setTone('error');
+      setStatus(error?.message || 'Unable to join right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const wrapperClassName = mobile
+    ? 'mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden'
+    : 'absolute right-[4%] top-[20%] z-20 w-[360px] rounded-[34px] border p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md';
+  const inputBackground = mobile
+    ? palette.cardShell
+    : 'color-mix(in srgb, rgba(255,255,255,0.16) 38%, transparent)';
+
+  return (
+    <div
+      className={wrapperClassName}
+      style={{
+        background: mobile ? palette.cardShell : palette.potPanelBg,
+        borderColor: palette.potPanelBorder,
+        color: palette.potPanelText,
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div
+          className="rounded-full px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]"
+          style={{
+            background: palette.potChipBg,
+            border: `1px solid ${palette.potChipBorder}`,
+            color: palette.potPanelText,
+          }}
+        >
+          Join our newsletter
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
+          Quiet updates only
+        </div>
+      </div>
+
+      <div className="serif-display mt-4 text-[26px] leading-none" style={{ color: palette.potPanelText }}>
+        Stay close to the craft
+      </div>
+
+      <p className="mt-4 text-[12px] leading-6" style={{ color: palette.potPanelMuted }}>
+        Choose only the notes that matter to you: new arrivals, care guidance, launch notes,
+        and open-space ideas.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+        <div className={mobile ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            type="text"
+            placeholder="Your name"
+            className="min-h-[44px] rounded-full px-4 py-3 text-sm outline-none transition"
+            style={{
+              background: inputBackground,
+              border: `1px solid ${palette.potPanelBorder}`,
+              color: palette.potPanelText,
+            }}
+          />
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            placeholder="Your email"
+            required
+            className="min-h-[44px] rounded-full px-4 py-3 text-sm outline-none transition"
+            style={{
+              background: inputBackground,
+              border: `1px solid ${palette.potPanelBorder}`,
+              color: palette.potPanelText,
+            }}
+          />
+        </div>
+
+        <select
+          value={preferredChannel}
+          onChange={(event) => setPreferredChannel(event.target.value)}
+          className="min-h-[44px] w-full rounded-full px-4 py-3 text-sm outline-none transition"
+          style={{
+            background: inputBackground,
+            border: `1px solid ${palette.potPanelBorder}`,
+            color: palette.potPanelText,
+          }}
+        >
+          <option value="email">Email updates</option>
+          <option value="sms">SMS updates</option>
+          <option value="whatsapp">WhatsApp updates</option>
+        </select>
+
+        <div className="flex flex-wrap gap-2">
+          {interestOptions.map(([value, label]) => {
+            const selected = selectedInterests.includes(value);
+
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleInterest(value)}
+                className="min-h-[38px] rounded-full px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] transition"
+                style={{
+                  background: selected ? palette.primaryBtnBg : palette.secondaryBtnBg,
+                  color: selected ? palette.primaryBtnText : palette.secondaryBtnText,
+                  border: `1px solid ${selected ? palette.primaryBtnBg : palette.secondaryBtnBorder}`,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            background: palette.primaryBtnBg,
+            color: palette.primaryBtnText,
+          }}
+        >
+          {isSubmitting ? 'Joining...' : 'Join the List'}
+        </button>
+      </form>
+
+      {status ? (
+        <div
+          className="mt-3 rounded-[1.2rem] px-4 py-3 text-xs leading-6"
+          style={{
+            background:
+              tone === 'error'
+                ? 'color-mix(in srgb, #b66a3c 12%, transparent)'
+                : 'color-mix(in srgb, rgba(70,145,104,0.22) 40%, transparent)',
+            color: tone === 'error' ? palette.primaryBtnBg : palette.potPanelText,
+            border: `1px solid ${tone === 'error' ? palette.primaryBtnBg : palette.potPanelBorder}`,
+          }}
+        >
+          {status}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function MobileScenePanel({
   slide,
   palette,
@@ -535,6 +756,8 @@ function MobileScenePanel({
   onBuyNow,
   displayCurrency,
   displayLanguage,
+  userName,
+  userEmail,
 }: {
   slide: Slide;
   palette: ThemePalette;
@@ -542,6 +765,8 @@ function MobileScenePanel({
   onBuyNow: (product: Product) => void;
   displayCurrency: string;
   displayLanguage: string;
+  userName?: string;
+  userEmail?: string;
 }) {
   if (slide.storyMode) {
     return (
@@ -586,7 +811,7 @@ function MobileScenePanel({
             Read Story
           </Link>
           <Link
-            href="/contact"
+            href="/delivery"
             className="inline-flex items-center justify-center rounded-full px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
             style={{
               background: palette.secondaryBtnBg,
@@ -594,10 +819,21 @@ function MobileScenePanel({
               border: `1px solid ${palette.secondaryBtnBorder}`,
             }}
           >
-            Contact
+            Track Order
           </Link>
         </div>
       </div>
+    );
+  }
+
+  if (slide.newsletterMode) {
+    return (
+      <NewsletterScenePanel
+        palette={palette}
+        initialName={userName}
+        initialEmail={userEmail}
+        mobile
+      />
     );
   }
 
@@ -1044,6 +1280,8 @@ export default function LoggedInHome() {
                     onBuyNow={handleBuyNow}
                     displayCurrency={displayCurrency}
                     displayLanguage={displayLanguage}
+                    userName={user?.name}
+                    userEmail={user?.email}
                   />
                 </div>
 
@@ -1101,7 +1339,7 @@ export default function LoggedInHome() {
                               </Link>
 
                               <Link
-                                href="/contact"
+                                href="/delivery"
                                 onClick={(e) => e.stopPropagation()}
                                 className="pointer-events-auto flex items-center justify-center rounded-full px-2 py-1.5 text-[7px] font-semibold uppercase tracking-[0.14em] transition"
                                 style={{
@@ -1116,13 +1354,19 @@ export default function LoggedInHome() {
                                   e.currentTarget.style.background = palette.storySecondaryBg;
                                 }}
                               >
-                                Contact
+                                Track Order
                               </Link>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                  ) : slide.newsletterMode ? (
+                    <NewsletterScenePanel
+                      palette={palette}
+                      initialName={user?.name}
+                      initialEmail={user?.email}
+                    />
                   ) : slide.potMode ? (
                     <MagneticPotScene
                       onBrowse={() => router.push('/pots')}
