@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ArrowRight } from 'lucide-react';
-import { getEditorialArticles } from '@/lib/editorial-articles';
+import { getEditorialArticles, getEditorialLibraryContent } from '@/lib/editorial-articles';
 import { getCatalogProducts } from '@/lib/catalog';
 
 export const metadata: Metadata = {
@@ -13,20 +13,23 @@ export const metadata: Metadata = {
 
 export default async function JournalPage() {
   const products = await getCatalogProducts({ visibleOnly: true });
-  const articles = await getEditorialArticles(products);
+  const [articles, library] = await Promise.all([
+    getEditorialArticles(products),
+    getEditorialLibraryContent(),
+  ]);
 
   return (
     <main className="container-shell py-12 md:py-16">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tp-accent)]">
-            TuloPots Journal
+            {library.eyebrow}
           </div>
           <h1 className="mt-4 serif-display text-5xl text-[var(--tp-heading)] md:text-6xl">
-            Articles that explain the room behind the choice.
+            {library.title}
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-[var(--tp-text)]/72">
-            Clear reads on clay forms, placement, care, delivery, and Studio guidance. Each article stays easy to follow, easy to share, and easy to revisit from search.
+            {library.intro}
           </p>
         </div>
 

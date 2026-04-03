@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { imageByKey } from '@/lib/site';
+import type { EditorialLibraryContent } from '@/lib/editorial-library';
+import { defaultEditorialLibraryContent } from '@/lib/editorial-library';
 
 const ctaSchema = z.object({
   label: z.string().min(1),
@@ -170,6 +172,42 @@ const campaignPageSchema = z.object({
   secondaryCta: ctaSchema,
 });
 
+const editorialArticleSectionSchema = z.object({
+  heading: z.string().min(1),
+  paragraphs: z.array(z.string().min(1)).min(1),
+});
+
+const editorialArticleSchema = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  eyebrow: z.string().min(1),
+  summary: z.string().min(1),
+  intro: z.string().min(1),
+  visible: z.boolean(),
+  heroImage: imageRefSchema,
+  keywords: z.array(z.string().min(1)).min(1),
+  newsletter: z.object({
+    subject: z.string().min(1),
+    preheader: z.string().min(1),
+  }),
+  cta: z.object({
+    label: z.string().min(1),
+    href: z.string().min(1),
+    text: z.string().min(1),
+  }),
+  sections: z.array(editorialArticleSectionSchema).min(1),
+  poemTitle: z.string().min(1),
+  poemLines: z.array(z.string().min(1)).min(1),
+  relatedLinks: z.array(ctaSchema),
+});
+
+const editorialLibraryPageSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  intro: z.string().min(1),
+  articles: z.array(editorialArticleSchema),
+});
+
 export type AboutPageContent = z.infer<typeof aboutPageSchema>;
 export type ContactPageContent = z.infer<typeof contactPageSchema>;
 export type CareGuidePageContent = z.infer<typeof careGuidePageSchema>;
@@ -177,6 +215,7 @@ export type FaqPageContent = z.infer<typeof faqPageSchema>;
 export type DeliveryPageContent = z.infer<typeof deliveryPageSchema>;
 export type LegalPageContent = z.infer<typeof legalPageSchema>;
 export type CampaignPageContent = z.infer<typeof campaignPageSchema>;
+export type JournalLibraryPageContent = EditorialLibraryContent;
 export type ContactInfoIconKey = z.infer<typeof contactInfoSchema>['icon'];
 export type CareGuideIconKey = z.infer<typeof careGuideCardSchema>['icon'];
 
@@ -193,6 +232,7 @@ export interface ManagedPagePayloadMap {
   'launch.page': CampaignPageContent;
   'new.page': CampaignPageContent;
   'limited.page': CampaignPageContent;
+  'journal.library': JournalLibraryPageContent;
 }
 
 export type ManagedPageKey = keyof ManagedPagePayloadMap;
@@ -783,6 +823,19 @@ const managedPageDefinitions: { [K in ManagedPageKey]: ManagedPageDefinition<K> 
       primaryCta: { label: 'View Clay Forms', href: '/pots' },
       secondaryCta: { label: 'Open Studio', href: '/studio' },
     },
+  },
+  'journal.library': {
+    label: 'Journal Library',
+    route: '/journal',
+    description:
+      'Journal heading, article summaries, article bodies, newsletter subjects, poems, and related links.',
+    tips: [
+      'Each article can be edited section by section. You can add new articles, remove old ones, or change their order in the journal.',
+      'Keep titles clear and strong. The newsletter subject and preheader are what the email workspace will use.',
+      'Use the image field to upload a new article image or replace an existing one, then save to publish the change everywhere.',
+    ],
+    schema: editorialLibraryPageSchema,
+    payload: defaultEditorialLibraryContent,
   },
 };
 

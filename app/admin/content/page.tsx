@@ -9,8 +9,13 @@ export const metadata = {
   description: 'Page content management for the TuloPots storefront.',
 };
 
-export default async function AdminContentPage() {
+export default async function AdminContentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ key?: string }>;
+}) {
   const user = await getCurrentUser();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   if (!user) {
     return <AdminLoginPanel />;
@@ -22,5 +27,10 @@ export default async function AdminContentPage() {
 
   const pages = await listManagedPages();
 
-  return <ContentWorkspace initialPages={pages} />;
+  return (
+    <ContentWorkspace
+      initialPages={pages}
+      initialSelectedKey={resolvedSearchParams?.key || null}
+    />
+  );
 }

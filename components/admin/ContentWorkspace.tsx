@@ -278,11 +278,19 @@ function ImageField({
   );
 }
 
-export function ContentWorkspace({ initialPages }: { initialPages: ManagedPageRecord[] }) {
+export function ContentWorkspace({
+  initialPages,
+  initialSelectedKey,
+}: {
+  initialPages: ManagedPageRecord[];
+  initialSelectedKey?: string | null;
+}) {
+  const startingPage =
+    initialPages.find((page) => page.key === initialSelectedKey) || initialPages[0] || null;
   const [pages, setPages] = useState(initialPages);
-  const [selectedKey, setSelectedKey] = useState(initialPages[0]?.key || null);
+  const [selectedKey, setSelectedKey] = useState(startingPage?.key || null);
   const [draft, setDraft] = useState<Record<string, any> | null>(
-    initialPages[0] ? cloneDeep(initialPages[0].payload) : null
+    startingPage ? cloneDeep(startingPage.payload) : null
   );
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');

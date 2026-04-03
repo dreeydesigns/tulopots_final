@@ -74,6 +74,12 @@ export function NewsletterWorkspace({
             >
               Back to Admin
             </Link>
+            <Link
+              href="/admin/content?key=journal.library"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--tp-heading)]"
+            >
+              Edit Journal Library
+            </Link>
             <a
               href={hubspot.manageUrl}
               target="_blank"
@@ -213,6 +219,15 @@ export function NewsletterWorkspace({
                     className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]"
                   >
                     Open article
+                  </Link>
+                </div>
+
+                <div className="mt-4">
+                  <Link
+                    href="/admin/content?key=journal.library"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-heading)]"
+                  >
+                    Edit this in CMS
                   </Link>
                 </div>
 
