@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+  ArrowLeft,
   Search,
   ShoppingCart,
   LogOut,
@@ -14,8 +15,53 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from './Providers';
+
+function resolveFallbackRoute(pathname: string) {
+  const firstSegment = pathname.split('/')[1] || '';
+
+  if (pathname === '/admin') return '/';
+  if (pathname.startsWith('/admin/')) return '/admin';
+  if (pathname.startsWith('/product/')) return '/pots';
+  if (pathname.startsWith('/journal/')) return '/journal';
+  if (pathname.startsWith('/studio/inbox')) return '/admin';
+  if (pathname.startsWith('/studio')) return '/';
+  if (pathname.startsWith('/checkout')) return '/cart';
+  if (pathname.startsWith('/order-confirmation')) return '/cart';
+
+  switch (firstSegment) {
+    case 'cart':
+      return '/pots';
+    case 'journal':
+      return '/journal';
+    case 'profile':
+    case 'settings':
+    case 'search':
+    case 'about':
+    case 'contact':
+    case 'indoor':
+    case 'outdoor':
+    case 'pots':
+    case 'faq':
+    case 'care-guide':
+    case 'delivery':
+    case 'delivery-returns':
+    case 'privacy-policy':
+    case 'cookie-policy':
+    case 'terms':
+    case 'launch':
+    case 'new':
+    case 'limited':
+      return '/';
+    default:
+      return '/';
+  }
+}
+
+function isInternalBackTarget(route: string, currentRoute: string) {
+  return Boolean(route) && route.startsWith('/') && route !== currentRoute;
+}
 
 export function Nav() {
   const {
@@ -29,11 +75,17 @@ export function Nav() {
     setTheme,
   } = useStore();
 
+  const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isTinyViewport, setIsTinyViewport] = useState(false);
+  const [previousRoute, setPreviousRoute] = useState('');
+
+  const currentSearch = searchParams.toString();
+  const currentRoute = currentSearch ? `${pathname}?${currentSearch}` : pathname;
 
   const count = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -69,6 +121,10 @@ export function Nav() {
   const isLoggedOutHome = isHome && !isLoggedIn;
   const isLoggedInHome = isHome && isLoggedIn;
   const isInternalPage = !isHome;
+  const fallbackRoute = resolveFallbackRoute(pathname);
+  const backTarget = isInternalBackTarget(previousRoute, currentRoute)
+    ? previousRoute
+    : fallbackRoute;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,6 +167,24 @@ export function Nav() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const storedCurrent = window.sessionStorage.getItem('tp-current-route') || '';
+    const storedPrevious = window.sessionStorage.getItem('tp-previous-route') || '';
+
+    if (storedCurrent && storedCurrent !== currentRoute) {
+      window.sessionStorage.setItem('tp-previous-route', storedCurrent);
+    }
+
+    window.sessionStorage.setItem('tp-current-route', currentRoute);
+
+    const nextPrevious =
+      storedCurrent && storedCurrent !== currentRoute ? storedCurrent : storedPrevious;
+
+    setPreviousRoute(nextPrevious !== currentRoute ? nextPrevious : '');
+  }, [currentRoute]);
+
   let headerClass = '';
   if (isLoggedOutHome) {
     headerClass = isScrolled
@@ -152,6 +226,12 @@ export function Nav() {
     ? 'bg-[rgba(247,242,234,0.24)] backdrop-blur-xl'
     : 'bg-[rgba(10,6,4,0.28)] backdrop-blur-xl';
 
+  function handleBack() {
+    setMenuOpen(false);
+    setAccountOpen(false);
+    router.push(backTarget);
+  }
+
   return (
     <>
       <header
@@ -166,6 +246,23 @@ export function Nav() {
             >
               {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
+
+            {isInternalPage ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full border px-3 py-2.5 transition ${ghostButtonClass}`}
+                aria-label="Go back"
+                title="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {!isTinyViewport ? (
+                  <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] sm:inline">
+                    Back
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
 
             <Link
               href="/"

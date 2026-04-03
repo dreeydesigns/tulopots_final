@@ -27,6 +27,7 @@ import {
 } from '@/lib/product-variants';
 import type { ManagedPageRecord } from '@/lib/cms';
 import { ProductVariantEditor } from './ProductVariantEditor';
+import { AdminHelpPanel } from './AdminHelpPanel';
 
 export type Tab =
   | 'overview'
@@ -1206,6 +1207,8 @@ export function AdminDashboard({
 
             {!isLoading && dashboard ? (
               <>
+                <AdminHelpPanel managedPages={dashboard.managedPages} />
+
                 {tab === 'overview' ? (
                   <div className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
