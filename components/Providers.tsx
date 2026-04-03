@@ -57,6 +57,8 @@ type Store = {
   setIsLoggedIn: (value: boolean) => void;
   user: User | null;
   setUser: (user: User | null) => void;
+  hasSeenGuide: boolean;
+  setHasSeenGuide: (value: boolean) => void;
   refreshSession: () => Promise<void>;
   siteSections: SiteSectionVisibility[];
   isSectionVisible: (key: string) => boolean;
@@ -117,6 +119,11 @@ const readStoredTheme = (): Theme | null => {
   }
 };
 
+const readStoredGuideFlag = () => {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('tulopots_guide_seen') === 'true';
+};
+
 const readSystemTheme = (): Theme => {
   if (typeof window === 'undefined') return 'dark';
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -133,11 +140,13 @@ export function Providers({
 }) {
   const [isLoggedIn, setIsLoggedInRaw] = useState(Boolean(initialUser));
   const [user, setUserRaw] = useState<User | null>(initialUser);
+  const [hasSeenGuide, setHasSeenGuideRaw] = useState(false);
   const [siteSections] = useState<SiteSectionVisibility[]>(initialSiteSections);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [theme, setThemeRaw] = useState<Theme>('dark');
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
   const [usesSystemTheme, setUsesSystemTheme] = useState(true);
   const [themeTransition, setThemeTransition] = useState<ThemeTransitionState>({
     active: false,
@@ -183,9 +192,11 @@ export function Providers({
     const storedTheme = readStoredTheme();
     setThemeRaw(storedTheme ?? readSystemTheme());
     setUsesSystemTheme(!storedTheme);
+    setHasSeenGuideRaw(readStoredGuideFlag());
     setWishlist(read('tp-wishlist', []));
     setCart(read('tp-cart', []));
     isHydrated.current = true;
+    setStorageReady(true);
 
     if (!initialUser) {
       void refreshSession();
@@ -199,12 +210,19 @@ export function Providers({
   }, []);
 
   useEffect(() => {
+    if (!storageReady || typeof window === 'undefined') return;
     localStorage.setItem('tp-wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+  }, [wishlist, storageReady]);
 
   useEffect(() => {
+    if (!storageReady || typeof window === 'undefined') return;
     localStorage.setItem('tp-cart', JSON.stringify(cart));
-  }, [cart]);
+  }, [cart, storageReady]);
+
+  useEffect(() => {
+    if (!storageReady || typeof window === 'undefined') return;
+    localStorage.setItem('tulopots_guide_seen', hasSeenGuide ? 'true' : 'false');
+  }, [hasSeenGuide, storageReady]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -263,6 +281,10 @@ export function Providers({
   const setUser = (nextUser: User | null) => {
     setUserRaw(nextUser);
     setIsLoggedInRaw(!!nextUser);
+  };
+
+  const setHasSeenGuide = (value: boolean) => {
+    setHasSeenGuideRaw(value);
   };
 
   const isSectionVisible = (key: string) =>
@@ -380,6 +402,8 @@ export function Providers({
       setIsLoggedIn,
       user,
       setUser,
+      hasSeenGuide,
+      setHasSeenGuide,
       refreshSession,
       siteSections,
       isSectionVisible,
@@ -395,7 +419,7 @@ export function Providers({
       removeItem,
       clearPurchasedItems,
     }),
-    [isLoggedIn, user, showAuthModal, theme, wishlist, cart, siteSections]
+    [isLoggedIn, user, hasSeenGuide, showAuthModal, theme, wishlist, cart, siteSections]
   );
 
   return (

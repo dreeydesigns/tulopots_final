@@ -218,9 +218,9 @@ export type ManagedPageRecord<K extends ManagedPageKey = ManagedPageKey> = {
 };
 
 const sharedPageTips = [
-  'Edit text fields directly and use arrays to add, remove, or reorder cards and sections.',
-  'For images, `src` can be an existing image key like `clay`, `workshop`, `indoor1`, `indoor2`, `outdoor1`, or a direct uploaded image path.',
-  'Save valid JSON only. If a field is removed entirely, that part of the page may no longer render.',
+  'Edit each page one section at a time using normal text fields. Add, remove, and reorder repeated sections as needed.',
+  'For images, you can upload a new image, remove the current one, or use an existing site image key like clay, workshop, indoor1, indoor2, outdoor1, or productStudio.',
+  'Save when you are ready to publish your changes to the live page.',
 ];
 
 const managedPageDefinitions: { [K in ManagedPageKey]: ManagedPageDefinition<K> } = {

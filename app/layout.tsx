@@ -11,6 +11,7 @@ import { AuthModal } from '../components/AuthModal';
 import { Chatbot } from '../components/Chatbot';
 import { PolicyGate } from '../components/PolicyGate';
 import { TrackingProvider } from '../components/TrackingProvider';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteSections } from '@/lib/catalog';
 import { resolveSupportedLanguage } from '@/lib/customer-preferences';
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="cursor-halo-on">
+        <LoadingScreen />
         <Providers initialUser={user} initialSiteSections={siteSections}>
           <TrackingProvider />
           <Cursor />

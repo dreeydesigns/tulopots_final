@@ -14,8 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useStore } from './Providers';
 import { usePathname } from 'next/navigation';
+import { useStore } from './Providers';
 
 export function Nav() {
   const {
@@ -33,6 +33,7 @@ export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isTinyViewport, setIsTinyViewport] = useState(false);
 
   const count = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -80,6 +81,20 @@ export function Nav() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const media = window.matchMedia('(max-width: 320px)');
+    const sync = () => setIsTinyViewport(media.matches);
+
+    sync();
+    media.addEventListener('change', sync);
+
+    return () => {
+      media.removeEventListener('change', sync);
+    };
+  }, []);
+
+  useEffect(() => {
     setMenuOpen(false);
     setAccountOpen(false);
   }, [pathname]);
@@ -120,13 +135,9 @@ export function Nav() {
 
   const navLinkClass = (href: string) => {
     if (isLightSurface) {
-      return pathname === href
-        ? 'tp-heading'
-        : 'tp-text-muted hover:tp-heading';
+      return pathname === href ? 'tp-heading' : 'tp-text-muted hover:tp-heading';
     }
-    return pathname === href
-      ? 'text-white'
-      : 'text-white/70 hover:text-white';
+    return pathname === href ? 'text-white' : 'text-white/70 hover:text-white';
   };
 
   const ghostButtonClass = isLightSurface
@@ -146,11 +157,11 @@ export function Nav() {
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-300 ${resolvedHeaderClass}`}
       >
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4 md:px-10">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-4 sm:px-6 md:px-10">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMenuOpen((s) => !s)}
-              className={`cursor-hover inline-flex rounded-full border p-2.5 transition lg:hidden ${ghostButtonClass}`}
+              className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] rounded-full border p-2.5 transition lg:hidden ${ghostButtonClass}`}
               aria-label="Toggle menu"
             >
               {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -158,7 +169,7 @@ export function Nav() {
 
             <Link
               href="/"
-              className={`serif-display text-3xl tracking-tight transition ${brandClass}`}
+              className={`serif-display text-[1.9rem] tracking-tight transition sm:text-3xl ${brandClass}`}
             >
               Tulo<span className={accentClass}>Pots</span>
             </Link>
@@ -179,56 +190,77 @@ export function Nav() {
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              className={`cursor-hover rounded-full border p-2.5 transition ${ghostButtonClass}`}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </button>
+            {!isTinyViewport ? (
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+            ) : null}
 
             <Link
               href="/search"
-              className={`cursor-hover hidden rounded-full border p-2.5 transition sm:inline-flex ${ghostButtonClass}`}
+              className={`cursor-hover hidden min-h-[44px] min-w-[44px] rounded-full border p-2.5 transition sm:inline-flex ${ghostButtonClass}`}
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
             </Link>
 
-            <Link
-              href="/cart"
-              className={`cursor-hover relative rounded-full border p-2.5 transition ${ghostButtonClass}`}
-              aria-label="Cart"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {count > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#c97d4e] text-[9px] font-bold text-white">
-                  {count}
-                </span>
-              )}
-            </Link>
-
             {!isLoggedIn ? (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="tp-btn-primary cursor-hover hidden rounded-full px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition md:inline-flex"
+                className={`tp-btn-primary cursor-hover ${
+                  isTinyViewport ? 'inline-flex' : 'hidden md:inline-flex'
+                } min-h-[44px] rounded-full px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition`}
               >
                 Sign In
               </button>
             ) : (
               <div className="relative">
-                <button
-                  onClick={() => setAccountOpen((s) => !s)}
-                  className="tp-btn-primary cursor-hover inline-flex rounded-full p-2.5 transition"
-                  aria-label="Account menu"
-                >
-                  <User className="h-4 w-4" />
-                </button>
+                {isTinyViewport ? (
+                  <Link
+                    href="/cart"
+                    className={`cursor-hover relative inline-flex min-h-[44px] min-w-[44px] rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                    aria-label="Cart"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {count > 0 && (
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#c97d4e] text-[9px] font-bold text-white">
+                        {count}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/cart"
+                      className={`cursor-hover relative inline-flex min-h-[44px] min-w-[44px] rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                      aria-label="Cart"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      {count > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#c97d4e] text-[9px] font-bold text-white">
+                          {count}
+                        </span>
+                      )}
+                    </Link>
+
+                    <button
+                      onClick={() => setAccountOpen((s) => !s)}
+                      className="tp-btn-primary cursor-hover inline-flex min-h-[44px] min-w-[44px] rounded-full p-2.5 transition"
+                      aria-label="Account menu"
+                    >
+                      <User className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
 
                 {accountOpen && (
                   <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-3xl border tp-border tp-card shadow-2xl">
@@ -236,9 +268,7 @@ export function Nav() {
                       <div className="text-sm font-semibold tp-text">
                         {user?.name || 'Account'}
                       </div>
-                      <div className="truncate text-xs tp-text-muted">
-                        {user?.email}
-                      </div>
+                      <div className="truncate text-xs tp-text-muted">{user?.email}</div>
 
                       {user?.isAdmin && (
                         <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#5A3422] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
@@ -251,7 +281,7 @@ export function Nav() {
                     <Link
                       href="/profile"
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
+                      className="flex min-h-[44px] items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
                     >
                       <User className="h-4 w-4" />
                       Profile
@@ -260,7 +290,7 @@ export function Nav() {
                     <Link
                       href="/settings"
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
+                      className="flex min-h-[44px] items-center gap-3 px-5 py-3.5 text-sm tp-text hover:opacity-90"
                     >
                       <Settings className="h-4 w-4" />
                       Settings
@@ -270,7 +300,7 @@ export function Nav() {
                       <Link
                         href="/admin"
                         onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 border-t tp-border px-5 py-3.5 text-sm font-semibold tp-accent hover:opacity-90"
+                        className="flex min-h-[44px] items-center gap-3 border-t tp-border px-5 py-3.5 text-sm font-semibold tp-accent hover:opacity-90"
                       >
                         <Shield className="h-4 w-4" />
                         Admin Dashboard
@@ -282,7 +312,7 @@ export function Nav() {
                         setIsLoggedIn(false);
                         setAccountOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 border-t tp-border px-5 py-3.5 text-sm tp-text hover:opacity-90"
+                      className="flex min-h-[44px] w-full items-center gap-3 border-t tp-border px-5 py-3.5 text-sm tp-text hover:opacity-90"
                     >
                       <LogOut className="h-4 w-4" />
                       Log Out
@@ -317,7 +347,7 @@ export function Nav() {
                   <Link
                     key={href}
                     href={href}
-                    className={`px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
+                    className={`min-h-[44px] px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
                       href
                     )}`}
                   >
@@ -327,7 +357,7 @@ export function Nav() {
 
                 <Link
                   href="/search"
-                  className={`px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
+                  className={`min-h-[44px] px-5 py-3 text-sm uppercase tracking-[0.16em] transition ${navLinkClass(
                     '/search'
                   )}`}
                 >
@@ -341,7 +371,7 @@ export function Nav() {
                         setMenuOpen(false);
                         setShowAuthModal(true);
                       }}
-                      className="tp-btn-primary inline-flex w-full justify-center rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                      className="tp-btn-primary inline-flex min-h-[44px] w-full justify-center rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
                     >
                       Sign In
                     </button>

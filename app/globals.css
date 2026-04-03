@@ -9,6 +9,14 @@
 
 :root,
 html[data-theme='light'] {
+  --tp-terracotta: #b66a3c;
+  --tp-deep-clay: #8a4e2d;
+  --tp-cream: #f7f2ea;
+  --tp-sand: #ede3d5;
+  --tp-charcoal: #222222;
+  --tp-dark-bg: #140c08;
+  --tp-guide-dark: #1a100a;
+
   --tp-bg: #f7f2ea;
   --tp-bg-soft: #fdf7f0;
   --tp-bg-elevated: rgba(255, 250, 244, 0.94);
@@ -80,12 +88,15 @@ html[data-theme='dark'] {
 
 /* Base */
 html {
-  /* No scroll-behavior: homepage is a fixed scene-based UI */
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   background: var(--tp-bg);
   color: var(--tp-text);
+  max-width: 100%;
+  overflow-x: hidden;
   transition:
     background-color 220ms ease,
     color 220ms ease;
@@ -113,7 +124,7 @@ html.page-fullscreen body {
 
 /* Layout */
 .container-shell {
-  @apply mx-auto max-w-7xl px-4 md:px-8;
+  @apply mx-auto max-w-7xl px-3 sm:px-4 md:px-8;
 }
 
 /* =========================================================
@@ -413,6 +424,25 @@ html[data-theme='dark'] .scene-bg {
 
 html[data-theme='light'] .scene-bg {
   filter: saturate(1.02) brightness(0.98);
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+@media (max-width: 320px) {
+  .container-shell {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  body {
+    font-size: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

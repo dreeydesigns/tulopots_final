@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ArrowUpRight, Minus, Plus, Check, Star } from 'lucide-react';
+import { Heart, ArrowUpRight, Check, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { money } from '@/lib/utils';
 import { useStore } from './Providers';
@@ -42,7 +42,6 @@ export function ProductCard({ product }: any) {
   const { addToCart, toggleWishlist, wishlist, theme, user } = useStore();
 
   const inWishlist = wishlist.includes(product.slug);
-  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   const useTag = useMemo(() => getUseTag(product), [product]);
@@ -60,7 +59,7 @@ export function ProductCard({ product }: any) {
       : product.badge;
 
   function handleAdd() {
-    addToCart(product, { quantity: qty });
+    addToCart(product, { quantity: 1 });
     setAdded(true);
   }
 
@@ -87,7 +86,7 @@ export function ProductCard({ product }: any) {
         <button
           onClick={() => toggleWishlist(product.slug)}
           aria-label="Toggle wishlist"
-          className="absolute right-4 top-4 z-20 rounded-full p-2.5 transition hover:scale-105"
+          className="absolute right-4 top-4 z-20 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2.5 transition hover:scale-105"
           style={{
             background: 'var(--tp-surface)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
@@ -173,9 +172,7 @@ export function ProductCard({ product }: any) {
             <p className="mt-3 serif-display text-[1.9rem] leading-none tp-heading">
               {displayPrice}
             </p>
-            {basePrice ? (
-              <p className="mt-2 text-xs tp-text-muted">{basePrice}</p>
-            ) : null}
+            {basePrice ? <p className="mt-2 text-xs tp-text-muted">{basePrice}</p> : null}
           </div>
 
           <div className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-semibold tp-border tp-surface">
@@ -186,45 +183,21 @@ export function ProductCard({ product }: any) {
         </div>
 
         {!added ? (
-          <>
-            <div className="mt-5 flex items-center justify-between gap-3 rounded-full border tp-border tp-surface px-3 py-2">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full tp-text-muted transition hover:tp-heading"
-                aria-label="Decrease quantity"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
+          <div className="mt-5 grid gap-3">
+            <Link
+              href={`/product/${product.slug}`}
+              className="btn-primary cursor-hover inline-flex min-h-[46px] items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            >
+              View Item
+            </Link>
 
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] tp-heading">
-                Qty {qty}
-              </div>
-
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full tp-text-muted transition hover:tp-heading"
-                aria-label="Increase quantity"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                onClick={handleAdd}
-                className="btn-primary cursor-hover justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
-              >
-                Add to Cart
-              </button>
-
-              <Link
-                href={`/product/${product.slug}`}
-                className="btn-secondary cursor-hover inline-flex items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
-              >
-                View Item
-              </Link>
-            </div>
-          </>
+            <button
+              onClick={handleAdd}
+              className="btn-secondary cursor-hover min-h-[46px] justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            >
+              Add to Cart
+            </button>
+          </div>
         ) : (
           <>
             <div
@@ -238,39 +211,17 @@ export function ProductCard({ product }: any) {
               Added to cart
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-full border tp-border tp-surface px-3 py-2">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full tp-text-muted transition hover:tp-heading"
-                aria-label="Decrease quantity"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] tp-heading">
-                Qty {qty}
-              </div>
-
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full tp-text-muted transition hover:tp-heading"
-                aria-label="Increase quantity"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={() => setAdded(false)}
-                className="btn-secondary cursor-hover inline-flex items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                className="btn-secondary cursor-hover inline-flex min-h-[46px] items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
               >
                 Remove
               </button>
 
               <Link
                 href="/cart"
-                className="btn-primary cursor-hover inline-flex items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                className="btn-primary cursor-hover inline-flex min-h-[46px] items-center justify-center px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.16em]"
               >
                 Checkout
               </Link>

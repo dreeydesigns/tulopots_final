@@ -1,12 +1,94 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { Product, studioCard as studioCardDef } from '@/lib/products';
 import { Breadcrumbs } from './Breadcrumbs';
 import { ProductCard } from './ProductCard';
 import { useStore } from './Providers';
-import Link from 'next/link';
+
+type GuideSelection = {
+  enabled: boolean;
+  placement?: string;
+  intent?: string;
+  forWhom?: string;
+};
+
+function scoreGuideMatch(product: Product, guide?: GuideSelection) {
+  if (!guide?.enabled) {
+    return 0;
+  }
+
+  const text = [
+    product.name,
+    product.short,
+    product.description,
+    product.cardDescription,
+    product.details?.shape,
+    product.size,
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  let score = 0;
+
+  switch (guide.placement) {
+    case 'living':
+      if (['small', 'medium'].includes(product.size)) score += 2;
+      if (/round|globe|bowl|belly|wide rim|wide-set/.test(text)) score += 3;
+      break;
+    case 'office':
+      if (['small', 'medium'].includes(product.size)) score += 2;
+      if (/cylinder|column|vertical|tapered|jug/.test(text)) score += 3;
+      break;
+    case 'outdoor':
+      if (['large', 'decorative', 'sets'].includes(product.size)) score += 2;
+      if (/outdoor|patio|terrace|garden|hut|studio|ribbed/.test(text)) score += 4;
+      break;
+    default:
+      score += 1;
+  }
+
+  switch (guide.intent) {
+    case 'grounds':
+      if (['medium', 'large'].includes(product.size)) score += 2;
+      if (/grounded|rounded|belly|globe|wide/.test(text)) score += 3;
+      break;
+    case 'statement':
+      if (['large', 'decorative', 'sets'].includes(product.size)) score += 2;
+      if (/statement|sculptural|hut|column|tall|ribbed|pedestal/.test(text)) score += 4;
+      break;
+    case 'plants':
+      if (!product.decorative) score += 3;
+      if (/planter|bowl|globe|wide rim|deep|ready/.test(text)) score += 2;
+      break;
+    default:
+      score += 1;
+  }
+
+  switch (guide.forWhom) {
+    case 'designer':
+      if ((product.reviews || 0) >= 18) score += 2;
+      if ((product.rating || 0) >= 4.5) score += 2;
+      if (['large', 'decorative', 'sets'].includes(product.size)) score += 1;
+      break;
+    case 'workplace':
+      if (/cylinder|column|vertical|clean|studio/.test(text)) score += 3;
+      if (['small', 'medium'].includes(product.size)) score += 1;
+      break;
+    case 'gift':
+      if (['small', 'medium'].includes(product.size)) score += 2;
+      if ((product.reviews || 0) >= 14) score += 2;
+      if (product.price <= 2200) score += 1;
+      break;
+    default:
+      score += 1;
+  }
+
+  score += Math.min(Math.round((product.reviews || 0) / 12), 3);
+  return score;
+}
 
 export function CollectionTemplate({
   route,
@@ -15,8 +97,8 @@ export function CollectionTemplate({
   facts,
   filters,
   products,
-  showing,
   studioCard,
+  guideSelection,
 }: {
   route: string;
   title: string;
@@ -26,10 +108,40 @@ export function CollectionTemplate({
   products: Product[];
   showing: string;
   studioCard?: typeof studioCardDef;
+  guideSelection?: GuideSelection;
 }) {
   const [activeFilter, setActiveFilter] = useState(filters[0]);
   const [sort, setSort] = useState('featured');
+  const [guideActive, setGuideActive] = useState(Boolean(guideSelection?.enabled));
   const { isLoggedIn } = useStore();
+
+  useEffect(() => {
+    if (!guideSelection?.enabled || route !== 'pots') {
+      return;
+    }
+
+    setGuideActive(true);
+
+    if (guideSelection.intent === 'statement') {
+      setActiveFilter('statement');
+      setSort('guide');
+      return;
+    }
+
+    if (guideSelection.placement === 'outdoor') {
+      setActiveFilter('large');
+      setSort('guide');
+      return;
+    }
+
+    if (guideSelection.forWhom === 'gift') {
+      setActiveFilter('small');
+      setSort('guide');
+      return;
+    }
+
+    setSort('guide');
+  }, [guideSelection, route]);
 
   const visible = useMemo(() => {
     let list = [...products];
@@ -81,14 +193,41 @@ export function CollectionTemplate({
       }
     }
 
+    if (guideActive && route === 'pots' && guideSelection?.enabled) {
+      const scored = list
+        .map((product) => ({
+          product,
+          score: scoreGuideMatch(product, guideSelection),
+        }))
+        .sort(
+          (a, b) =>
+            b.score - a.score ||
+            (b.product.reviews || 0) - (a.product.reviews || 0) ||
+            (b.product.rating || 0) - (a.product.rating || 0)
+        );
+
+      const strongMatches = scored
+        .filter((entry) => entry.score >= 5)
+        .map((entry) => entry.product);
+
+      list = strongMatches.length >= 3 ? strongMatches : scored.map((entry) => entry.product);
+    }
+
     if (sort === 'low') list.sort((a, b) => a.price - b.price);
     if (sort === 'high') list.sort((a, b) => b.price - a.price);
     if (sort === 'newest') {
       list.sort((a, b) => (b.badge === 'New' ? 1 : 0) - (a.badge === 'New' ? 1 : 0));
     }
+    if (sort === 'guide' && guideSelection?.enabled) {
+      list.sort(
+        (a, b) =>
+          scoreGuideMatch(b, guideSelection) - scoreGuideMatch(a, guideSelection) ||
+          (b.reviews || 0) - (a.reviews || 0)
+      );
+    }
 
     return studioCard && isLoggedIn ? [studioCard as any, ...list] : list;
-  }, [products, activeFilter, sort, route, studioCard, isLoggedIn]);
+  }, [products, activeFilter, sort, route, studioCard, isLoggedIn, guideActive, guideSelection]);
 
   const titleFirst = title.split(' ')[0];
   const titleRest = title.split(' ').slice(1).join(' ');
@@ -98,7 +237,7 @@ export function CollectionTemplate({
 
   return (
     <main className="tp-page min-h-screen">
-      <section className="relative overflow-hidden tp-surface border-b tp-border pb-8 pt-28">
+      <section className="relative overflow-hidden border-b tp-border tp-surface pb-8 pt-28">
         <div className="container-shell">
           <Breadcrumbs items={[['Home', '/'], [title, `/${route}`]]} />
 
@@ -117,9 +256,9 @@ export function CollectionTemplate({
               <p className="mt-4 max-w-xl text-base leading-8 tp-text-soft">{intro}</p>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                {facts.map((f) => (
-                  <span key={f} className="chip">
-                    {f}
+                {facts.map((fact) => (
+                  <span key={fact} className="chip">
+                    {fact}
                   </span>
                 ))}
               </div>
@@ -130,16 +269,35 @@ export function CollectionTemplate({
 
       <section className="sticky top-16 z-30 tp-nav-surface">
         <div className="container-shell py-4">
+          {guideActive && guideSelection?.enabled && route === 'pots' ? (
+            <div className="mb-4 flex flex-col gap-3 rounded-[1.35rem] border border-[var(--tp-border-strong)] bg-[var(--tp-card)] px-4 py-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm leading-7 tp-text-soft">
+                Showing results based on your space. Not right? Browse everything.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setGuideActive(false);
+                  setActiveFilter(filters[0]);
+                  setSort('featured');
+                }}
+                className="w-full rounded-full border border-[var(--tp-border-strong)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] tp-text transition hover:bg-[var(--tp-accent-soft)] md:w-auto"
+              >
+                Browse everything
+              </button>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap gap-2">
               {filters.map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition ${
+                  className={`min-h-[44px] rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition ${
                     activeFilter === filter
                       ? 'border-[var(--tp-heading)] bg-[var(--tp-heading)] text-[var(--tp-bg)]'
-                      : 'tp-border tp-surface text-[var(--tp-text-muted)] hover:bg-[var(--tp-accent-soft)] hover:border-[var(--tp-border-strong)]'
+                      : 'tp-border tp-surface text-[var(--tp-text-muted)] hover:border-[var(--tp-border-strong)] hover:bg-[var(--tp-accent-soft)]'
                   }`}
                 >
                   {filter}
@@ -147,14 +305,17 @@ export function CollectionTemplate({
               ))}
             </div>
 
-            <div className="flex items-center gap-4 text-sm tp-text-muted">
+            <div className="flex flex-col gap-3 text-sm tp-text-muted sm:flex-row sm:items-center sm:gap-4">
               <div className="relative">
                 <select
                   value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="tp-input appearance-none rounded-full border px-4 py-2 text-xs font-medium"
+                  onChange={(event) => setSort(event.target.value)}
+                  className="tp-input min-h-[44px] appearance-none rounded-full border px-4 py-2 text-xs font-medium"
                   style={{ borderWidth: '1px', paddingRight: '2rem' }}
                 >
+                  {guideActive && guideSelection?.enabled ? (
+                    <option value="guide">Sort: Your Match</option>
+                  ) : null}
                   <option value="featured">Sort: Featured</option>
                   <option value="low">Price: Low → High</option>
                   <option value="high">Price: High → Low</option>
@@ -175,12 +336,12 @@ export function CollectionTemplate({
       </section>
 
       <section className="container-shell py-10">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((product: any) =>
             product.slug === 'studio-collection-request' ? (
               <StudioCard key={product.slug} />
             ) : (
-              <ProductCard key={product.slug} product={product} collection />
+              <ProductCard key={product.slug} product={product} />
             )
           )}
         </div>

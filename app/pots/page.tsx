@@ -34,14 +34,36 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Page() {
+function firstParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const isVisible = await isSiteSectionVisible('collections.pots');
 
   if (!isVisible) {
     notFound();
   }
 
+  const resolvedSearchParams = await searchParams;
   const products = await getCatalogProducts({ category: 'pots' });
+  const guideEnabled = firstParam(resolvedSearchParams.guide) === 'true';
+  const guideSelection = guideEnabled
+    ? {
+        enabled: true,
+        placement: firstParam(resolvedSearchParams.placement) || undefined,
+        intent: firstParam(resolvedSearchParams.intent) || undefined,
+        forWhom: firstParam(resolvedSearchParams.for) || undefined,
+      }
+    : undefined;
 
   return (
     <CollectionTemplate
@@ -53,6 +75,7 @@ export default async function Page() {
       products={products}
       showing={`Showing ${products.length} of ${products.length} products`}
       studioCard={studioCard}
+      guideSelection={guideSelection}
     />
   );
 }
