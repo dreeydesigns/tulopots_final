@@ -17,7 +17,7 @@ Before you open any dashboard, keep these four things written down in one note:
 1. Your live website URL
 2. The Gmail account you control and will use for Google setup
 3. Your Vercel project name
-4. Your Railway PostgreSQL connection string
+4. Your current production database connection string
 
 For the current app, replace `YOUR_HOST` everywhere in this guide with your real live URL.
 
