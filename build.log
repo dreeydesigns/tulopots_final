@@ -1,0 +1,107 @@
+
+> tulopots-fullstack@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.2.1 (webpack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 38.3s
+  Running TypeScript ...
+  Finished TypeScript in 62s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/103) ...
+  Generating static pages using 3 workers (25/103) 
+  Generating static pages using 3 workers (51/103) 
+  Generating static pages using 3 workers (77/103) 
+✓ Generating static pages using 3 workers (103/103) in 25.5s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /about
+├ ƒ /admin
+├ ƒ /admin/content
+├ ƒ /admin/newsletter
+├ ƒ /api/account/password
+├ ƒ /api/account/preferences
+├ ƒ /api/account/profile
+├ ƒ /api/admin/analytics
+├ ƒ /api/admin/automation
+├ ƒ /api/admin/contact/[id]
+├ ƒ /api/admin/content/[key]
+├ ƒ /api/admin/dashboard
+├ ƒ /api/admin/newsletter
+├ ƒ /api/admin/newsletter/sync
+├ ƒ /api/admin/orders
+├ ƒ /api/admin/orders/[id]
+├ ƒ /api/admin/pages/[key]
+├ ƒ /api/admin/products
+├ ƒ /api/admin/products/[id]
+├ ƒ /api/admin/reviews/[id]
+├ ƒ /api/admin/studio/[id]
+├ ƒ /api/admin/uploads/product-images
+├ ƒ /api/analytics
+├ ƒ /api/auth/consent
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/oauth/callback/[provider]
+├ ƒ /api/auth/oauth/start
+├ ƒ /api/auth/providers
+├ ƒ /api/auth/session
+├ ƒ /api/auth/signup
+├ ƒ /api/cart
+├ ƒ /api/chat
+├ ƒ /api/checkout
+├ ƒ /api/contact
+├ ƒ /api/delivery
+├ ƒ /api/health
+├ ƒ /api/newsletter
+├ ƒ /api/orders
+├ ƒ /api/orders/[orderId]
+├ ƒ /api/payments/mpesa
+├ ƒ /api/payments/mpesa/callback
+├ ƒ /api/payments/stripe
+├ ƒ /api/payments/stripe/webhook
+├ ƒ /api/products
+├ ƒ /api/progress
+├ ƒ /api/reviews
+├ ƒ /api/studio
+├ ƒ /api/uploads/support-image
+├ ƒ /api/whatsapp
+├ ƒ /api/wishlist
+├ ƒ /care-guide
+├ ƒ /cart
+├ ƒ /contact
+├ ƒ /cookie-policy
+├ ƒ /delivery
+├ ƒ /delivery-returns
+├ ƒ /faq
+├ ƒ /help
+├ ƒ /indoor
+├ ƒ /launch
+├ ƒ /limited
+├ ƒ /new
+├ ƒ /order-confirmation
+├ ƒ /outdoor
+├ ƒ /pots
+├ ƒ /privacy-policy
+├ ƒ /product/[slug]
+├ ƒ /profile
+├ ƒ /progress
+├ ○ /robots.txt
+├ ƒ /search
+├ ƒ /settings
+├ ○ /sitemap.xml
+├ ƒ /studio
+├ ƒ /studio/inbox
+└ ƒ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

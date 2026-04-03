@@ -13,6 +13,7 @@ import { PolicyGate } from '../components/PolicyGate';
 import { TrackingProvider } from '../components/TrackingProvider';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteSections } from '@/lib/catalog';
+import { resolveSupportedLanguage } from '@/lib/customer-preferences';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 const themeInitScript = `
@@ -94,9 +95,10 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [user, siteSections] = await Promise.all([getCurrentUser(), getSiteSections()]);
+  const documentLanguage = resolveSupportedLanguage(user?.preferredLanguage);
 
   return (
-    <html lang="en" data-theme="dark" className="theme-dark" suppressHydrationWarning>
+    <html lang={documentLanguage} data-theme="dark" className="theme-dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

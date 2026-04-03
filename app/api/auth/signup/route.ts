@@ -10,6 +10,15 @@ import {
   mapUserToSessionUser,
   mergeAuthProviders,
 } from '@/lib/auth';
+import {
+  currencyForCountry,
+  DEFAULT_COUNTRY,
+  DEFAULT_CURRENCY,
+  DEFAULT_LANGUAGE,
+  resolveSupportedCountry,
+  resolveSupportedCurrency,
+  resolveSupportedLanguage,
+} from '@/lib/customer-preferences';
 import { CURRENT_POLICY_VERSION } from '@/lib/policies';
 
 function isValidPhone(phone: string) {
@@ -26,6 +35,9 @@ export async function POST(request: NextRequest) {
       acceptTerms?: boolean;
       acceptPrivacy?: boolean;
       marketingConsent?: boolean;
+      preferredLanguage?: string;
+      preferredCurrency?: string;
+      defaultShippingCountry?: string;
     };
 
     const name = String(body.name || '').trim();
@@ -35,6 +47,15 @@ export async function POST(request: NextRequest) {
     const acceptTerms = Boolean(body.acceptTerms);
     const acceptPrivacy = Boolean(body.acceptPrivacy);
     const marketingConsent = Boolean(body.marketingConsent);
+    const defaultShippingCountry = resolveSupportedCountry(
+      body.defaultShippingCountry || DEFAULT_COUNTRY
+    );
+    const preferredLanguage = resolveSupportedLanguage(
+      body.preferredLanguage || DEFAULT_LANGUAGE
+    );
+    const preferredCurrency = resolveSupportedCurrency(
+      body.preferredCurrency || currencyForCountry(defaultShippingCountry) || DEFAULT_CURRENCY
+    );
 
     if (!name) {
       return NextResponse.json(
@@ -103,6 +124,9 @@ export async function POST(request: NextRequest) {
             acceptedPolicyVersion: CURRENT_POLICY_VERSION,
             marketingConsent,
             marketingConsentAt: marketingConsent ? now : null,
+            preferredLanguage,
+            preferredCurrency,
+            defaultShippingCountry,
           },
         })
       : await prisma.user.create({
@@ -118,6 +142,9 @@ export async function POST(request: NextRequest) {
             acceptedPolicyVersion: CURRENT_POLICY_VERSION,
             marketingConsent,
             marketingConsentAt: marketingConsent ? now : null,
+            preferredLanguage,
+            preferredCurrency,
+            defaultShippingCountry,
           },
         });
 

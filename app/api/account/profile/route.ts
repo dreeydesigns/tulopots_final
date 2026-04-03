@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
+import {
+  resolveSupportedCountry,
+  resolveSupportedCurrency,
+  resolveSupportedLanguage,
+} from '@/lib/customer-preferences';
 import { prisma } from '@/lib/prisma';
 
 function isValidPhone(value: string) {
@@ -22,6 +27,9 @@ export async function PATCH(request: NextRequest) {
       phone?: string;
       defaultShippingAddress?: string;
       defaultShippingCity?: string;
+      defaultShippingCountry?: string;
+      preferredLanguage?: string;
+      preferredCurrency?: string;
     };
 
     const name = String(body.name || '').trim().slice(0, 80);
@@ -32,6 +40,15 @@ export async function PATCH(request: NextRequest) {
     const defaultShippingCity = String(body.defaultShippingCity || '')
       .trim()
       .slice(0, 80);
+    const defaultShippingCountry = resolveSupportedCountry(
+      body.defaultShippingCountry ?? session.user.defaultShippingCountry
+    );
+    const preferredLanguage = resolveSupportedLanguage(
+      body.preferredLanguage ?? session.user.preferredLanguage
+    );
+    const preferredCurrency = resolveSupportedCurrency(
+      body.preferredCurrency ?? session.user.preferredCurrency
+    );
 
     if (!name) {
       return NextResponse.json(
@@ -57,6 +74,9 @@ export async function PATCH(request: NextRequest) {
         phone: phone || null,
         defaultShippingAddress: defaultShippingAddress || null,
         defaultShippingCity: defaultShippingCity || null,
+        defaultShippingCountry,
+        preferredLanguage,
+        preferredCurrency,
       },
     });
 

@@ -96,7 +96,14 @@ export function ProductPageClient({
   product: Product;
   relatedProducts: Product[];
 }) {
-  const { addToCart, toggleWishlist, wishlist, isLoggedIn, setIsLoggedIn } = useStore();
+  const {
+    addToCart,
+    toggleWishlist,
+    wishlist,
+    isLoggedIn,
+    setIsLoggedIn,
+    user,
+  } = useStore();
 
   const defaultMode: ProductMode = product.forcePotOnly || product.decorative ? 'pot' : 'plant';
   const [mode, setMode] = useState<ProductMode>(defaultMode);
@@ -129,6 +136,9 @@ export function ProductPageClient({
 
   const unit = presentation.unitPrice;
   const total = unit * qty;
+  const displayCurrency = user?.preferredCurrency || 'KES';
+  const displayLanguage = user?.preferredLanguage || 'en';
+  const showBaseKes = displayCurrency !== 'KES';
 
   const canToggleModes = presentation.availableModes.length > 1;
 
@@ -232,6 +242,7 @@ export function ProductPageClient({
       sizeLabel: size.label,
       name: display.name,
       image: display.image,
+      sku: product.sku,
     });
     void trackEvent(
       'add_to_cart',
@@ -459,10 +470,21 @@ export function ProductPageClient({
           </div>
 
           <div className="mt-7 flex items-end gap-3">
-            <div className="serif-display text-5xl text-[var(--tp-heading)]">{money(unit)}</div>
+            <div>
+              <div className="serif-display text-5xl text-[var(--tp-heading)]">
+                {money(unit, { currency: displayCurrency, language: displayLanguage })}
+              </div>
+              {showBaseKes ? (
+                <div className="mt-2 text-xs text-[var(--tp-text)]/52">{money(unit)}</div>
+              ) : null}
+            </div>
             {canToggleModes && activeMode === 'plant' && potPresentation.unitPrice > 0 && (
               <div className="pb-1 text-sm text-[var(--tp-text)]/60">
-                Clay form from: {money(potPresentation.unitPrice)}
+                Clay form from:{' '}
+                {money(potPresentation.unitPrice, {
+                  currency: displayCurrency,
+                  language: displayLanguage,
+                })}
               </div>
             )}
           </div>
@@ -533,7 +555,10 @@ export function ProductPageClient({
                     <div className="text-sm font-semibold text-[var(--tp-heading)]">{option.label}</div>
                     <div className="mt-1 text-xs text-[var(--tp-text)]/55">{option.helper}</div>
                     <div className="mt-2 text-xs font-semibold text-[var(--tp-accent)]">
-                      {money(previewPrice)}
+                      {money(previewPrice, {
+                        currency: displayCurrency,
+                        language: displayLanguage,
+                      })}
                     </div>
                   </button>
                 );
@@ -625,8 +650,11 @@ export function ProductPageClient({
                   Total
                 </div>
                 <div className="mt-1 serif-display text-3xl text-[var(--tp-heading)]">
-                  {money(total)}
+                  {money(total, { currency: displayCurrency, language: displayLanguage })}
                 </div>
+                {showBaseKes ? (
+                  <div className="mt-1 text-xs text-[var(--tp-text)]/52">{money(total)}</div>
+                ) : null}
               </div>
             </div>
 
@@ -639,7 +667,12 @@ export function ProductPageClient({
                   color: 'var(--tp-btn-primary-text)',
                 }}
               >
-                {justAdded ? 'Added to Cart' : `Add to Cart — ${money(total)}`}
+                {justAdded
+                  ? 'Added to Cart'
+                  : `Add to Cart — ${money(total, {
+                      currency: displayCurrency,
+                      language: displayLanguage,
+                    })}`}
               </button>
 
               <Link
@@ -661,7 +694,10 @@ export function ProductPageClient({
           <div className="mt-7 flex flex-wrap gap-6 border-t border-[var(--tp-border)] pt-6 text-sm text-[var(--tp-text)]/72">
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4 text-[var(--tp-accent)]" />
-              Free delivery in Nairobi over KES 5,000
+              Kenya delivery unlocks above {money(5000, {
+                currency: displayCurrency,
+                language: displayLanguage,
+              })}
             </div>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-[var(--tp-accent)]" />

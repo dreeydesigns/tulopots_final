@@ -356,6 +356,9 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
       avatar: identity.avatar || null,
       provider: providerLabel,
       isAdmin: email ? isAdminEmailAddress(email) : false,
+      preferredLanguage: 'en',
+      preferredCurrency: 'KES',
+      defaultShippingCountry: 'KE',
       ...providerField,
     },
   });

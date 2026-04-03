@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/components/Providers';
+import {
+  countryOptions,
+  getCountryLabel,
+  getDeliverySummary,
+  isKenyanCountry,
+} from '@/lib/customer-preferences';
 import { LEGAL_ROUTES } from '@/lib/policies';
 import { getTrackingSessionKey, readAttribution, trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
@@ -22,10 +28,15 @@ type CheckoutOrder = {
   id: string;
   orderNumber: string;
   totalAmount: number;
+  displayCurrency?: string | null;
+  preferredLanguage?: string | null;
 };
 
 type FieldErrors = Partial<
-  Record<'customerName' | 'customerEmail' | 'customerPhone' | 'shippingCity', string>
+  Record<
+    'customerName' | 'customerEmail' | 'customerPhone' | 'shippingCity' | 'shippingCountry',
+    string
+  >
 >;
 
 function isValidEmail(value: string) {
@@ -57,6 +68,7 @@ export default function CartPage() {
   const [customerPhone, setCustomerPhone] = useState('+254');
   const [shippingAddr1, setShippingAddr1] = useState('');
   const [shippingCity, setShippingCity] = useState('');
+  const [shippingCountry, setShippingCountry] = useState('KE');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
@@ -66,23 +78,35 @@ export default function CartPage() {
       if (user.phone) setCustomerPhone(user.phone);
       if (user.defaultShippingAddress) setShippingAddr1(user.defaultShippingAddress);
       if (user.defaultShippingCity) setShippingCity(user.defaultShippingCity);
+      if (user.defaultShippingCountry) setShippingCountry(user.defaultShippingCountry);
     }
   }, [user]);
 
-  const [summary, setSummary] = useState({ subtotal: 0, deliveryFee: 0, total: 0 });
+  const [summary, setSummary] = useState({
+    subtotal: 0,
+    deliveryFee: 0,
+    total: 0,
+    isInternational: false,
+  });
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
 
   const hasItems = cart.length > 0;
+  const displayCurrency = user?.preferredCurrency || 'KES';
+  const displayLanguage = user?.preferredLanguage || 'en';
+  const isKenyanDelivery = isKenyanCountry(shippingCountry);
+  const showBaseKes = displayCurrency !== 'KES';
+  const formatDisplayMoney = (value: number) =>
+    money(value, { currency: displayCurrency, language: displayLanguage });
 
   const checkoutItems = useMemo(
     () =>
       cart.map((item) => ({
         key: item.key,
         slug: item.slug,
-        sku: item.slug,
+        sku: item.sku || item.slug,
         name: item.name,
         image: item.image,
         mode: item.mode,
@@ -98,7 +122,9 @@ export default function CartPage() {
 
     async function recalc() {
       if (!hasItems) {
-        if (active) setSummary({ subtotal: 0, deliveryFee: 0, total: 0 });
+        if (active) {
+          setSummary({ subtotal: 0, deliveryFee: 0, total: 0, isInternational: false });
+        }
         return;
       }
 
@@ -108,7 +134,7 @@ export default function CartPage() {
         const res = await fetch('/api/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: checkoutItems }),
+          body: JSON.stringify({ items: checkoutItems, shippingCountry }),
         });
 
         const data = await res.json();
@@ -118,17 +144,23 @@ export default function CartPage() {
             subtotal: data.subtotal || 0,
             deliveryFee: data.deliveryFee || 0,
             total: data.total || 0,
+            isInternational: Boolean(data.isInternational),
           });
         }
       } catch {
         const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-        const deliveryFee = subtotal >= 5000 ? 0 : 350;
+        const fallback = getDeliverySummary({
+          subtotalKes: subtotal,
+          itemCount: cart.length,
+          shippingCountry,
+        });
 
         if (active) {
           setSummary({
-            subtotal,
-            deliveryFee,
-            total: subtotal + deliveryFee,
+            subtotal: fallback.subtotalKes,
+            deliveryFee: fallback.deliveryFeeKes,
+            total: fallback.totalKes,
+            isInternational: fallback.isInternational,
           });
         }
       } finally {
@@ -141,7 +173,7 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, [cart, checkoutItems, hasItems]);
+  }, [cart, checkoutItems, hasItems, shippingCountry]);
 
   function validateCheckout() {
     const nextErrors: FieldErrors = {};
@@ -162,6 +194,10 @@ export default function CartPage() {
       nextErrors.shippingCity = 'Add the delivery city so we can route the order.';
     }
 
+    if (!shippingCountry.trim()) {
+      nextErrors.shippingCountry = 'Choose the delivery country for this order.';
+    }
+
     setFieldErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -177,7 +213,10 @@ export default function CartPage() {
         customerPhone,
         shippingAddr1,
         shippingCity,
+        shippingCountry,
         paymentMethod: method === 'mpesa' ? 'MPESA' : 'CARD',
+        displayCurrency,
+        preferredLanguage: displayLanguage,
         attribution,
         sessionKey: getTrackingSessionKey(),
         items: checkoutItems,
@@ -290,6 +329,13 @@ export default function CartPage() {
   }
 
   const freeDeliveryGap = Math.max(0, 5000 - summary.subtotal);
+  const deliveryMessage = isKenyanDelivery
+    ? summary.subtotal >= 5000
+      ? 'Free delivery unlocked for your order.'
+      : `Add ${formatDisplayMoney(freeDeliveryGap)} more to unlock free delivery in Kenya.`
+    : summary.isInternational
+    ? `International delivery has been estimated for ${getCountryLabel(shippingCountry)}.`
+    : `Delivery will be estimated for ${getCountryLabel(shippingCountry)}.`;
 
   return (
     <main className="container-shell py-12 md:py-16">
@@ -345,13 +391,7 @@ export default function CartPage() {
                 </div>
 
                 <div className="mt-5 rounded-2xl bg-[var(--tp-surface)] px-4 py-4 text-sm text-[var(--tp-text)]/72">
-                  {summary.subtotal >= 5000 ? (
-                    <span>Free delivery unlocked for your order.</span>
-                  ) : (
-                    <span>
-                      Add {money(freeDeliveryGap)} more to unlock free delivery in Nairobi.
-                    </span>
-                  )}
+                  <span>{deliveryMessage}</span>
                 </div>
               </div>
 
@@ -377,8 +417,11 @@ export default function CartPage() {
                       {item.sizeLabel ? ` · ${item.sizeLabel}` : ''}
                     </div>
                     <div className="mt-2 text-sm font-medium text-[var(--tp-text)]/75">
-                      {money(item.unitPrice)}
+                      {formatDisplayMoney(item.unitPrice)}
                     </div>
+                    {showBaseKes ? (
+                      <div className="mt-1 text-xs text-[var(--tp-text)]/52">{money(item.unitPrice)}</div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => removeItem(item.key)}
@@ -411,8 +454,13 @@ export default function CartPage() {
                       </button>
                     </div>
                     <div className="mt-4 text-right serif-display text-3xl text-[var(--tp-heading)]">
-                      {money(item.unitPrice * item.quantity)}
+                      {formatDisplayMoney(item.unitPrice * item.quantity)}
                     </div>
+                    {showBaseKes ? (
+                      <div className="mt-1 text-right text-xs text-[var(--tp-text)]/52">
+                        {money(item.unitPrice * item.quantity)}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -424,7 +472,7 @@ export default function CartPage() {
               <div className="mt-6 space-y-4 text-sm text-[var(--tp-text)]/75">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{isLoadingSummary ? '…' : money(summary.subtotal)}</span>
+                  <span>{isLoadingSummary ? '…' : formatDisplayMoney(summary.subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery</span>
@@ -432,15 +480,21 @@ export default function CartPage() {
                     {isLoadingSummary
                       ? '…'
                       : summary.deliveryFee
-                      ? money(summary.deliveryFee)
+                      ? formatDisplayMoney(summary.deliveryFee)
                       : 'Free'}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-[var(--tp-border)] pt-4 font-semibold text-[var(--tp-heading)]">
                   <span>Total</span>
-                  <span>{isLoadingSummary ? '…' : money(summary.total)}</span>
+                  <span>{isLoadingSummary ? '…' : formatDisplayMoney(summary.total)}</span>
                 </div>
               </div>
+
+              {showBaseKes ? (
+                <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-3 text-xs leading-6 text-[var(--tp-text)]/62">
+                  Base checkout amount: {money(summary.total)}. Displayed currency follows your saved regional preference.
+                </div>
+              ) : null}
 
               <div className="mt-6 grid gap-3 text-sm text-[var(--tp-text)]/72">
                 <div className="flex items-center gap-2">
@@ -545,6 +599,28 @@ export default function CartPage() {
                   />
 
                   <div>
+                    <select
+                      value={shippingCountry}
+                      onChange={(event) => {
+                        setShippingCountry(event.target.value);
+                        setFieldErrors((current) => ({ ...current, shippingCountry: undefined }));
+                      }}
+                      className="w-full rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                    >
+                      {countryOptions.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.shippingCountry ? (
+                      <p className="mt-2 text-xs text-[var(--tp-accent)]">
+                        {fieldErrors.shippingCountry}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
                     <input
                       value={shippingCity}
                       onChange={(event) => {
@@ -598,7 +674,9 @@ export default function CartPage() {
                       className="w-full rounded-full px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-90 disabled:opacity-60"
                       style={{ background: 'var(--tp-accent)' }}
                     >
-                      {isPaying ? 'Sending STK Push…' : `Pay via M-Pesa — ${money(summary.total)}`}
+                      {isPaying
+                        ? 'Sending STK Push…'
+                        : `Pay via M-Pesa — ${formatDisplayMoney(summary.total)}`}
                     </button>
                   ) : (
                     <button
@@ -611,7 +689,9 @@ export default function CartPage() {
                           'color-mix(in srgb, var(--tp-heading) 82%, var(--tp-accent) 18%)',
                       }}
                     >
-                      {isPaying ? 'Redirecting to Stripe…' : `Pay by Card — ${money(summary.total)}`}
+                      {isPaying
+                        ? 'Redirecting to Stripe…'
+                        : `Pay by Card — ${formatDisplayMoney(summary.total)}`}
                     </button>
                   )}
 
@@ -638,7 +718,8 @@ export default function CartPage() {
 
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/52">
                     Card payments are processed through Stripe. M-Pesa orders use an STK push to
-                    the number above. Free delivery applies on orders over KES 5,000.
+                    the number above. Kenya orders unlock free delivery over KES 5,000, while
+                    non-Kenya destinations use an estimated international shipping fee.
                   </p>
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/46">
                     By continuing, you agree to the{' '}

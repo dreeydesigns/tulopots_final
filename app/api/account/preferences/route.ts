@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
+import { resolveSupportedCurrency, resolveSupportedLanguage } from '@/lib/customer-preferences';
 import { prisma } from '@/lib/prisma';
 
 export async function PATCH(request: NextRequest) {
@@ -19,6 +20,8 @@ export async function PATCH(request: NextRequest) {
       smsNotifications?: boolean;
       whatsappNotifications?: boolean;
       preferredContactChannel?: string;
+      preferredLanguage?: string;
+      preferredCurrency?: string;
     };
 
     const now = new Date();
@@ -36,6 +39,14 @@ export async function PATCH(request: NextRequest) {
     )
       ? String(body.preferredContactChannel)
       : session.user.preferredContactChannel;
+    const preferredLanguage =
+      body.preferredLanguage === undefined
+        ? session.user.preferredLanguage
+        : resolveSupportedLanguage(body.preferredLanguage);
+    const preferredCurrency =
+      body.preferredCurrency === undefined
+        ? session.user.preferredCurrency
+        : resolveSupportedCurrency(body.preferredCurrency);
 
     const user = await prisma.user.update({
       where: { id: session.userId },
@@ -46,6 +57,8 @@ export async function PATCH(request: NextRequest) {
         smsNotifications,
         whatsappNotifications,
         preferredContactChannel,
+        preferredLanguage,
+        preferredCurrency,
       },
     });
 

@@ -13,6 +13,7 @@ import type { Product } from '@/lib/products';
 export type CartItem = {
   key: string;
   slug: string;
+  sku?: string;
   name: string;
   image: string;
   mode: 'plant' | 'pot';
@@ -33,8 +34,11 @@ export type User = {
   smsNotifications: boolean;
   whatsappNotifications: boolean;
   preferredContactChannel: string;
+  preferredLanguage: string;
+  preferredCurrency: string;
   defaultShippingAddress?: string;
   defaultShippingCity?: string;
+  defaultShippingCountry: string;
   acceptedPolicyVersion?: string;
   hasAcceptedPolicies: boolean;
 };
@@ -72,6 +76,7 @@ type Store = {
       sizeLabel?: string;
       name?: string;
       image?: string;
+      sku?: string;
     }
   ) => void;
   updateQty: (key: string, delta: number) => void;
@@ -320,6 +325,7 @@ export function Providers({
     const key = `${product.slug}-${mode}-${cfg.sizeLabel || 'default'}`;
     const itemName = cfg.name || product.name;
     const itemImage = cfg.image || product.image;
+    const itemSku = cfg.sku || product.sku;
 
     setCart((cur) => {
       const existing = cur.find((item) => item.key === key);
@@ -334,6 +340,7 @@ export function Providers({
         {
           key,
           slug: product.slug,
+          sku: itemSku,
           name: itemName,
           image: itemImage,
           mode,

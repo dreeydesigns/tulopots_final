@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 
 import { products, type Product } from '../../lib/products';
 import { imageByKey } from '../../lib/site';
+import { money } from '../../lib/utils';
 import { useStore } from '../Providers';
 
 type SlideCardItem = {
@@ -513,11 +514,15 @@ function MobileScenePanel({
   palette,
   productMap,
   onBuyNow,
+  displayCurrency,
+  displayLanguage,
 }: {
   slide: Slide;
   palette: ThemePalette;
   productMap: Record<string, Product>;
   onBuyNow: (product: Product) => void;
+  displayCurrency: string;
+  displayLanguage: string;
 }) {
   if (slide.storyMode) {
     return (
@@ -652,7 +657,7 @@ function MobileScenePanel({
             </div>
             <div className="serif-display mt-2 text-[1.9rem] leading-none">{displayName}</div>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/80">
-              <span>KSh {Number(product.price).toLocaleString()}</span>
+              <span>{money(product.price, { currency: displayCurrency, language: displayLanguage })}</span>
               <span>{product.rating.toFixed(1)} rating</span>
               <span>{product.reviews} reviews</span>
             </div>
@@ -688,8 +693,10 @@ function MobileScenePanel({
 }
 
 export default function LoggedInHome() {
-  const { addToCart, theme } = useStore();
+  const { addToCart, theme, user } = useStore();
   const router = useRouter();
+  const displayCurrency = user?.preferredCurrency || 'KES';
+  const displayLanguage = user?.preferredLanguage || 'en';
   const productMap = useMemo(() => Object.fromEntries(products.map((p) => [p.slug, p])), []);
   const lastSlideIndex = SLIDES.length - 1;
 
@@ -1016,6 +1023,8 @@ export default function LoggedInHome() {
                     palette={palette}
                     productMap={productMap}
                     onBuyNow={handleBuyNow}
+                    displayCurrency={displayCurrency}
+                    displayLanguage={displayLanguage}
                   />
                 </div>
 
@@ -1174,7 +1183,10 @@ export default function LoggedInHome() {
                                     {displayName}
                                   </div>
                                   <div className="mt-0.5 font-serif text-[13px] font-semibold text-[#e0b97a]">
-                                    KSh {Number(product.price).toLocaleString()}
+                                    {money(product.price, {
+                                      currency: displayCurrency,
+                                      language: displayLanguage,
+                                    })}
                                   </div>
                                 </div>
 

@@ -52,6 +52,65 @@ export function generateSku(input: {
   return generateProductSku(input);
 }
 
+export async function ensureUniqueProductSlug(baseValue: string, excludeId?: string) {
+  const normalizedBase = slugify(baseValue) || 'product';
+  let candidate = normalizedBase;
+  let suffix = 2;
+
+  while (true) {
+    const existing = await prisma.product.findFirst({
+      where: excludeId
+        ? {
+            slug: candidate,
+            NOT: { id: excludeId },
+          }
+        : {
+            slug: candidate,
+          },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return candidate;
+    }
+
+    candidate = `${normalizedBase}-${suffix}`;
+    suffix += 1;
+  }
+}
+
+export async function ensureUniqueProductSku(baseValue: string | null | undefined, excludeId?: string) {
+  const normalizedBase = String(baseValue || '').trim();
+
+  if (!normalizedBase) {
+    return null;
+  }
+
+  let candidate = normalizedBase;
+  let suffix = 2;
+
+  while (true) {
+    const existing = await prisma.product.findFirst({
+      where: excludeId
+        ? {
+            sku: candidate,
+            NOT: { id: excludeId },
+          }
+        : {
+            sku: candidate,
+          },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return candidate;
+    }
+
+    candidate = `${normalizedBase}-${String(suffix).padStart(2, '0')}`;
+    suffix += 1;
+  }
+}
+
 export async function getAdminDashboardData() {
   const hubspotConfig = getHubSpotConfig();
   const initialProductCount = await prisma.product.count();

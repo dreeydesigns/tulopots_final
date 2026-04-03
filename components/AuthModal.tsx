@@ -4,6 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { X, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
+import {
+  countryOptions,
+  currencyForCountry,
+  currencyOptions,
+  DEFAULT_COUNTRY,
+  DEFAULT_CURRENCY,
+  DEFAULT_LANGUAGE,
+  languageOptions,
+} from '@/lib/customer-preferences';
 import { LEGAL_ROUTES } from '@/lib/policies';
 import { useStore } from './Providers';
 
@@ -17,16 +26,19 @@ type AuthResponse = {
     phone?: string;
     isAdmin: boolean;
     avatar?: string;
-  marketingConsent: boolean;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  whatsappNotifications: boolean;
-  preferredContactChannel: string;
-  defaultShippingAddress?: string;
-  defaultShippingCity?: string;
-  acceptedPolicyVersion?: string;
-  hasAcceptedPolicies: boolean;
-};
+    marketingConsent: boolean;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    whatsappNotifications: boolean;
+    preferredContactChannel: string;
+    preferredLanguage: string;
+    preferredCurrency: string;
+    defaultShippingAddress?: string;
+    defaultShippingCity?: string;
+    defaultShippingCountry: string;
+    acceptedPolicyVersion?: string;
+    hasAcceptedPolicies: boolean;
+  };
 };
 
 type AuthProvidersResponse = {
@@ -81,6 +93,9 @@ export function AuthModal() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState<string>(DEFAULT_LANGUAGE);
+  const [preferredCurrency, setPreferredCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [defaultShippingCountry, setDefaultShippingCountry] = useState<string>(DEFAULT_COUNTRY);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
@@ -100,6 +115,9 @@ export function AuthModal() {
       setAcceptTerms(false);
       setAcceptPrivacy(false);
       setMarketingConsent(false);
+      setPreferredLanguage(DEFAULT_LANGUAGE);
+      setPreferredCurrency(DEFAULT_CURRENCY);
+      setDefaultShippingCountry(DEFAULT_COUNTRY);
     }
   }, [showAuthModal]);
 
@@ -191,6 +209,9 @@ export function AuthModal() {
                 acceptTerms,
                 acceptPrivacy,
                 marketingConsent,
+                preferredLanguage,
+                preferredCurrency,
+                defaultShippingCountry,
               }
         ),
       });
@@ -371,6 +392,67 @@ export function AuthModal() {
             </div>
           )}
 
+          {tab === 'signup' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-xs text-[var(--tp-text)]/68">
+                <span className="font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/48">
+                  Country
+                </span>
+                <select
+                  value={defaultShippingCountry}
+                  onChange={(event) => {
+                    const nextCountry = event.target.value;
+                    setDefaultShippingCountry(nextCountry);
+                    setPreferredCurrency(currencyForCountry(nextCountry));
+                  }}
+                  className="w-full rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                >
+                  {countryOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-xs text-[var(--tp-text)]/68">
+                <span className="font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/48">
+                  Language
+                </span>
+                <select
+                  value={preferredLanguage}
+                  onChange={(event) => setPreferredLanguage(event.target.value)}
+                  className="w-full rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
+
+          {tab === 'signup' ? (
+            <label className="grid gap-2 text-xs text-[var(--tp-text)]/68">
+              <span className="font-semibold uppercase tracking-[0.16em] text-[var(--tp-text)]/48">
+                Currency
+              </span>
+              <select
+                value={preferredCurrency}
+                onChange={(event) => setPreferredCurrency(event.target.value)}
+                className="w-full rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3.5 text-sm text-[var(--tp-heading)] outline-none transition focus:border-[var(--tp-accent)]"
+              >
+                {currencyOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.code} · {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--tp-text)]/35" />
             <input
@@ -505,7 +587,7 @@ export function AuthModal() {
             >
               Privacy Policy
             </Link>
-            .
+            . Your account also remembers your country, display language, and currency preference.
           </p>
         </form>
       </div>

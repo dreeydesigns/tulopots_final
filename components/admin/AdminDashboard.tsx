@@ -408,6 +408,20 @@ function productToForm(product: DashboardData['products'][number]): ProductFormS
   );
 }
 
+function autoSlugForForm(form: ProductFormState) {
+  return form.name ? slugifyProduct(form.name) : '';
+}
+
+function autoSkuForForm(form: ProductFormState) {
+  return form.name
+    ? generateProductSku({
+        category: form.category,
+        size: form.availableSizes[0] || form.size,
+        name: form.name,
+      })
+    : '';
+}
+
 export function AdminDashboard({
   user,
   initialTab = 'overview',
@@ -733,33 +747,26 @@ export function AdminDashboard({
   }, [selectedOrder]);
 
   useEffect(() => {
-    if (editingProductId || slugManual) {
+    if (slugManual) {
       return;
     }
 
     setProductForm((current) => ({
       ...current,
-      slug: current.name ? slugifyProduct(current.name) : '',
+      slug: autoSlugForForm(current),
     }));
-  }, [editingProductId, productForm.name, slugManual]);
+  }, [productForm.name, slugManual]);
 
   useEffect(() => {
-    if (editingProductId || skuManual) {
+    if (skuManual) {
       return;
     }
 
     setProductForm((current) => ({
       ...current,
-      sku: current.name
-        ? generateProductSku({
-            category: current.category,
-            size: current.availableSizes[0] || current.size,
-            name: current.name,
-          })
-        : '',
+      sku: autoSkuForForm(current),
     }));
   }, [
-    editingProductId,
     productForm.availableSizes,
     productForm.category,
     productForm.name,
@@ -1532,9 +1539,10 @@ export function AdminDashboard({
                                 type="button"
                                 onClick={() => {
                                   setEditingProductId(product.id);
-                                  setProductForm(productToForm(product));
-                                  setSlugManual(true);
-                                  setSkuManual(true);
+                                  const nextForm = productToForm(product);
+                                  setProductForm(nextForm);
+                                  setSlugManual(nextForm.slug !== autoSlugForForm(nextForm));
+                                  setSkuManual(nextForm.sku !== autoSkuForForm(nextForm));
                                 }}
                                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
                                 style={{ background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}
@@ -1686,22 +1694,105 @@ export function AdminDashboard({
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
-                          <Field
-                            label="Slug"
-                            value={productForm.slug}
-                            onChange={(value) => {
-                              setSlugManual(true);
-                              setProductForm((current) => ({ ...current, slug: value }));
-                            }}
-                          />
-                          <Field
-                            label="SKU"
-                            value={productForm.sku}
-                            onChange={(value) => {
-                              setSkuManual(true);
-                              setProductForm((current) => ({ ...current, sku: value }));
-                            }}
-                          />
+                          <label className="block">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <span
+                                className="block text-[11px] font-semibold uppercase tracking-[0.18em]"
+                                style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}
+                              >
+                                Slug
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{
+                                    background: slugManual ? 'var(--tp-surface)' : 'var(--tp-accent-soft)',
+                                    color: slugManual ? 'var(--tp-heading)' : 'var(--tp-accent)',
+                                  }}
+                                >
+                                  {slugManual ? 'Custom' : 'Auto'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSlugManual(false);
+                                    setProductForm((current) => ({ ...current, slug: autoSlugForForm(current) }));
+                                  }}
+                                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{
+                                    borderColor: 'var(--tp-border)',
+                                    background: 'var(--tp-card)',
+                                    color: 'var(--tp-heading)',
+                                  }}
+                                >
+                                  Use auto
+                                </button>
+                              </div>
+                            </div>
+                            <input
+                              value={productForm.slug}
+                              onChange={(event) => {
+                                setSlugManual(true);
+                                setProductForm((current) => ({ ...current, slug: event.target.value }));
+                              }}
+                              className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                                color: 'var(--tp-heading)',
+                              }}
+                            />
+                          </label>
+
+                          <label className="block">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <span
+                                className="block text-[11px] font-semibold uppercase tracking-[0.18em]"
+                                style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}
+                              >
+                                SKU
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{
+                                    background: skuManual ? 'var(--tp-surface)' : 'var(--tp-accent-soft)',
+                                    color: skuManual ? 'var(--tp-heading)' : 'var(--tp-accent)',
+                                  }}
+                                >
+                                  {skuManual ? 'Custom' : 'Auto'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSkuManual(false);
+                                    setProductForm((current) => ({ ...current, sku: autoSkuForForm(current) }));
+                                  }}
+                                  className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{
+                                    borderColor: 'var(--tp-border)',
+                                    background: 'var(--tp-card)',
+                                    color: 'var(--tp-heading)',
+                                  }}
+                                >
+                                  Use auto
+                                </button>
+                              </div>
+                            </div>
+                            <input
+                              value={productForm.sku}
+                              onChange={(event) => {
+                                setSkuManual(true);
+                                setProductForm((current) => ({ ...current, sku: event.target.value }));
+                              }}
+                              className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                              style={{
+                                borderColor: 'var(--tp-border)',
+                                background: 'var(--tp-card)',
+                                color: 'var(--tp-heading)',
+                              }}
+                            />
+                          </label>
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
@@ -1726,8 +1817,10 @@ export function AdminDashboard({
                             color: 'var(--tp-text)',
                           }}
                         >
-                          Slug and SKU are generated automatically while you are creating a new
-                          product. The presentation editor below controls what customers see for
+                          Slug and SKU now fill themselves from the product name, category, and
+                          size profile. If the operator needs a custom version, they can type over
+                          it and the field stays in custom mode until “Use auto” is selected
+                          again. The presentation editor below controls what customers see for
                           Placed with Plant, Clay Form, and each size image swap.
                         </div>
 

@@ -27,8 +27,11 @@ model User {
   smsNotifications      Boolean          @default(false)
   whatsappNotifications Boolean          @default(false)
   preferredContactChannel String         @default("email")
+  preferredLanguage     String           @default("en")
+  preferredCurrency     String           @default("KES")
   defaultShippingAddress String?
   defaultShippingCity   String?
+  defaultShippingCountry String          @default("KE")
   lastSignInAt          DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @default(now()) @updatedAt
@@ -97,7 +100,10 @@ model Order {
   shippingAddr1 String?
   shippingAddr2 String?
   shippingCity  String?
+  shippingCountry String?
   shippingNotes String?
+  displayCurrency String?
+  preferredLanguage String?
   attributionSource String?
   attributionMedium String?
   attributionCampaign String?

@@ -7,10 +7,13 @@ import { ArrowRight } from "lucide-react";
 
 import { products } from "../../lib/products";
 import { imageByKey } from "../../lib/site";
+import { money } from "../../lib/utils";
 import { useStore } from "../Providers";
 
 export default function LoggedOutHome() {
-  const { addToCart } = useStore();
+  const { addToCart, user } = useStore();
+  const displayCurrency = user?.preferredCurrency || 'KES';
+  const displayLanguage = user?.preferredLanguage || 'en';
 
   const featuredProducts = useMemo(() => products.slice(0, 3), []);
 
@@ -242,7 +245,10 @@ export default function LoggedOutHome() {
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <div className="text-lg font-semibold tp-text">
-                    KSh {Number(product.price).toLocaleString()}
+                    {money(product.price, {
+                      currency: displayCurrency,
+                      language: displayLanguage,
+                    })}
                   </div>
 
                   <button

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
+import {
+  ensureUniqueProductSku,
+  ensureUniqueProductSlug,
+  generateSku,
+  requireAdminUser,
+} from '@/lib/admin';
 import { buildStoredProductFields } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
@@ -13,7 +18,7 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as Record<string, unknown>;
   const name = String(body.name || '').trim();
   const slugInput = String(body.slug || '').trim();
-  const slug = slugify(slugInput || name);
+  const slug = await ensureUniqueProductSlug(slugInput || name);
   const category = String(body.category || 'pots').trim() || 'pots';
   const size = String(body.size || 'medium').trim() || 'medium';
   const gallery = Array.isArray(body.gallery)
@@ -23,7 +28,9 @@ export async function POST(request: NextRequest) {
   const description = String(body.description || '').trim();
   const short = String(body.short || name).trim() || name;
   const cardDescription = String(body.cardDescription || description || short).trim() || short;
-  const sku = String(body.sku || generateSku({ category, size, name })).trim();
+  const sku = await ensureUniqueProductSku(
+    String(body.sku || generateSku({ category, size, name })).trim()
+  );
   const badge = String(body.badge || '').trim();
   const price = Number(body.price || 0);
   const potOnly = body.potOnly === '' || body.potOnly == null ? null : Number(body.potOnly);

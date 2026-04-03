@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/components/Providers';
 import { trackEvent } from '@/lib/tracking';
+import { money as formatMoney } from '@/lib/utils';
 
 type OrderData = {
   id: string;
@@ -23,9 +24,12 @@ type OrderData = {
   subtotal: number;
   deliveryFee: number;
   currency: string;
+  displayCurrency?: string;
+  preferredLanguage?: string;
   customerName: string;
   customerEmail: string;
   shippingCity?: string;
+  shippingCountry?: string;
   isCustomOrder?: boolean;
   estimatedDispatchAt?: string;
   estimatedDeliveryAt?: string;
@@ -48,10 +52,6 @@ type OrderData = {
   }>;
 };
 
-function money(amount: number) {
-  return `KES ${amount.toLocaleString('en-KE')}`;
-}
-
 function OrderConfirmationInner() {
   const params = useSearchParams();
   const { clearPurchasedItems } = useStore();
@@ -66,10 +66,17 @@ function OrderConfirmationInner() {
   const isCancelled = paymentStatus === 'cancelled';
   const isPaid = order?.status === 'PAID';
   const isFailed = order?.status === 'FAILED';
+  const displayCurrency = order?.displayCurrency || 'KES';
+  const displayLanguage = order?.preferredLanguage || 'en';
   const isPolling = useMemo(
     () => Boolean(orderId && !isCancelled && order && !isPaid && !isFailed),
     [isCancelled, isFailed, isPaid, order, orderId]
   );
+  const displayMoney = (amount: number) =>
+    formatMoney(amount, {
+      currency: displayCurrency,
+      language: displayLanguage,
+    });
 
   useEffect(() => {
     if (!orderId) {
@@ -318,7 +325,7 @@ function OrderConfirmationInner() {
                     </div>
                   </div>
                   <div className="font-medium text-[var(--tp-heading)]">
-                    {money(item.lineTotal)}
+                    {displayMoney(item.lineTotal)}
                   </div>
                 </div>
               ))}
@@ -328,17 +335,24 @@ function OrderConfirmationInner() {
           <div className="space-y-2 border-t border-[var(--tp-border)] pt-4 text-sm">
             <div className="flex items-center justify-between text-[var(--tp-text)]/72">
               <span>Subtotal</span>
-              <span>{money(order.subtotal)}</span>
+              <span>{displayMoney(order.subtotal)}</span>
             </div>
             <div className="flex items-center justify-between text-[var(--tp-text)]/72">
               <span>Delivery</span>
-              <span>{money(order.deliveryFee)}</span>
+              <span>{displayMoney(order.deliveryFee)}</span>
             </div>
             <div className="flex items-center justify-between text-base font-semibold text-[var(--tp-heading)]">
               <span>Total</span>
-              <span>{money(order.totalAmount)}</span>
+              <span>{displayMoney(order.totalAmount)}</span>
             </div>
           </div>
+
+          {displayCurrency !== 'KES' ? (
+            <div className="mt-4 rounded-2xl bg-[var(--tp-surface)] px-4 py-3 text-xs leading-6 text-[var(--tp-text)]/62">
+              Base order amount: {formatMoney(order.totalAmount)}. Displayed currency follows the
+              preference saved on this account at checkout.
+            </div>
+          ) : null}
 
           {order.paymentMethod === 'MPESA' && !isPaid && !isFailed && (
             <div className="rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-4 text-sm leading-6 text-[var(--tp-text)]/72">

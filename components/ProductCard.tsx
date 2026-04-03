@@ -4,11 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ArrowUpRight, Minus, Plus, Check, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { money } from '@/lib/utils';
 import { useStore } from './Providers';
-
-function formatPrice(price: number | string) {
-  return `KSh ${Number(price).toLocaleString('en-KE')}`;
-}
 
 function getUseTag(product: any) {
   const name = `${product?.name || ''} ${product?.short || ''}`.toLowerCase();
@@ -42,7 +39,7 @@ function getUseTag(product: any) {
 }
 
 export function ProductCard({ product }: any) {
-  const { addToCart, toggleWishlist, wishlist, theme } = useStore();
+  const { addToCart, toggleWishlist, wishlist, theme, user } = useStore();
 
   const inWishlist = wishlist.includes(product.slug);
   const [qty, setQty] = useState(1);
@@ -50,6 +47,13 @@ export function ProductCard({ product }: any) {
 
   const useTag = useMemo(() => getUseTag(product), [product]);
   const isLight = theme === 'light';
+  const displayCurrency = user?.preferredCurrency || 'KES';
+  const displayLanguage = user?.preferredLanguage || 'en';
+  const displayPrice = money(product.price, {
+    currency: displayCurrency,
+    language: displayLanguage,
+  });
+  const basePrice = displayCurrency === 'KES' ? null : money(product.price);
   const displayBadge =
     product.category === 'pots' && String(product.badge || '').toLowerCase() === 'clay form'
       ? ''
@@ -163,11 +167,15 @@ export function ProductCard({ product }: any) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
-              Handcrafted terracotta
+              {product.reviews || 0} review{product.reviews === 1 ? '' : 's'} ·{' '}
+              {Number(product.rating || 0).toFixed(1)} rating
             </div>
             <p className="mt-3 serif-display text-[1.9rem] leading-none tp-heading">
-              {formatPrice(product.price)}
+              {displayPrice}
             </p>
+            {basePrice ? (
+              <p className="mt-2 text-xs tp-text-muted">{basePrice}</p>
+            ) : null}
           </div>
 
           <div className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-semibold tp-border tp-surface">

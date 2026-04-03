@@ -2,6 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isValidEmail } from '@/lib/auth';
 import {
+  getDeliverySummary,
+  resolveSupportedCountry,
+  resolveSupportedCurrency,
+  resolveSupportedLanguage,
+} from '@/lib/customer-preferences';
+import {
   appendNotificationEntries,
   appendTrackingEntry,
   buildNotificationEntries,
@@ -47,8 +53,11 @@ export async function POST(req: NextRequest) {
       shippingAddr1,
       shippingAddr2,
       shippingCity,
+      shippingCountry,
       shippingNotes,
       paymentMethod,
+      displayCurrency,
+      preferredLanguage,
       attribution,
       sessionKey,
       items,
@@ -59,8 +68,11 @@ export async function POST(req: NextRequest) {
       shippingAddr1?: string;
       shippingAddr2?: string;
       shippingCity?: string;
+      shippingCountry?: string;
       shippingNotes?: string;
       paymentMethod: 'CARD' | 'MPESA';
+      displayCurrency?: string;
+      preferredLanguage?: string;
       attribution?: Partial<StoredAttribution> | null;
       sessionKey?: string;
       items: CheckoutItem[];
@@ -132,8 +144,22 @@ export async function POST(req: NextRequest) {
       (sum, item) => sum + item.lineTotal,
       0
     );
-    const deliveryFee = subtotal >= 5000 ? 0 : 350;
-    const totalAmount = subtotal + deliveryFee;
+    const resolvedShippingCountry = resolveSupportedCountry(
+      shippingCountry || currentUser?.defaultShippingCountry
+    );
+    const resolvedDisplayCurrency = resolveSupportedCurrency(
+      displayCurrency || currentUser?.preferredCurrency
+    );
+    const resolvedPreferredLanguage = resolveSupportedLanguage(
+      preferredLanguage || currentUser?.preferredLanguage
+    );
+    const deliverySummary = getDeliverySummary({
+      subtotalKes: subtotal,
+      itemCount: sanitizedItems.length,
+      shippingCountry: resolvedShippingCountry,
+    });
+    const deliveryFee = deliverySummary.deliveryFeeKes;
+    const totalAmount = deliverySummary.totalKes;
     const isCustomOrder = false;
     const createdAt = new Date();
     const orderNumber = createOrderNumber();
@@ -193,10 +219,13 @@ export async function POST(req: NextRequest) {
         shippingAddr1: shippingAddr1?.trim() || null,
         shippingAddr2: shippingAddr2?.trim() || null,
         shippingCity: shippingCity?.trim() || null,
+        shippingCountry: resolvedShippingCountry,
         shippingNotes: shippingNotes?.trim() || null,
         subtotal,
         deliveryFee,
         totalAmount,
+        displayCurrency: resolvedDisplayCurrency,
+        preferredLanguage: resolvedPreferredLanguage,
         estimatedDispatchAt,
         estimatedDeliveryAt,
         trackingTimeline,
@@ -232,6 +261,9 @@ export async function POST(req: NextRequest) {
         deliveryFee: order.deliveryFee,
         totalAmount: order.totalAmount,
         currency: order.currency,
+        displayCurrency: order.displayCurrency,
+        preferredLanguage: order.preferredLanguage,
+        shippingCountry: order.shippingCountry,
         createdAt: order.createdAt,
         attribution: {
           source: order.attributionSource,

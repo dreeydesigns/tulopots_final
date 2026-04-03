@@ -20,8 +20,11 @@ export type SessionUser = {
   smsNotifications: boolean;
   whatsappNotifications: boolean;
   preferredContactChannel: string;
+  preferredLanguage: string;
+  preferredCurrency: string;
   defaultShippingAddress?: string;
   defaultShippingCity?: string;
+  defaultShippingCountry: string;
   acceptedPolicyVersion?: string;
   hasAcceptedPolicies: boolean;
 };
@@ -39,8 +42,11 @@ type SessionUserRecord = Pick<
   | 'smsNotifications'
   | 'whatsappNotifications'
   | 'preferredContactChannel'
+  | 'preferredLanguage'
+  | 'preferredCurrency'
   | 'defaultShippingAddress'
   | 'defaultShippingCity'
+  | 'defaultShippingCountry'
   | 'acceptedTermsAt'
   | 'acceptedPrivacyAt'
   | 'acceptedPolicyVersion'
@@ -63,8 +69,11 @@ export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | nul
     smsNotifications: user.smsNotifications,
     whatsappNotifications: user.whatsappNotifications,
     preferredContactChannel: user.preferredContactChannel,
+    preferredLanguage: user.preferredLanguage,
+    preferredCurrency: user.preferredCurrency,
     defaultShippingAddress: user.defaultShippingAddress || undefined,
     defaultShippingCity: user.defaultShippingCity || undefined,
+    defaultShippingCountry: user.defaultShippingCountry || 'KE',
     acceptedPolicyVersion: user.acceptedPolicyVersion || undefined,
     hasAcceptedPolicies: hasAcceptedPolicies({
       acceptedTermsAt: user.acceptedTermsAt,

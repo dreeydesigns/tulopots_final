@@ -17,6 +17,14 @@ import {
   User,
 } from 'lucide-react';
 import { useStore } from '@/components/Providers';
+import {
+  countryOptions,
+  currencyOptions,
+  getCountryLabel,
+  getCurrencyLabel,
+  getLanguageLabel,
+  languageOptions,
+} from '@/lib/customer-preferences';
 import { LEGAL_ROUTES } from '@/lib/policies';
 
 type ToggleItem = {
@@ -48,6 +56,9 @@ export default function SettingsPage() {
   const [profilePhone, setProfilePhone] = useState('');
   const [defaultShippingAddress, setDefaultShippingAddress] = useState('');
   const [defaultShippingCity, setDefaultShippingCity] = useState('');
+  const [defaultShippingCountry, setDefaultShippingCountry] = useState('KE');
+  const [preferredLanguage, setPreferredLanguage] = useState('en');
+  const [preferredCurrency, setPreferredCurrency] = useState('KES');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -60,6 +71,9 @@ export default function SettingsPage() {
     setProfilePhone(user?.phone || '');
     setDefaultShippingAddress(user?.defaultShippingAddress || '');
     setDefaultShippingCity(user?.defaultShippingCity || '');
+    setDefaultShippingCountry(user?.defaultShippingCountry || 'KE');
+    setPreferredLanguage(user?.preferredLanguage || 'en');
+    setPreferredCurrency(user?.preferredCurrency || 'KES');
     setEmailNotifs(Boolean(user?.emailNotifications ?? true));
     setSmsNotifs(Boolean(user?.smsNotifications));
     setWhatsappNotifs(Boolean(user?.whatsappNotifications));
@@ -68,10 +82,13 @@ export default function SettingsPage() {
   }, [
     user?.defaultShippingAddress,
     user?.defaultShippingCity,
+    user?.defaultShippingCountry,
     user?.emailNotifications,
     user?.marketingConsent,
     user?.name,
     user?.phone,
+    user?.preferredCurrency,
+    user?.preferredLanguage,
     user?.smsNotifications,
     user?.whatsappNotifications,
     user?.preferredContactChannel,
@@ -125,6 +142,9 @@ export default function SettingsPage() {
           phone: profilePhone,
           defaultShippingAddress,
           defaultShippingCity,
+          defaultShippingCountry,
+          preferredLanguage,
+          preferredCurrency,
         }),
       });
       const profileData = (await profileResponse.json()) as {
@@ -150,6 +170,8 @@ export default function SettingsPage() {
           smsNotifications: smsNotifs,
           whatsappNotifications: whatsappNotifs,
           preferredContactChannel,
+          preferredLanguage,
+          preferredCurrency,
         }),
       });
       const preferencesData = (await preferencesResponse.json()) as {
@@ -392,6 +414,56 @@ export default function SettingsPage() {
               </label>
             </div>
 
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Country</span>
+                <select
+                  value={defaultShippingCountry}
+                  onChange={(event) => setDefaultShippingCountry(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                >
+                  {countryOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Language</span>
+                <select
+                  value={preferredLanguage}
+                  onChange={(event) => setPreferredLanguage(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm">
+                <span className="tp-heading">Currency</span>
+                <select
+                  value={preferredCurrency}
+                  onChange={(event) => setPreferredCurrency(event.target.value)}
+                  className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+                  style={inputStyle()}
+                >
+                  {currencyOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.code} · {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4">
               <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
                 <MapPin className="h-3.5 w-3.5 tp-accent" />
@@ -399,6 +471,18 @@ export default function SettingsPage() {
               </div>
               <div className="mt-2 text-sm tp-text-soft">
                 Checkout will prefill this address and city so repeat orders move faster.
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                <MapPin className="h-3.5 w-3.5 tp-accent" />
+                Regional defaults
+              </div>
+              <div className="mt-2 text-sm leading-7 tp-text-soft">
+                Your storefront can now remember {getCountryLabel(defaultShippingCountry)},
+                show prices in {getCurrencyLabel(preferredCurrency)}, and prepare support and
+                help flows around {getLanguageLabel(preferredLanguage)}.
               </div>
             </div>
 
@@ -681,16 +765,16 @@ export default function SettingsPage() {
               </Link>
 
               <Link
-                href="/care-guide"
+                href="/help"
                 className="rounded-[1.25rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-4 transition hover:border-[var(--tp-border-strong)]"
               >
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
                   <Leaf className="h-3.5 w-3.5 tp-accent" />
-                  Care help
+                  Help search
                 </div>
-                <div className="mt-3 text-sm font-semibold tp-heading">Search guidance or upload a challenge</div>
+                <div className="mt-3 text-sm font-semibold tp-heading">Search help in plain language</div>
                 <div className="mt-2 text-sm leading-6 tp-text-soft">
-                  Find care answers quickly or send a photo to the support inbox.
+                  Search the site, delivery guidance, account help, or care answers in one place.
                 </div>
               </Link>
 
@@ -745,6 +829,9 @@ export default function SettingsPage() {
             {[
               ['Account email', user?.email],
               ['Phone on file', user?.phone || 'Not added'],
+              ['Country default', getCountryLabel(user?.defaultShippingCountry || defaultShippingCountry)],
+              ['Language', getLanguageLabel(user?.preferredLanguage || preferredLanguage)],
+              ['Currency', getCurrencyLabel(user?.preferredCurrency || preferredCurrency)],
               ['Policy acceptance', user?.hasAcceptedPolicies ? 'Accepted' : 'Pending'],
             ].map(([label, value]) => (
               <div

@@ -15,16 +15,19 @@ type ConsentResponse = {
     phone?: string;
     isAdmin: boolean;
     avatar?: string;
-  marketingConsent: boolean;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  whatsappNotifications: boolean;
-  preferredContactChannel: string;
-  defaultShippingAddress?: string;
-  defaultShippingCity?: string;
-  acceptedPolicyVersion?: string;
-  hasAcceptedPolicies: boolean;
-};
+    marketingConsent: boolean;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    whatsappNotifications: boolean;
+    preferredContactChannel: string;
+    preferredLanguage: string;
+    preferredCurrency: string;
+    defaultShippingAddress?: string;
+    defaultShippingCity?: string;
+    defaultShippingCountry: string;
+    acceptedPolicyVersion?: string;
+    hasAcceptedPolicies: boolean;
+  };
 };
 
 export function PolicyGate() {

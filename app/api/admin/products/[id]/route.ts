@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateSku, requireAdminUser, slugify } from '@/lib/admin';
+import {
+  ensureUniqueProductSku,
+  ensureUniqueProductSlug,
+  generateSku,
+  requireAdminUser,
+} from '@/lib/admin';
 import { buildStoredProductFields } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
@@ -23,7 +28,7 @@ export async function PATCH(
   const body = (await request.json()) as Record<string, unknown>;
   const nextName = body.name == null ? existing.name : String(body.name).trim();
   const nextSlugRaw = body.slug == null ? existing.slug : String(body.slug).trim();
-  const nextSlug = slugify(nextSlugRaw || nextName);
+  const nextSlug = await ensureUniqueProductSlug(nextSlugRaw || nextName, existing.id);
   const nextCategory =
     body.category == null ? existing.category : String(body.category).trim() || existing.category;
   const nextSize =
@@ -48,10 +53,12 @@ export async function PATCH(
     body.cardDescription == null
       ? existing.cardDescription
       : String(body.cardDescription).trim() || existing.cardDescription;
-  const nextSku =
+  const nextSkuBase =
     body.sku == null
       ? existing.sku
-      : String(body.sku).trim() || existing.sku || generateSku({ category: nextCategory, size: nextSize, name: nextName });
+      : String(body.sku).trim() ||
+        generateSku({ category: nextCategory, size: nextSize, name: nextName });
+  const nextSku = await ensureUniqueProductSku(nextSkuBase, existing.id);
   const nextDecorative =
     body.decorative == null ? existing.decorative : Boolean(body.decorative);
   const nextForcePotOnly =

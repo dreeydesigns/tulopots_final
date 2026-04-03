@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDeliverySummary, resolveSupportedCountry } from '@/lib/customer-preferences';
 
 type CartItem = {
   key: string;
@@ -11,11 +12,21 @@ type CartItem = {
   quantity: number;
 };
 
-function totals(items: CartItem[]) {
+function totals(items: CartItem[], shippingCountry?: string) {
   const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.quantity || 0), 0);
-  const deliveryFee = subtotal >= 5000 ? 0 : items.length ? 350 : 0;
-  const total = subtotal + deliveryFee;
-  return { subtotal, deliveryFee, total, currency: 'KES' };
+  const summary = getDeliverySummary({
+    subtotalKes: subtotal,
+    itemCount: items.length,
+    shippingCountry,
+  });
+  return {
+    subtotal: summary.subtotalKes,
+    deliveryFee: summary.deliveryFeeKes,
+    total: summary.totalKes,
+    currency: 'KES',
+    isInternational: summary.isInternational,
+    shippingCountry: resolveSupportedCountry(shippingCountry),
+  };
 }
 
 export async function GET() {
@@ -30,10 +41,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const items = Array.isArray(body?.items) ? (body.items as CartItem[]) : [];
+    const shippingCountry = resolveSupportedCountry(body?.shippingCountry);
     return NextResponse.json({
       ok: true,
       items,
-      ...totals(items),
+      ...totals(items, shippingCountry),
       generatedAt: new Date().toISOString(),
     });
   } catch {
