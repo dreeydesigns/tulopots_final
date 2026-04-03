@@ -22,6 +22,19 @@ function basicAuth(clientKey: string, clientSecret: string) {
   return Buffer.from(`${clientKey}:${clientSecret}`).toString('base64');
 }
 
+function normalizeMpesaBaseUrl(baseUrl?: string) {
+  if (!baseUrl) {
+    return baseUrl;
+  }
+
+  try {
+    const parsed = new URL(baseUrl);
+    return parsed.origin.replace(/\/$/, '');
+  } catch {
+    return baseUrl.replace(/\/$/, '');
+  }
+}
+
 function kesToUsdCents(kes: number): number {
   const rate = parseFloat(process.env.STRIPE_KES_TO_USD_RATE || '130');
   const usd = kes / rate;
@@ -104,7 +117,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
 }
 
 export async function initiateMpesaStkPush(input: MpesaStkInput) {
-  const baseUrl = process.env.MPESA_BASE_URL;
+  const baseUrl = normalizeMpesaBaseUrl(process.env.MPESA_BASE_URL);
   const clientKey = process.env.MPESA_CONSUMER_KEY;
   const clientSecret = process.env.MPESA_CONSUMER_SECRET;
   const shortcode = process.env.MPESA_SHORTCODE;
@@ -196,10 +209,16 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
   const stkData = await stkRes.json();
 
   if (!stkRes.ok || stkData?.ResponseCode === '1') {
+    const credentialError =
+      stkData?.errorMessage === 'Wrong credentials' ||
+      stkData?.ResponseDescription === 'Wrong credentials';
+
     throw new Error(
-      stkData?.errorMessage ||
-        stkData?.ResponseDescription ||
-        'Failed to initiate M-Pesa STK push.'
+      credentialError
+        ? 'M-Pesa rejected the credentials. For sandbox, use MPESA_BASE_URL=https://sandbox.safaricom.co.ke, MPESA_SHORTCODE=174379, and make sure the consumer key, consumer secret, and passkey all come from the same Daraja sandbox setup.'
+        : stkData?.errorMessage ||
+            stkData?.ResponseDescription ||
+            'Failed to initiate M-Pesa STK push.'
     );
   }
 
