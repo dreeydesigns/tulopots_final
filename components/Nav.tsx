@@ -231,6 +231,8 @@ export function Nav() {
   const mobileBackdropClass = isLightSurface
     ? 'bg-[rgba(247,242,234,0.24)] backdrop-blur-xl'
     : 'bg-[rgba(10,6,4,0.28)] backdrop-blur-xl';
+  const navIconButtonClass =
+    'cursor-hover inline-flex h-12 w-12 items-center justify-center rounded-full transition';
   return (
     <>
       <header
@@ -307,12 +309,12 @@ export function Nav() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             {!isTinyViewport ? (
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className={`cursor-hover inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                className={`${navIconButtonClass} border ${ghostButtonClass}`}
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? (
@@ -325,7 +327,7 @@ export function Nav() {
 
             <Link
               href="/search"
-              className={`cursor-hover hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 transition sm:inline-flex ${ghostButtonClass}`}
+              className={`${navIconButtonClass} hidden border sm:inline-flex ${ghostButtonClass}`}
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
@@ -345,7 +347,7 @@ export function Nav() {
                 {isTinyViewport ? (
                   <Link
                     href="/cart"
-                    className={`cursor-hover relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                    className={`${navIconButtonClass} relative border ${ghostButtonClass}`}
                     aria-label="Cart"
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -359,7 +361,7 @@ export function Nav() {
                   <>
                     <Link
                       href="/cart"
-                      className={`cursor-hover relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 transition ${ghostButtonClass}`}
+                      className={`${navIconButtonClass} relative border ${ghostButtonClass}`}
                       aria-label="Cart"
                     >
                       <ShoppingCart className="h-4 w-4" />
@@ -372,7 +374,12 @@ export function Nav() {
 
                     <button
                       onClick={() => setAccountOpen((s) => !s)}
-                      className="tp-btn-primary cursor-hover inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2.5 transition"
+                      className={navIconButtonClass}
+                      style={{
+                        background: 'var(--tp-accent-strong)',
+                        color: 'var(--tp-btn-primary-text)',
+                        boxShadow: 'var(--tp-shadow-soft)',
+                      }}
                       aria-label="Account menu"
                     >
                       <User className="h-4 w-4" />

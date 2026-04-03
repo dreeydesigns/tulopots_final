@@ -185,18 +185,27 @@ export default async function Page() {
             className="overflow-hidden rounded-[2.25rem] border border-[var(--tp-border)]"
             style={{
               background:
-                'linear-gradient(135deg, color-mix(in srgb, var(--tp-heading) 92%, black 8%) 0%, color-mix(in srgb, var(--tp-accent) 22%, var(--tp-heading) 78%) 100%)',
-              color: 'var(--tp-btn-primary-text)',
+                'linear-gradient(135deg, color-mix(in srgb, var(--tp-card) 74%, var(--tp-accent-soft) 26%) 0%, color-mix(in srgb, var(--tp-surface) 68%, var(--tp-accent-soft) 32%) 100%)',
+              color: 'var(--tp-heading)',
             }}
           >
             <div className="px-7 py-8 md:px-9 xl:px-10">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">
+              <div
+                className="text-[10px] font-semibold uppercase tracking-[0.2em]"
+                style={{ color: 'var(--tp-accent)' }}
+              >
                 {content.responsePromiseEyebrow}
               </div>
-              <p className="mt-5 serif-display text-4xl leading-[1.06] text-white xl:text-[3.15rem]">
+              <p
+                className="mt-5 serif-display text-4xl leading-[1.06] xl:text-[3.15rem]"
+                style={{ color: 'var(--tp-heading)' }}
+              >
                 {content.responsePromiseTitle}
               </p>
-              <p className="mt-5 max-w-xl text-sm leading-8 text-white/72">
+              <p
+                className="mt-5 max-w-xl text-sm leading-8"
+                style={{ color: 'var(--tp-text-soft)' }}
+              >
                 {content.responsePromiseBody}
               </p>
             </div>
