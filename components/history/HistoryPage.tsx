@@ -4,11 +4,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { HistoryPageContent } from '@/lib/cms';
-import { resolveCmsImage } from '@/lib/cms';
+import { imageByKey } from '@/lib/site';
 
 type HistoryPageProps = {
   content: HistoryPageContent;
 };
+
+function resolveImage(src: string) {
+  const normalized = src.trim();
+  if (!normalized) {
+    return imageByKey.workshop;
+  }
+
+  return imageByKey[normalized as keyof typeof imageByKey] || normalized;
+}
 
 export function HistoryPage({ content }: HistoryPageProps) {
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
@@ -19,7 +28,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
     () =>
       content.chapters.map((chapter) => ({
         ...chapter,
-        imageSrc: resolveCmsImage(chapter.image.src),
+        imageSrc: resolveImage(chapter.image.src),
       })),
     [content.chapters]
   );
@@ -28,7 +37,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
     () =>
       content.galleryImages.map((item) => ({
         ...item,
-        imageSrc: resolveCmsImage(item.image.src),
+        imageSrc: resolveImage(item.image.src),
       })),
     [content.galleryImages]
   );
@@ -99,7 +108,7 @@ export function HistoryPage({ content }: HistoryPageProps) {
             <div className="overflow-hidden rounded-[2.4rem] border border-[var(--tp-border)] bg-[var(--tp-card)]">
               <div className="relative aspect-[4/4.9] overflow-hidden sm:aspect-[5/4.8] xl:aspect-[4/4.7]">
                 <Image
-                  src={resolveCmsImage(content.leadImage.src)}
+                  src={resolveImage(content.leadImage.src)}
                   alt={content.leadImage.alt}
                   fill
                   priority
@@ -200,7 +209,10 @@ export function HistoryPage({ content }: HistoryPageProps) {
                       {chapter.body}
                     </p>
 
-                    <div className="mt-7 max-w-3xl border-l-2 pl-5 text-lg leading-8 tp-heading md:text-xl">
+                    <div
+                      className="mt-7 max-w-3xl border-l-2 pl-5 text-lg leading-8 tp-heading md:text-xl"
+                      style={{ borderColor: 'var(--tp-accent)' }}
+                    >
                       {chapter.highlight}
                     </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/components/Providers';
+import { PotMark } from '@/components/PotMark';
 import { GuideQuestion } from './GuideQuestion';
 import { GuideTimer } from './GuideTimer';
 
@@ -50,27 +51,6 @@ type Answers = {
 };
 
 type Phase = 'hidden' | 'questions' | 'matching' | 'found' | 'closing';
-
-function PotMark({ className = '' }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 120 120"
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M33 20.5C33 18.567 34.567 17 36.5 17H83.5C85.433 17 87 18.567 87 20.5C87 26.764 81.925 31.839 75.661 31.839H44.339C38.075 31.839 33 26.764 33 20.5Z"
-        fill="currentColor"
-      />
-      <path
-        d="M42.239 33.666H77.761C82.127 33.666 85.884 36.758 86.726 41.042L95.722 86.819C97.415 95.435 90.812 103.5 82.031 103.5H37.969C29.188 103.5 22.585 95.435 24.278 86.819L33.274 41.042C34.116 36.758 37.873 33.666 42.239 33.666Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
 
 export function FindYourForm() {
   const router = useRouter();

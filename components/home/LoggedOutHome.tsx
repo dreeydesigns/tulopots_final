@@ -49,10 +49,10 @@ export default function LoggedOutHome() {
               </Link>
 
               <Link
-                href="/studio"
+                href="/new"
                 className="tp-btn-secondary text-center cursor-hover inline-flex items-center justify-center rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]"
               >
-                Explore Studio
+                Our History
               </Link>
             </div>
 
@@ -137,15 +137,15 @@ export default function LoggedOutHome() {
                   </div>
                 </Link>
 
-                <Link href="/studio" className="block rounded-[1.5rem] p-6 tp-card">
+                <Link href="/new" className="block rounded-[1.5rem] p-6 tp-card">
                   <p className="text-[10px] uppercase tracking-[0.18em] tp-accent">
-                    Studio Note
+                    Story Note
                   </p>
                   <p className="mt-3 serif-display text-[26px] leading-tight tp-heading">
-                    Each piece is shaped with warmth, patience, and intention.
+                    Tulo began as the quiet feeling that makes a room feel complete.
                   </p>
                   <div className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] tp-accent">
-                    Explore Studio
+                    Read the Story
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 </Link>
@@ -268,7 +268,7 @@ export default function LoggedOutHome() {
       <section className="container-shell py-16 md:py-20 xl:py-24">
         <div className="grid items-center gap-12 md:grid-cols-12 md:gap-16">
           <div className="md:col-span-6">
-            <Link href="/about" className="group block overflow-hidden rounded-[1.5rem] tp-card">
+            <Link href="/new" className="group block overflow-hidden rounded-[1.5rem] tp-card">
               <div className="relative aspect-[5/6] tp-surface-soft">
                 <Image
                   src={imageByKey.clay}
@@ -284,7 +284,7 @@ export default function LoggedOutHome() {
                       Story
                     </p>
                     <div className="serif-display mt-2 text-[28px] leading-none">
-                      Our Studio
+                      Our History
                     </div>
                   </div>
                   <ArrowRight className="h-5 w-5 shrink-0" />
@@ -303,18 +303,18 @@ export default function LoggedOutHome() {
             </h2>
 
             <p className="mt-7 max-w-md text-[16px] leading-7 tp-text-soft">
-              Started in 2016 in a small workshop, TuloPots began as a simple love
-              for clay, form, and natural living. Every pot still carries that same
-              sense of care — honest materials, steady hands, and pieces made to
-              feel timeless in a home.
+              TuloPots began in Nairobi by naming something many homes already
+              understood: the quiet presence that makes a room feel settled. Our
+              story is still shaped by clay, warmth, and forms made to complete a
+              space without noise.
             </p>
 
             <div className="mt-10">
               <Link
-                href="/about"
+                href="/new"
                 className="tp-btn-primary cursor-hover inline-flex items-center justify-center rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]"
               >
-                Read Our Story
+                Read Our History
               </Link>
             </div>
           </div>

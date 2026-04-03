@@ -12,6 +12,7 @@ import {
 import { ArrowDown, ArrowRight, ArrowUp, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { PotMark } from '@/components/PotMark';
 import { products, type Product } from '../../lib/products';
 import { imageByKey } from '../../lib/site';
 import { money } from '../../lib/utils';
@@ -360,76 +361,94 @@ function MagneticPotScene({
   onContact: () => void;
   palette: ThemePalette;
 }) {
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const potRef = useRef<HTMLDivElement | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0, tx: 0, ty: 0 });
   const [glow, setGlow] = useState({ x: 50, y: 50 });
 
-  const onMove = (e: ReactMouseEvent<HTMLDivElement>) => {
-    const el = wrapRef.current;
+  const handleMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const el = potRef.current;
     if (!el) return;
+
     const rect = el.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
-    setTilt({ x: -((py - 50) / 50) * 10, y: ((px - 50) / 50) * 12 });
+    const offsetX = (px - 50) / 50;
+    const offsetY = (py - 50) / 50;
+
+    setHovered(true);
+    setTilt({
+      x: -(offsetY * 10),
+      y: offsetX * 14,
+      tx: offsetX * 16,
+      ty: offsetY * 10,
+    });
     setGlow({ x: px, y: py });
   };
 
-  const onLeave = () => {
-    setTilt({ x: 0, y: 0 });
+  const handleLeave = () => {
+    setHovered(false);
+    setTilt({ x: 0, y: 0, tx: 0, ty: 0 });
     setGlow({ x: 50, y: 50 });
   };
 
   return (
     <div className="absolute left-[5%] top-[3%] h-[580px] w-[720px]">
-      <div
-        ref={wrapRef}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-        className="relative h-full w-full"
-        style={{ perspective: '1400px' }}
-      >
+      <div className="relative h-full w-full" style={{ perspective: '1400px' }}>
         <div
-          className="absolute left-[34%] top-[48%] h-[430px] w-[340px] -translate-x-1/2 -translate-y-1/2"
-          style={{
-            transform: `translate(-50%,-50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-            transformStyle: 'preserve-3d',
-            transition: 'transform 120ms ease-out',
-            zIndex: 1,
-          }}
+          className="absolute left-[35%] top-[49%] h-[438px] w-[338px] -translate-x-1/2 -translate-y-1/2"
+          style={{ zIndex: 1 }}
         >
           <div
-            className="absolute inset-0 rounded-[34px]"
+            className="absolute left-1/2 top-1/2 h-[318px] w-[318px] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(255,255,255,0.18), rgba(255,255,255,0.02) 36%, rgba(255,255,255,0) 68%)`,
-              filter: 'blur(2px)',
+              background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(182,106,60,0.28) 0%, rgba(182,106,60,0.14) 34%, rgba(182,106,60,0) 72%)`,
+              filter: hovered ? 'blur(10px)' : 'blur(7px)',
+              opacity: hovered ? 1 : 0.72,
+              transform: hovered ? 'scale(1.04)' : 'scale(0.96)',
+              transition: 'transform 220ms ease, opacity 220ms ease, filter 220ms ease',
             }}
           />
-          <div className="absolute inset-x-12 bottom-6 h-10 rounded-full bg-black/35 blur-2xl" />
-          <div className="absolute inset-x-0 bottom-8 top-0 mx-auto flex w-[260px] items-end justify-center">
-            <div className="relative h-[326px] w-[228px]">
-              <div className="absolute left-1/2 top-[18px] z-20 h-[138px] w-[138px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_50%_40%,#5c8f52_0%,#395d34_58%,#213720_100%)] shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
-                <div className="absolute left-1/2 top-[-10px] h-[34px] w-[10px] -translate-x-1/2 rounded-full bg-[#5f3f22]" />
-                <div className="absolute left-[28px] top-[10px] h-[80px] w-[12px] rotate-[-28deg] rounded-full bg-[#4b7c43]" />
-                <div className="absolute left-[88px] top-[16px] h-[76px] w-[11px] rotate-[22deg] rounded-full bg-[#588d4f]" />
-                <div className="absolute left-[56px] top-[4px] h-[96px] w-[12px] rotate-[-6deg] rounded-full bg-[#6ea364]" />
-                <div className="absolute left-[94px] top-[42px] h-[58px] w-[10px] rotate-[42deg] rounded-full bg-[#43693b]" />
-                <div className="absolute left-[40px] top-[42px] h-[56px] w-[10px] rotate-[-44deg] rounded-full bg-[#4f7d44]" />
-              </div>
-
-              <div
-                className="absolute bottom-[22px] left-1/2 z-10 h-[176px] w-[196px] -translate-x-1/2 rounded-b-[44%] rounded-t-[38%]"
-                style={{
-                  background: 'linear-gradient(180deg,#d98956 0%,#b96b3d 28%,#9f5b34 58%,#7d4729 100%)',
-                  boxShadow:
-                    'inset -16px -26px 32px rgba(71,36,18,0.32), inset 10px 10px 18px rgba(255,212,180,0.18), 0 24px 50px rgba(0,0,0,0.28)',
-                }}
-              >
-                <div className="absolute left-1/2 top-[-10px] h-[28px] w-[204px] -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,#e6a578_0%,#b96b3d_68%,#8a4d2e_100%)] shadow-[0_8px_18px_rgba(0,0,0,0.18)]" />
-                <div className="absolute left-1/2 top-[2px] h-[16px] w-[146px] -translate-x-1/2 rounded-full bg-[#724022]" />
-                <div className="absolute inset-x-[18px] bottom-[34px] top-[40px] rounded-[40%] border border-white/10 opacity-30" />
-                <div className="absolute inset-x-[34px] bottom-[56px] top-[64px] rounded-[40%] border border-black/8 opacity-20" />
-              </div>
-            </div>
+          <div
+            className="absolute inset-x-10 bottom-8 h-12 rounded-full bg-black/35 blur-2xl"
+            style={{
+              opacity: hovered ? 0.95 : 0.72,
+              transform: `translateX(${tilt.tx * 0.45}px) scale(${hovered ? 1.02 : 0.96})`,
+              transition: 'transform 220ms ease, opacity 220ms ease',
+            }}
+          />
+          <div
+            ref={potRef}
+            onMouseEnter={() => setHovered(true)}
+            onMouseMove={handleMove}
+            onMouseLeave={handleLeave}
+            className="absolute left-1/2 top-1/2 flex h-[318px] w-[318px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center"
+            style={{
+              transform: `perspective(520px) translate3d(${tilt.tx}px, ${tilt.ty}px, 0) rotateY(${tilt.y}deg) rotateX(${tilt.x}deg) scale(${hovered ? 1.03 : 1})`,
+              transformStyle: 'preserve-3d',
+              transition: hovered
+                ? 'transform 90ms ease-out, filter 220ms ease'
+                : 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1), filter 260ms ease',
+              filter: hovered
+                ? 'drop-shadow(0 26px 40px rgba(138, 78, 45, 0.26))'
+                : 'drop-shadow(0 20px 30px rgba(138, 78, 45, 0.18))',
+            }}
+          >
+            <div
+              className="absolute inset-[16%] rounded-full"
+              style={{
+                background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(240,201,138,0.36) 0%, rgba(240,201,138,0.1) 34%, rgba(240,201,138,0) 64%)`,
+                opacity: hovered ? 1 : 0.66,
+                transform: 'translateZ(24px)',
+                transition: 'opacity 220ms ease',
+              }}
+            />
+            <PotMark
+              className="h-full w-full"
+              style={{
+                color: palette.primaryBtnBg,
+              }}
+            />
           </div>
         </div>
 
@@ -453,7 +472,7 @@ function MagneticPotScene({
               Clay Forms
             </div>
             <div className="text-[10px] uppercase tracking-[0.16em]" style={{ color: palette.potPanelMuted }}>
-              Move cursor
+              Hover the form
             </div>
           </div>
 

@@ -1,39 +1,26 @@
 import type { Metadata } from 'next';
-import { CampaignLanding } from '@/components/CampaignLanding';
-import { getManagedPageContent, resolveCmsImage } from '@/lib/cms';
+import { HistoryPage } from '@/components/history/HistoryPage';
+import { getManagedPageContent } from '@/lib/cms';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'New Arrivals',
+  title: 'Our History',
   description:
-    'A focused landing page for newly introduced TuloPots forms, ready for seasonal edits, new arrivals, and social traffic.',
+    'The story of TuloPots, from the quiet feeling that shapes Kenyan homes to the handcrafted terracotta forms we place today.',
   alternates: {
     canonical: '/new',
   },
   openGraph: {
-    title: `New Arrivals | ${BRAND.name}`,
+    title: `Our History | ${BRAND.name}`,
     description:
-      'A focused landing page for newly introduced TuloPots forms, seasonal edits, and social traffic.',
+      'A long-form TuloPots story about Nairobi, clay, and the quiet presence that completes a room.',
     url: `${SITE_URL}/new`,
-    images: [imageByKey.indoor2],
+    images: [imageByKey.workshop],
   },
 };
 
 export default async function NewPage() {
   const content = await getManagedPageContent('new.page');
 
-  return (
-    <CampaignLanding
-      eyebrow={content.eyebrow}
-      title={content.title}
-      intro={content.intro}
-      image={resolveCmsImage(content.image.src)}
-      imageAlt={content.image.alt}
-      facts={content.facts}
-      primaryHref={content.primaryCta.href}
-      primaryLabel={content.primaryCta.label}
-      secondaryHref={content.secondaryCta.href}
-      secondaryLabel={content.secondaryCta.label}
-    />
-  );
+  return <HistoryPage content={content} />;
 }

@@ -172,6 +172,39 @@ const campaignPageSchema = z.object({
   secondaryCta: ctaSchema,
 });
 
+const historyChapterSchema = z.object({
+  label: z.string().min(1),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  highlight: z.string().min(1),
+  image: imageRefSchema,
+  facts: z.array(z.string().min(1)).min(1),
+});
+
+const historyGalleryItemSchema = z.object({
+  title: z.string().min(1),
+  caption: z.string().min(1),
+  image: imageRefSchema,
+});
+
+const historyPageSchema = z.object({
+  eyebrow: z.string().min(1),
+  title: z.string().min(1),
+  intro: z.string().min(1),
+  quote: z.string().min(1),
+  leadImage: imageRefSchema,
+  chapters: z.array(historyChapterSchema).min(1),
+  galleryEyebrow: z.string().min(1),
+  galleryTitle: z.string().min(1),
+  galleryIntro: z.string().min(1),
+  galleryImages: z.array(historyGalleryItemSchema).min(1),
+  closingEyebrow: z.string().min(1),
+  closingTitle: z.string().min(1),
+  closingBody: z.string().min(1),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
+
 const editorialArticleSectionSchema = z.object({
   heading: z.string().min(1),
   paragraphs: z.array(z.string().min(1)).min(1),
@@ -215,6 +248,7 @@ export type FaqPageContent = z.infer<typeof faqPageSchema>;
 export type DeliveryPageContent = z.infer<typeof deliveryPageSchema>;
 export type LegalPageContent = z.infer<typeof legalPageSchema>;
 export type CampaignPageContent = z.infer<typeof campaignPageSchema>;
+export type HistoryPageContent = z.infer<typeof historyPageSchema>;
 export type JournalLibraryPageContent = EditorialLibraryContent;
 export type ContactInfoIconKey = z.infer<typeof contactInfoSchema>['icon'];
 export type CareGuideIconKey = z.infer<typeof careGuideCardSchema>['icon'];
@@ -230,7 +264,7 @@ export interface ManagedPagePayloadMap {
   'privacy-policy.page': LegalPageContent;
   'cookie-policy.page': LegalPageContent;
   'launch.page': CampaignPageContent;
-  'new.page': CampaignPageContent;
+  'new.page': HistoryPageContent;
   'limited.page': CampaignPageContent;
   'journal.library': JournalLibraryPageContent;
 }
@@ -785,23 +819,118 @@ const managedPageDefinitions: { [K in ManagedPageKey]: ManagedPageDefinition<K> 
     },
   },
   'new.page': {
-    label: 'New Arrivals',
+    label: 'History Page',
     route: '/new',
-    description: 'New-arrivals campaign copy, image, chips, and calls to action.',
-    tips: sharedPageTips,
-    schema: campaignPageSchema,
+    description:
+      'Long-form brand story, chapter imagery, gallery, and calls to action for the TuloPots history page.',
+    tips: [
+      'Use this page to tell the story of TuloPots in a calm, emotional way. Keep each chapter easy to read and grounded in the brand language.',
+      'Each chapter has its own image, body text, highlight line, and fact chips. You can reorder chapters to change the flow of the page.',
+      'The gallery can hold workshop images, placed forms, or brand illustrations that deepen the story before the collection call to action.',
+    ],
+    schema: historyPageSchema,
     payload: {
-      eyebrow: 'New Arrivals',
-      title: 'A dedicated stage for new clay forms.',
+      eyebrow: 'Our History',
+      title: 'Before the brand, there was a feeling Kenyan homes already knew.',
       intro:
-        'Use this page for fresh arrivals, new edits, or a short-run release that deserves a tighter story than the main collection pages.',
-      image: {
-        src: 'indoor2',
-        alt: 'New TuloPots clay forms',
+        'TuloPots began by naming something quiet. In many homes, there is always one presence that settles a room without asking for attention. We call that feeling Tulo.',
+      quote: 'We do not sell pots. We place Tulo.',
+      leadImage: {
+        src: 'workshop',
+        alt: 'Shelves of handcrafted terracotta forms in the TuloPots workshop',
       },
-      facts: ['Fresh Edit', 'Story-led Entry', 'Social-ready'],
-      primaryCta: { label: 'For Interior Spaces', href: '/indoor' },
-      secondaryCta: { label: 'For Open Spaces', href: '/outdoor' },
+      chapters: [
+        {
+          label: 'The Feeling',
+          title: 'Tulo was felt long before it was named.',
+          body:
+            'In many Kenyan homes, the thing that completes a space is rarely the loudest object. It is the quiet form by the window, the clay that warms a corner, the presence that makes a room feel held. When it is missing, the room feels almost finished, but not complete.',
+          highlight:
+            'This is the origin of Tulo: a grounded, quiet presence that turns space into home.',
+          image: {
+            src: 'historyPresence',
+            alt: 'Illustrated terracotta form near a window with warm morning light',
+          },
+          facts: ['Quiet presence', 'Grounded rooms', 'Kenyan homes'],
+        },
+        {
+          label: 'The City',
+          title: 'Nairobi taught us what modern spaces still need.',
+          body:
+            'We are based in Nairobi, where design-conscious homes, studios, and workplaces ask for more than decoration. They ask for warmth without noise. TuloPots was shaped for rooms that want balance, texture, and emotional calm.',
+          highlight:
+            'The city gave us the audience first: people who edit carefully, choose intentionally, and want spaces that feel considered.',
+          image: {
+            src: 'historyNairobi',
+            alt: 'Illustrated Nairobi-inspired interior shaped by terracotta forms',
+          },
+          facts: ['Nairobi rooted', 'Interior spaces', 'Open spaces'],
+        },
+        {
+          label: 'The Hand',
+          title: 'Clay became the language because it remembers the hand.',
+          body:
+            'We chose terracotta because it stays human. It carries weight, warmth, and slight variation without apology. Every curve, edge, and surface keeps the material honest. That is why our forms feel lived with instead of mass-made.',
+          highlight:
+            'Craft above convenience. Warmth over perfection. Restraint over noise.',
+          image: {
+            src: 'historyWheel',
+            alt: 'Illustrated clay form turning on a potter wheel',
+          },
+          facts: ['Handcrafted clay', 'Natural warmth', 'Quiet confidence'],
+        },
+        {
+          label: 'Today',
+          title: 'What we place now is not decoration. It is completion.',
+          body:
+            'TuloPots exists to help a room feel settled. Some people come for a clay form. Others come for a plant pairing. Designers come for spaces that need presence, not clutter. The purpose stays the same: to place Tulo where a room needs it most.',
+          highlight:
+            'From Nairobi outward, the ambition stays clear: African craft, elevated properly, and trusted wherever thoughtful spaces are made.',
+          image: {
+            src: 'historyHome',
+            alt: 'Illustrated room completed with terracotta forms and greenery',
+          },
+          facts: ['For homes', 'For designers', 'For daily living'],
+        },
+      ],
+      galleryEyebrow: 'Story In Form',
+      galleryTitle: 'The story is told in earth, light, and rooms that finally settle.',
+      galleryIntro:
+        'These images hold the workshop, the material, and the quiet life each form enters once it leaves the shelf.',
+      galleryImages: [
+        {
+          title: 'The workshop',
+          caption: 'Clay forms on shelves, waiting for the room they will complete.',
+          image: {
+            src: 'workshop',
+            alt: 'Shelves of handcrafted terracotta in the TuloPots workshop',
+          },
+        },
+        {
+          title: 'The placed form',
+          caption:
+            'Presence begins when the vessel and the room start speaking the same language.',
+          image: {
+            src: 'indoor1',
+            alt: 'Terracotta form placed in an interior with a peace lily',
+          },
+        },
+        {
+          title: 'The everyday room',
+          caption:
+            'Tulo belongs in living spaces that want warmth without excess.',
+          image: {
+            src: 'indoor4',
+            alt: 'Terracotta jug form with trailing pothos in soft light',
+          },
+        },
+      ],
+      closingEyebrow: 'Continue',
+      closingTitle: 'If a room still feels unfinished, start with what it is missing.',
+      closingBody:
+        'The collection is where this story becomes part of daily life. Explore the forms, find what fits the space, and let the room settle.',
+      primaryCta: { label: 'Explore the Collection', href: '/pots' },
+      secondaryCta: { label: 'Open Studio', href: '/studio' },
     },
   },
   'limited.page': {
