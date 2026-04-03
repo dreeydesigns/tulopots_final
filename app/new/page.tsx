@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CampaignLanding } from '@/components/CampaignLanding';
+import { getManagedPageContent, resolveCmsImage } from '@/lib/cms';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -18,19 +19,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function NewPage() {
+export default async function NewPage() {
+  const content = await getManagedPageContent('new.page');
+
   return (
     <CampaignLanding
-      eyebrow="New Arrivals"
-      title="A dedicated stage for new clay forms."
-      intro="Use this page for fresh arrivals, new edits, or a short-run release that deserves a tighter story than the main collection pages."
-      image={imageByKey.indoor2}
-      imageAlt="New TuloPots clay forms"
-      facts={['Fresh Edit', 'Story-led Entry', 'Social-ready']}
-      primaryHref="/indoor"
-      primaryLabel="For Interior Spaces"
-      secondaryHref="/outdoor"
-      secondaryLabel="For Open Spaces"
+      eyebrow={content.eyebrow}
+      title={content.title}
+      intro={content.intro}
+      image={resolveCmsImage(content.image.src)}
+      imageAlt={content.image.alt}
+      facts={content.facts}
+      primaryHref={content.primaryCta.href}
+      primaryLabel={content.primaryCta.label}
+      secondaryHref={content.secondaryCta.href}
+      secondaryLabel={content.secondaryCta.label}
     />
   );
 }

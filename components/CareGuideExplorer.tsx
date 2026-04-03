@@ -9,7 +9,21 @@ type GuideEntry = {
   section: string;
 };
 
-export function CareGuideExplorer({ entries }: { entries: GuideEntry[] }) {
+type CareGuideExplorerCopy = {
+  searchEyebrow: string;
+  searchTitle: string;
+  uploadEyebrow: string;
+  uploadTitle: string;
+  uploadBody: string;
+};
+
+export function CareGuideExplorer({
+  entries,
+  copy,
+}: {
+  entries: GuideEntry[];
+  copy: CareGuideExplorerCopy;
+}) {
   const [query, setQuery] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -112,10 +126,10 @@ export function CareGuideExplorer({ entries }: { entries: GuideEntry[] }) {
       <div className="container-shell grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
         <div className="rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6 md:p-8">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
-            Search Support
+            {copy.searchEyebrow}
           </div>
           <h2 className="mt-4 serif-display text-4xl tp-heading md:text-5xl">
-            Find a care answer fast
+            {copy.searchTitle}
           </h2>
           <div className="relative mt-6">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 tp-text-muted" />
@@ -146,14 +160,13 @@ export function CareGuideExplorer({ entries }: { entries: GuideEntry[] }) {
 
         <div className="rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] p-6 md:p-8">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] tp-accent">
-            Upload a challenge
+            {copy.uploadEyebrow}
           </div>
           <h2 className="mt-4 serif-display text-4xl tp-heading md:text-5xl">
-            Show us what is happening
+            {copy.uploadTitle}
           </h2>
           <p className="mt-4 text-sm leading-7 tp-text-soft">
-            If a leaf is yellowing, the clay is marking, or a placement is not feeling right,
-            upload a photo and describe the issue. We will respond from the support inbox.
+            {copy.uploadBody}
           </p>
 
           <div className="mt-6 grid gap-4">

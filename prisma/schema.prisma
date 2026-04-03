@@ -204,6 +204,17 @@ model SiteSection {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
+model PageContent {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  route       String
+  description String?
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
 model Review {
   id        String   @id @default(cuid())
   productId String

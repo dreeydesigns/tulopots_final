@@ -25,9 +25,10 @@ import {
   type ProductModeContentMap,
   type ProductSizeKey,
 } from '@/lib/product-variants';
+import type { ManagedPageRecord } from '@/lib/cms';
 import { ProductVariantEditor } from './ProductVariantEditor';
 
-type Tab =
+export type Tab =
   | 'overview'
   | 'products'
   | 'orders'
@@ -175,6 +176,7 @@ type DashboardData = {
     route: string | null;
     visible: boolean;
   }>;
+  managedPages: ManagedPageRecord[];
   reviews: Array<{
     id: string;
     name: string;
@@ -226,6 +228,12 @@ type NewsletterSyncResponse = {
     synced: number;
     failed: number;
   };
+  error?: string;
+};
+
+type ManagedPageResponse = {
+  ok: boolean;
+  page?: ManagedPageRecord;
   error?: string;
 };
 
@@ -303,6 +311,10 @@ function money(value: number) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
+}
+
+function prettyJson(value: unknown) {
+  return JSON.stringify(value, null, 2);
 }
 
 function syncProductForm(
@@ -396,8 +408,14 @@ function productToForm(product: DashboardData['products'][number]): ProductFormS
   );
 }
 
-export function AdminDashboard({ user }: { user: User }) {
-  const [tab, setTab] = useState<Tab>('overview');
+export function AdminDashboard({
+  user,
+  initialTab = 'overview',
+}: {
+  user: User;
+  initialTab?: Tab;
+}) {
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -427,6 +445,13 @@ export function AdminDashboard({ user }: { user: User }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [contactQuery, setContactQuery] = useState('');
   const [newsletterQuery, setNewsletterQuery] = useState('');
+  const [selectedManagedPageKey, setSelectedManagedPageKey] = useState<string | null>(null);
+  const [managedPageEditor, setManagedPageEditor] = useState('');
+  const [managedPageMessage, setManagedPageMessage] = useState('');
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   async function loadDashboard() {
     try {
@@ -460,6 +485,10 @@ export function AdminDashboard({ user }: { user: User }) {
       if (!selectedContactId && data.dashboard.contactMessages.length) {
         setSelectedContactId(data.dashboard.contactMessages[0].id);
       }
+
+      if (!selectedManagedPageKey && data.dashboard.managedPages.length) {
+        setSelectedManagedPageKey(data.dashboard.managedPages[0].key);
+      }
     } catch {
       setError('Unable to load the admin dashboard.');
     } finally {
@@ -470,6 +499,15 @@ export function AdminDashboard({ user }: { user: User }) {
   useEffect(() => {
     void loadDashboard();
   }, []);
+
+  const selectedManagedPage =
+    dashboard?.managedPages.find((page) => page.key === selectedManagedPageKey) || null;
+
+  useEffect(() => {
+    if (selectedManagedPage) {
+      setManagedPageEditor(prettyJson(selectedManagedPage.payload));
+    }
+  }, [selectedManagedPage]);
 
   async function runAutomationPass() {
     try {
@@ -969,6 +1007,54 @@ export function AdminDashboard({ user }: { user: User }) {
       await loadDashboard();
     } catch {
       setError('Unable to update content visibility.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function saveManagedPage() {
+    if (!selectedManagedPage) {
+      return;
+    }
+
+    try {
+      setPendingKey(`page:${selectedManagedPage.key}`);
+      setError('');
+      setManagedPageMessage('');
+
+      const parsed = JSON.parse(managedPageEditor);
+      const response = await fetch(`/api/admin/pages/${selectedManagedPage.key}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload: parsed }),
+      });
+      const data = (await response.json()) as ManagedPageResponse;
+
+      if (!response.ok || !data.ok || !data.page) {
+        setError(data.error || 'Unable to save that page.');
+        return;
+      }
+
+      setDashboard((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          managedPages: current.managedPages.map((page) =>
+            page.key === data.page?.key ? data.page : page
+          ),
+        };
+      });
+      setManagedPageEditor(prettyJson(data.page.payload));
+      setManagedPageMessage(`${data.page.label} saved.`);
+    } catch (saveError: any) {
+      setError(
+        saveError?.message === 'Unexpected end of JSON input'
+          ? 'The page content JSON is incomplete. Finish the structure before saving.'
+          : saveError?.message || 'Unable to save that page.'
+      );
     } finally {
       setPendingKey(null);
     }
@@ -2163,6 +2249,17 @@ export function AdminDashboard({ user }: { user: User }) {
                         </div>
 
                         <div className="flex flex-wrap gap-3">
+                          <Link
+                            href="/admin/newsletter"
+                            className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                            style={{
+                              borderColor: 'var(--tp-border)',
+                              background: 'var(--tp-card)',
+                              color: 'var(--tp-heading)',
+                            }}
+                          >
+                            Newsletter page
+                          </Link>
                           <button
                             type="button"
                             onClick={() => void syncNewsletterToHubSpot()}
@@ -2282,33 +2379,198 @@ export function AdminDashboard({ user }: { user: User }) {
                 ) : null}
 
                 {tab === 'content' ? (
-                  <PanelShell title="Content visibility" subtitle="Toggle major storefront sections on and off from the database.">
-                    <div className="grid gap-3">
-                      {dashboard.siteSections.map((section) => (
-                        <div key={section.id} className="flex items-center justify-between gap-4 rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
-                          <div>
-                            <div style={{ color: 'var(--tp-heading)' }}>{section.label}</div>
-                            <div className="mt-1 text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
-                              {section.key}
-                              {section.route ? ` · ${section.route}` : ''}
+                  <div className="space-y-6">
+                    <PanelShell
+                      title="Content visibility"
+                      subtitle="Toggle major storefront sections on and off from the database."
+                    >
+                      <div className="grid gap-3">
+                        {dashboard.siteSections.map((section) => (
+                          <div key={section.id} className="flex items-center justify-between gap-4 rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                            <div>
+                              <div style={{ color: 'var(--tp-heading)' }}>{section.label}</div>
+                              <div className="mt-1 text-sm" style={{ color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
+                                {section.key}
+                                {section.route ? ` · ${section.route}` : ''}
+                              </div>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => void toggleSection(section.key, !section.visible)}
+                              disabled={pendingKey === `section:${section.key}`}
+                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                              style={{
+                                background: section.visible ? 'var(--tp-accent)' : 'var(--tp-surface)',
+                                color: section.visible ? '#ffffff' : 'var(--tp-heading)',
+                              }}
+                            >
+                              {section.visible ? 'Visible' : 'Hidden'}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => void toggleSection(section.key, !section.visible)}
-                            disabled={pendingKey === `section:${section.key}`}
-                            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
-                            style={{
-                              background: section.visible ? 'var(--tp-accent)' : 'var(--tp-surface)',
-                              color: section.visible ? '#ffffff' : 'var(--tp-heading)',
-                            }}
+                        ))}
+                      </div>
+                    </PanelShell>
+
+                    <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+                      <PanelShell
+                        title="Managed pages"
+                        subtitle="Choose a page to edit its live JSON payload. Arrays let you add, remove, and reorder sections."
+                      >
+                        <div className="mb-4 flex flex-wrap gap-3">
+                          <Link
+                            href="/admin/content"
+                            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                            style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
                           >
-                            {section.visible ? 'Visible' : 'Hidden'}
-                          </button>
+                            Open Content Workspace
+                          </Link>
+                          <Link
+                            href="/admin/newsletter"
+                            className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                            style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+                          >
+                            Newsletter Workspace
+                          </Link>
                         </div>
-                      ))}
+
+                        <div className="space-y-3">
+                          {dashboard.managedPages.map((page) => {
+                            const isSelected = selectedManagedPageKey === page.key;
+
+                            return (
+                              <button
+                                key={page.key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedManagedPageKey(page.key);
+                                  setManagedPageMessage('');
+                                  setError('');
+                                }}
+                                className="w-full rounded-[1.25rem] border px-4 py-4 text-left"
+                                style={{
+                                  borderColor: isSelected
+                                    ? 'color-mix(in srgb, var(--tp-accent) 42%, transparent 58%)'
+                                    : 'var(--tp-border)',
+                                  background: isSelected
+                                    ? 'color-mix(in srgb, var(--tp-accent) 10%, var(--tp-card) 90%)'
+                                    : 'var(--tp-card)',
+                                }}
+                              >
+                                <div style={{ color: 'var(--tp-heading)' }}>{page.label}</div>
+                                <div className="mt-1 text-sm tp-text-soft">{page.route}</div>
+                                <div className="mt-2 text-xs tp-text-muted">
+                                  {page.updatedAt ? `Updated ${formatDate(page.updatedAt)}` : 'Using default content'}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </PanelShell>
+
+                      <PanelShell
+                        title="Page editor"
+                        subtitle="Edit the selected page payload directly. Save writes to the database and updates the live page."
+                      >
+                        {selectedManagedPage ? (
+                          <div className="space-y-4">
+                            <div className="rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                  <div style={{ color: 'var(--tp-heading)' }}>{selectedManagedPage.label}</div>
+                                  <div className="mt-1 text-sm tp-text-soft">{selectedManagedPage.description}</div>
+                                  <div className="mt-2 text-xs tp-text-muted">{selectedManagedPage.route}</div>
+                                </div>
+                                <a
+                                  href={selectedManagedPage.route}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                  style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}
+                                >
+                                  Preview page
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="rounded-[1.25rem] border px-4 py-4" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--tp-accent)' }}>
+                                Editing tips
+                              </div>
+                              <div className="mt-3 space-y-2 text-sm leading-7 tp-text-soft">
+                                {selectedManagedPage.tips.map((tip) => (
+                                  <div key={tip}>{tip}</div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <label className="block">
+                              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'color-mix(in srgb, var(--tp-text) 62%, transparent 38%)' }}>
+                                Page JSON
+                              </span>
+                              <textarea
+                                value={managedPageEditor}
+                                onChange={(event) => setManagedPageEditor(event.target.value)}
+                                spellCheck={false}
+                                rows={26}
+                                className="w-full rounded-[1.5rem] border px-4 py-4 text-sm outline-none"
+                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)', fontFamily: 'Consolas, Monaco, monospace' }}
+                              />
+                            </label>
+
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                type="button"
+                                onClick={() => void saveManagedPage()}
+                                disabled={!selectedManagedPage || pendingKey === `page:${selectedManagedPage.key}`}
+                                className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                                style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                              >
+                                {selectedManagedPage && pendingKey === `page:${selectedManagedPage.key}` ? 'Saving...' : 'Save page'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedManagedPage) {
+                                    setManagedPageEditor(prettyJson(selectedManagedPage.payload));
+                                    setManagedPageMessage('Reverted to the last saved version.');
+                                    setError('');
+                                  }
+                                }}
+                                className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+                              >
+                                Revert changes
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedManagedPage) {
+                                    setManagedPageEditor(prettyJson(selectedManagedPage.defaultPayload));
+                                    setManagedPageMessage('Loaded the original template for this page.');
+                                    setError('');
+                                  }
+                                }}
+                                className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+                              >
+                                Load default template
+                              </button>
+                            </div>
+
+                            {managedPageMessage ? (
+                              <div className="rounded-[1.25rem] bg-[var(--tp-surface)] px-4 py-4 text-sm" style={{ color: 'var(--tp-heading)' }}>
+                                {managedPageMessage}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className="rounded-[1.25rem] border px-4 py-4 text-sm tp-text-soft" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                            Choose a page from the list to start editing.
+                          </div>
+                        )}
+                      </PanelShell>
                     </div>
-                  </PanelShell>
+                  </div>
                 ) : null}
               </>
             ) : null}

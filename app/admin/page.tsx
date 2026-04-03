@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import type { Tab } from '@/components/admin/AdminDashboard';
 import { AdminLoginPanel } from '@/components/admin/AdminLoginPanel';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -8,8 +9,27 @@ export const metadata = {
   description: 'Internal control layer for TuloPots operations.',
 };
 
-export default async function AdminPage() {
+const validTabs = new Set([
+  'overview',
+  'products',
+  'orders',
+  'studio',
+  'reviews',
+  'contact',
+  'newsletter',
+  'content',
+]);
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
   const user = await getCurrentUser();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const requestedTab = resolvedSearchParams?.tab;
+  const initialTab =
+    requestedTab && validTabs.has(requestedTab) ? (requestedTab as Tab) : 'overview';
 
   if (!user) {
     return <AdminLoginPanel />;
@@ -19,5 +39,5 @@ export default async function AdminPage() {
     redirect('/');
   }
 
-  return <AdminDashboard user={user} />;
+  return <AdminDashboard user={user} initialTab={initialTab} />;
 }

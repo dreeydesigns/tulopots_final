@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { ComponentType } from 'react';
 import Link from 'next/link';
 import {
   Droplets,
@@ -10,6 +11,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { CareGuideExplorer } from '@/components/CareGuideExplorer';
+import { getManagedPageContent, type CareGuideIconKey } from '@/lib/cms';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -28,107 +30,26 @@ export const metadata: Metadata = {
   },
 };
 
-const tabs = [
-  {
-    id: 'terracotta',
-    title: 'Terracotta Care',
-    intro:
-      'Terracotta is naturally porous and breathable. That is what makes it so beautiful for plants, but it also means the clay benefits from small acts of care.',
-    cards: [
-      {
-        icon: Droplets,
-        title: 'Soak before first use',
-        text: 'Before planting, soak your terracotta piece in clean water for a few hours. This helps the clay settle and softens the first-day moisture pull from the soil.',
-      },
-      {
-        icon: Wind,
-        title: 'Let it breathe',
-        text: 'Terracotta performs best when airflow is good. Avoid leaving pieces trapped in sealed decorative sleeves for long periods.',
-      },
-      {
-        icon: ShieldAlert,
-        title: 'Clean gently',
-        text: 'Use a soft cloth, mild soap, and water. Avoid harsh chemical cleaners that can stain or weaken the clay surface over time.',
-      },
-    ],
-  },
-  {
-    id: 'indoor',
-    title: 'For Interior Spaces',
-    intro:
-      'Our interior pairings are selected for calm, breathable living. Keep light, moisture, and drainage in balance rather than following a rigid daily rhythm.',
-    cards: [
-      {
-        icon: Leaf,
-        title: 'Peace Lily & Monstera',
-        text: 'Keep in bright indirect light. Water when the top layer of soil feels dry rather than on a fixed daily schedule.',
-      },
-      {
-        icon: Sprout,
-        title: 'Snake Plant & ZZ Plant',
-        text: 'These are low-maintenance choices. Let soil dry properly between watering, especially in cooler rooms.',
-      },
-      {
-        icon: Sun,
-        title: 'Aloe & Succulents',
-        text: 'Place near bright windows and avoid overwatering. Terracotta helps here because it releases extra moisture faster.',
-      },
-    ],
-  },
-  {
-    id: 'outdoor',
-    title: 'For Open Spaces',
-    intro:
-      'Open-space forms face stronger sun, dust, wind, and rain. A little maintenance keeps them looking premium and lasting longer.',
-    cards: [
-      {
-        icon: Sun,
-        title: 'Strong sunlight is okay',
-        text: 'Terracotta handles sun beautifully, but the plant inside may still need a different watering rhythm in hotter weeks.',
-      },
-      {
-        icon: Droplets,
-        title: 'Check drainage after rain',
-        text: 'Make sure drainage holes stay open. Standing water can damage roots even when the clay itself is fine.',
-      },
-      {
-        icon: ShieldAlert,
-        title: 'Move with care',
-        text: 'Larger terracotta forms are heavy. Lift from the base, not the rim, especially after watering.',
-      },
-    ],
-  },
-];
+const iconMap: Record<CareGuideIconKey, ComponentType<any>> = {
+  Droplets,
+  Sun,
+  Wind,
+  ShieldAlert,
+  Leaf,
+  Sprout,
+};
 
-const troubleshooting = [
-  {
-    title: 'White marks on the pot?',
-    text: 'This is usually mineral salt buildup from water and soil. Wipe gently with diluted vinegar and rinse with clean water.',
-  },
-  {
-    title: 'Soil drying too fast?',
-    text: 'Terracotta naturally breathes. Try slightly more frequent watering, mulch on top, or softer indirect light.',
-  },
-  {
-    title: 'Leaves turning yellow?',
-    text: 'This is often overwatering, poor drainage, or low light. Check the soil and light conditions before watering again.',
-  },
-  {
-    title: 'Outdoor pot looking dusty?',
-    text: 'Dust is normal. Clean with a soft damp cloth and let the clay dry naturally. Avoid glossy chemical finishes.',
-  },
-];
-
-export default function CareGuidePage() {
+export default async function CareGuidePage() {
+  const content = await getManagedPageContent('care-guide.page');
   const supportEntries = [
-    ...tabs.flatMap((section) =>
+    ...content.sections.flatMap((section) =>
       section.cards.map((card) => ({
         section: section.title,
         title: card.title,
         body: card.text,
       }))
     ),
-    ...troubleshooting.map((item) => ({
+    ...content.troubleshooting.map((item) => ({
       section: 'Troubleshooting',
       title: item.title,
       body: item.text,
@@ -140,34 +61,31 @@ export default function CareGuidePage() {
       <section className="border-b border-[var(--tp-border)] bg-[var(--tp-card)] pb-14 pt-28">
         <div className="container-shell">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tp-accent)]">
-            Plant & Pot Support
+            {content.eyebrow}
           </div>
           <h1 className="mt-4 serif-display text-5xl text-[var(--tp-heading)] md:text-6xl">
-            Care Guide
+            {content.title}
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--tp-text)]/72 md:text-base">
-            Guidance for keeping your terracotta forms beautiful and your plant pairings healthy,
-            written the TuloPots way: short, calm, and useful.
+            {content.intro}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3 text-xs">
-            {['Terracotta care', 'Interior spaces', 'Open spaces', 'Troubleshooting'].map(
-              (tag) => (
+            {content.tags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-2 text-[var(--tp-text)]/68"
                 >
                   {tag}
                 </span>
-              )
-            )}
+            ))}
           </div>
         </div>
       </section>
 
       <section className="container-shell py-14 md:py-20">
         <div className="space-y-14">
-          {tabs.map((section) => (
+          {content.sections.map((section) => (
             <section key={section.id}>
               <div className="mb-6">
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--tp-accent)]">
@@ -180,7 +98,7 @@ export default function CareGuidePage() {
 
               <div className="grid gap-5 md:grid-cols-3">
                 {section.cards.map((card) => {
-                  const Icon = card.icon;
+                  const Icon = iconMap[card.icon];
                   return (
                     <div
                       key={card.title}
@@ -210,14 +128,14 @@ export default function CareGuidePage() {
       <section className="border-t border-[var(--tp-border)] bg-[var(--tp-card)] py-14 md:py-20">
         <div className="container-shell">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tp-accent)]">
-            Troubleshooting
+            {content.troubleshootingEyebrow}
           </div>
           <h2 className="mt-4 serif-display text-4xl text-[var(--tp-heading)] md:text-5xl">
-            Common Questions
+            {content.troubleshootingTitle}
           </h2>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
-            {troubleshooting.map((item) => (
+            {content.troubleshooting.map((item) => (
               <div
                 key={item.title}
                 className="rounded-[1.5rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6"
@@ -230,7 +148,16 @@ export default function CareGuidePage() {
         </div>
       </section>
 
-      <CareGuideExplorer entries={supportEntries} />
+      <CareGuideExplorer
+        entries={supportEntries}
+        copy={{
+          searchEyebrow: content.explorerSearchEyebrow,
+          searchTitle: content.explorerSearchTitle,
+          uploadEyebrow: content.explorerUploadEyebrow,
+          uploadTitle: content.explorerUploadTitle,
+          uploadBody: content.explorerUploadBody,
+        }}
+      />
 
       <section className="container-shell py-14 md:py-20">
         <div
@@ -243,22 +170,27 @@ export default function CareGuidePage() {
         >
           <div className="max-w-2xl">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
-              Need more help?
+              {content.supportEyebrow}
             </div>
             <h2 className="mt-4 serif-display text-4xl md:text-5xl">
-              Let TuloPots help you choose well
+              {content.supportTitle}
             </h2>
             <p className="mt-4 text-sm leading-7 text-white/72 md:text-base">
-              Whether you are styling a home, refreshing an open space, or planning a custom
-              brief, we can guide you toward the right form and the right pairing.
+              {content.supportBody}
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/contact" className="btn-primary inline-flex items-center gap-2">
-                Contact Us <ArrowRight className="h-4 w-4" />
+              <Link
+                href={content.supportPrimaryCta.href}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                {content.supportPrimaryCta.label} <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/faq" className="btn-secondary inline-flex items-center gap-2">
-                Visit FAQ
+              <Link
+                href={content.supportSecondaryCta.href}
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                {content.supportSecondaryCta.label}
               </Link>
             </div>
           </div>

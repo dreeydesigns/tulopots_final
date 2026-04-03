@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CampaignLanding } from '@/components/CampaignLanding';
+import { getManagedPageContent, resolveCmsImage } from '@/lib/cms';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -18,19 +19,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LimitedPage() {
+export default async function LimitedPage() {
+  const content = await getManagedPageContent('limited.page');
+
   return (
     <CampaignLanding
-      eyebrow="Limited Edition"
-      title="Reserved for short runs and rare forms."
-      intro="This route is ready for exclusive edits, studio-first releases, or smaller drops where scarcity needs to feel intentional rather than loud."
-      image={imageByKey.productStudio}
-      imageAlt="Limited edition TuloPots terracotta forms"
-      facts={['Short Run', 'Editorial Drop', 'Quiet Scarcity']}
-      primaryHref="/pots"
-      primaryLabel="View Clay Forms"
-      secondaryHref="/studio"
-      secondaryLabel="Open Studio"
+      eyebrow={content.eyebrow}
+      title={content.title}
+      intro={content.intro}
+      image={resolveCmsImage(content.image.src)}
+      imageAlt={content.image.alt}
+      facts={content.facts}
+      primaryHref={content.primaryCta.href}
+      primaryLabel={content.primaryCta.label}
+      secondaryHref={content.secondaryCta.href}
+      secondaryLabel={content.secondaryCta.label}
     />
   );
 }

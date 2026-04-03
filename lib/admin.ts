@@ -1,5 +1,6 @@
 import type { ContactMessageStatus, OrderStatus, StudioBriefStatus } from '@prisma/client';
 import { syncCatalogToDatabase } from '@/lib/catalog';
+import { listManagedPages, syncManagedPageContentToDatabase } from '@/lib/cms';
 import { getHubSpotConfig } from '@/lib/hubspot';
 import { getCurrentUser } from '@/lib/auth';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
@@ -60,6 +61,8 @@ export async function getAdminDashboardData() {
     await syncCatalogToDatabase();
   }
 
+  await syncManagedPageContentToDatabase();
+
   const [
     productCount,
     orderCount,
@@ -75,6 +78,7 @@ export async function getAdminDashboardData() {
     contactMessages,
     newsletterSubscribers,
     siteSections,
+    managedPages,
     reviews,
     analyticsEvents,
   ] = await Promise.all([
@@ -114,6 +118,7 @@ export async function getAdminDashboardData() {
     prisma.siteSection.findMany({
       orderBy: { createdAt: 'asc' },
     }),
+    listManagedPages(),
     prisma.review.findMany({
       orderBy: [{ approved: 'asc' }, { createdAt: 'desc' }],
       take: 40,
@@ -365,6 +370,7 @@ export async function getAdminDashboardData() {
       route: section.route,
       visible: section.visible,
     })),
+    managedPages,
     reviews: reviews.map((review) => ({
       id: review.id,
       name: review.name,

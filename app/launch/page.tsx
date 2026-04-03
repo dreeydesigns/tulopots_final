@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CampaignLanding } from '@/components/CampaignLanding';
+import { getManagedPageContent, resolveCmsImage } from '@/lib/cms';
 import { BRAND, SITE_URL, imageByKey } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -18,19 +19,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LaunchPage() {
+export default async function LaunchPage() {
+  const content = await getManagedPageContent('launch.page');
+
   return (
     <CampaignLanding
-      eyebrow="Campaign Landing"
-      title="Launch-ready space for a new collection."
-      intro="This route is ready for collection launches, studio drops, or editorial campaigns that need a focused story and a clear path into the storefront."
-      image={imageByKey.hero}
-      imageAlt="Editorial TuloPots launch campaign hero"
-      facts={['Editorial Focus', 'Collection Story', 'Ready for Launch']}
-      primaryHref="/pots"
-      primaryLabel="Open Clay Forms"
-      secondaryHref="/contact"
-      secondaryLabel="Plan Campaign"
+      eyebrow={content.eyebrow}
+      title={content.title}
+      intro={content.intro}
+      image={resolveCmsImage(content.image.src)}
+      imageAlt={content.image.alt}
+      facts={content.facts}
+      primaryHref={content.primaryCta.href}
+      primaryLabel={content.primaryCta.label}
+      secondaryHref={content.secondaryCta.href}
+      secondaryLabel={content.secondaryCta.label}
     />
   );
 }
