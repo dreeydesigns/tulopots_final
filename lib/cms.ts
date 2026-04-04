@@ -585,7 +585,7 @@ const managedPageDefinitions: { [K in ManagedPageKey]: ManagedPageDefinition<K> 
       eyebrow: 'Delivery Tracking',
       title: 'Track Your Order',
       intro:
-        'Standard paid orders are planned around a 2-day delivery window after purchase. Custom work follows a longer studio rhythm and can take up to 21 days.',
+        'Standard paid orders are planned around a 2-day delivery window after purchase. Delivery to Nairobi CBD is KES 350, orders above KES 7,000 ship free within Nairobi CBD, and further locations are quoted after routing review. Custom work follows a longer studio rhythm and can take up to 21 days.',
       orderNumberPlaceholder: 'Order number',
       emailPlaceholder: 'Customer email',
       trackingPlaceholder: 'Tracking code (optional)',
@@ -620,6 +620,7 @@ const managedPageDefinitions: { [K in ManagedPageKey]: ManagedPageDefinition<K> 
           title: 'Delivery windows',
           body: [
             'Paid standard orders are planned around a 2-day delivery window after purchase. Destination, access, order volume, and final confirmation can affect the exact handover time, but this is the operating target we communicate to customers.',
+            'Delivery to Nairobi CBD starts at KES 350. Orders above KES 7,000 ship free within Nairobi CBD. Further Nairobi and upcountry locations may carry an additional delivery charge after routing review.',
             'Custom commissions, Studio briefs, and other made-to-order work follow a longer studio rhythm. Unless another timeline is agreed in writing, custom work should be understood as taking up to 21 days before delivery.',
             'If we cannot reach the recipient, verify access, or complete delivery safely, the order may be rescheduled and additional charges may apply where repeat delivery is required.',
           ],

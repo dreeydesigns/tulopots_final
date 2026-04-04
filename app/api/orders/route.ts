@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminUser } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/orders
@@ -11,6 +12,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
+    const adminUser = await requireAdminUser('orders.read');
+
+    if (!adminUser) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: 'desc' },
       take: 50,

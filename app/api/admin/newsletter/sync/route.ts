@@ -4,7 +4,7 @@ import { syncNewsletterSubscriberToHubSpot } from '@/lib/hubspot';
 import { prisma } from '@/lib/prisma';
 
 export async function POST() {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('newsletter.manage');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });

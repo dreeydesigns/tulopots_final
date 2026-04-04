@@ -8,7 +8,7 @@ function toCsvCell(value: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('orders.read');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });

@@ -93,6 +93,18 @@ export function isKenyanCountry(country: string | null | undefined) {
   return resolveSupportedCountry(country) === 'KE';
 }
 
+export function isNairobiCbdLocation(city: string | null | undefined) {
+  const value = String(city || '')
+    .trim()
+    .toLowerCase();
+
+  if (!value) {
+    return false;
+  }
+
+  return value.includes('nairobi cbd') || value === 'cbd';
+}
+
 function roundAmount(value: number, fractionDigits: number) {
   const factor = 10 ** fractionDigits;
   return Math.round(value * factor) / factor;
@@ -144,13 +156,18 @@ export function getDeliveryFeeKes(input: {
   subtotalKes: number;
   itemCount: number;
   shippingCountry?: string | null;
+  shippingCity?: string | null;
 }) {
   if (!input.itemCount) {
     return 0;
   }
 
   if (isKenyanCountry(input.shippingCountry)) {
-    return input.subtotalKes >= 5000 ? 0 : 350;
+    if (isNairobiCbdLocation(input.shippingCity) && input.subtotalKes >= 7000) {
+      return 0;
+    }
+
+    return 350;
   }
 
   return input.subtotalKes >= 20000 ? 1800 : 2800;
@@ -160,15 +177,31 @@ export function getDeliverySummary(input: {
   subtotalKes: number;
   itemCount: number;
   shippingCountry?: string | null;
+  shippingCity?: string | null;
 }) {
   const deliveryFeeKes = getDeliveryFeeKes(input);
   const totalKes = input.subtotalKes + deliveryFeeKes;
+  const isInternational = !isKenyanCountry(input.shippingCountry);
+  const isNairobiCbd = isNairobiCbdLocation(input.shippingCity);
+  const qualifiesForFreeNairobiCbdDelivery =
+    !isInternational && isNairobiCbd && input.subtotalKes >= 7000;
+  const requiresLocationQuote = !isInternational && !isNairobiCbd;
 
   return {
     subtotalKes: input.subtotalKes,
     deliveryFeeKes,
     totalKes,
-    isInternational: !isKenyanCountry(input.shippingCountry),
+    isInternational,
+    isNairobiCbd,
+    qualifiesForFreeNairobiCbdDelivery,
+    requiresLocationQuote,
+    policyNote: isInternational
+      ? 'International delivery is estimated separately for the destination country.'
+      : qualifiesForFreeNairobiCbdDelivery
+      ? 'Nairobi CBD delivery is free for orders above KES 7,000.'
+      : requiresLocationQuote
+      ? 'Delivery starts at KES 350 for Nairobi CBD. Further Nairobi and upcountry locations may cost more after routing review.'
+      : 'Delivery to Nairobi CBD is KES 350. Orders above KES 7,000 ship free within Nairobi CBD.',
   };
 }
 

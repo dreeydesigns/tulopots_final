@@ -2,21 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { initiateMpesaStkPush } from '@/lib/payments';
 import { getRequestOrigin } from '@/lib/request';
+import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
+import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
+import { mpesaSchema } from '@/lib/security/validation';
+import { recordSecurityEvent } from '@/lib/security/audit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  const ip = getRequestIp(req);
+
   try {
-    const { orderId, phone } = (await req.json()) as {
-      orderId: string;
-      phone: string;
-    };
+    const rateLimit = await enforceRateLimit({
+      key: ip,
+      route: '/api/payments/mpesa',
+      limit: 8,
+      windowMs: 60 * 1000,
+      ip,
+    });
+
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Too many M-Pesa attempts were started from this connection. Please wait a moment and try again.',
+        429,
+        { retryAfter: rateLimit.retryAfterSeconds }
+      );
+    }
+
+    const parsed = mpesaSchema.safeParse(await req.json());
+
+    if (!parsed.success) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/payments/mpesa',
+        ip,
+        metadata: {
+          issues: parsed.error.flatten(),
+        },
+      });
+      return jsonError('orderId and a valid phone number are required', 400);
+    }
+
+    const { orderId, phone } = parsed.data;
 
     if (!orderId || !phone) {
-      return NextResponse.json(
-        { error: 'orderId and phone are required' },
-        { status: 400 }
-      );
+      return jsonError('orderId and phone are required', 400);
     }
 
     const order = await prisma.order.findUnique({
@@ -24,14 +55,22 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return jsonError('Order not found', 404);
     }
 
     if (order.status === 'PAID') {
-      return NextResponse.json(
-        { error: 'This order has already been paid.' },
-        { status: 409 }
-      );
+      await recordSecurityEvent({
+        type: 'PAYMENT_ANOMALY',
+        severity: 'WARNING',
+        route: '/api/payments/mpesa',
+        identifier: order.orderNumber,
+        ip,
+        metadata: {
+          status: order.status,
+          provider: 'MPESA',
+        },
+      });
+      return jsonError('This order has already been paid.', 409);
     }
 
     const stk = await initiateMpesaStkPush({
@@ -72,9 +111,6 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[mpesa] error:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to initiate M-Pesa payment.' },
-      { status: 500 }
-    );
+    return jsonError(getSafeErrorMessage(error, 'Failed to initiate M-Pesa payment.'), 500);
   }
 }

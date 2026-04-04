@@ -1,4 +1,6 @@
 import type { ContactMessageStatus, OrderStatus, StudioBriefStatus } from '@prisma/client';
+import type { AdminTabId, PermissionKey } from '@/lib/access';
+import { canAccessAdminTab, getAllowedAdminTabs, hasPermission } from '@/lib/access';
 import { syncCatalogToDatabase } from '@/lib/catalog';
 import { listManagedPages, syncManagedPageContentToDatabase } from '@/lib/cms';
 import { getHubSpotConfig } from '@/lib/hubspot';
@@ -31,9 +33,27 @@ export const adminContactStatuses: ContactMessageStatus[] = [
   'HANDLED',
 ];
 
-export async function requireAdminUser() {
+export async function requireAdminUser(permission?: PermissionKey) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) {
+    return null;
+  }
+
+  if (permission && !hasPermission(user.role, permission)) {
+    return null;
+  }
+
+  return user;
+}
+
+export async function requireAdminTab(tab: AdminTabId) {
+  const user = await getCurrentUser();
+
+  if (!user?.isAdmin) {
+    return null;
+  }
+
+  if (!canAccessAdminTab(user.role, tab)) {
     return null;
   }
 
@@ -111,7 +131,7 @@ export async function ensureUniqueProductSku(baseValue: string | null | undefine
   }
 }
 
-export async function getAdminDashboardData() {
+export async function getAdminDashboardData(viewer?: { role: any; permissions: string[] }) {
   const hubspotConfig = getHubSpotConfig();
   const initialProductCount = await prisma.product.count();
   const initialSectionCount = await prisma.siteSection.count();
@@ -140,6 +160,10 @@ export async function getAdminDashboardData() {
     managedPages,
     reviews,
     analyticsEvents,
+    supportThreads,
+    automationJobs,
+    securityEvents,
+    adminUsers,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count(),
@@ -200,6 +224,52 @@ export async function getAdminDashboardData() {
         source: true,
         path: true,
         consentLevel: true,
+        createdAt: true,
+      },
+    }),
+    prisma.supportThread.findMany({
+      orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+      take: 50,
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            shippingCity: true,
+            estimatedDeliveryAt: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        summaries: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    }),
+    prisma.automationJob.findMany({
+      orderBy: [{ status: 'asc' }, { runAt: 'asc' }],
+      take: 40,
+    }),
+    prisma.securityEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+    }),
+    prisma.user.findMany({
+      where: {
+        OR: [{ isAdmin: true }, { role: { not: 'CUSTOMER' } }],
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isAdmin: true,
+        lastSignInAt: true,
         createdAt: true,
       },
     }),
@@ -272,7 +342,16 @@ export async function getAdminDashboardData() {
     .sort((left, right) => right.revenue - left.revenue || right.orders - left.orders)
     .slice(0, 6);
 
+  const pendingDeliveryOrders = orders.filter((order) =>
+    ['PAID', 'PROCESSING', 'SHIPPED'].includes(order.status)
+  );
+  const deliveredOrders = orders.filter((order) => order.status === 'DELIVERED');
+
   return {
+    adminAccess: {
+      allowedTabs: viewer ? getAllowedAdminTabs(viewer.role) : [],
+      permissions: viewer?.permissions || [],
+    },
     counts: {
       products: productCount,
       orders: orderCount,
@@ -294,6 +373,19 @@ export async function getAdminDashboardData() {
       listsUrl: hubspotConfig.listsUrl,
     },
     activity,
+    deliverySummary: {
+      pending: pendingDeliveryOrders.length,
+      delivered: deliveredOrders.length,
+      pendingLocations: pendingDeliveryOrders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        shippingCity: order.shippingCity,
+        shippingAddr1: order.shippingAddr1,
+        status: order.status,
+        estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || null,
+      })),
+    },
     products: products.map((product) => ({
       id: product.id,
       name: product.name,
@@ -451,6 +543,67 @@ export async function getAdminDashboardData() {
       path: event.path,
       consentLevel: event.consentLevel,
       createdAt: event.createdAt.toISOString(),
+    })),
+    supportThreads: supportThreads.map((thread) => ({
+      id: thread.id,
+      source: thread.source,
+      status: thread.status,
+      priority: thread.priority,
+      customerName: thread.customerName,
+      customerEmail: thread.customerEmail,
+      customerPhone: thread.customerPhone,
+      summary: thread.summary,
+      order: thread.order
+        ? {
+            id: thread.order.id,
+            orderNumber: thread.order.orderNumber,
+            status: thread.order.status,
+            shippingCity: thread.order.shippingCity,
+            estimatedDeliveryAt: thread.order.estimatedDeliveryAt?.toISOString() || null,
+          }
+        : null,
+      latestMessage: thread.messages[0]
+        ? {
+            body: thread.messages[0].body,
+            createdAt: thread.messages[0].createdAt.toISOString(),
+          }
+        : null,
+      latestSummary: thread.summaries[0]
+        ? {
+            intent: thread.summaries[0].intent,
+            shortSummary: thread.summaries[0].shortSummary,
+            suggestedNextStep: thread.summaries[0].suggestedNextStep,
+          }
+        : null,
+      updatedAt: thread.updatedAt.toISOString(),
+    })),
+    automationJobs: automationJobs.map((job) => ({
+      id: job.id,
+      type: job.type,
+      status: job.status,
+      dedupeKey: job.dedupeKey,
+      runAt: job.runAt.toISOString(),
+      attempts: job.attempts,
+      lastError: job.lastError,
+      completedAt: job.completedAt?.toISOString() || null,
+      createdAt: job.createdAt.toISOString(),
+    })),
+    securityEvents: securityEvents.map((event) => ({
+      id: event.id,
+      type: event.type,
+      severity: event.severity,
+      route: event.route,
+      identifier: event.identifier,
+      createdAt: event.createdAt.toISOString(),
+    })),
+    adminUsers: adminUsers.map((adminUser) => ({
+      id: adminUser.id,
+      name: adminUser.name,
+      email: adminUser.email,
+      role: adminUser.role,
+      isAdmin: adminUser.isAdmin,
+      lastSignInAt: adminUser.lastSignInAt?.toISOString() || null,
+      createdAt: adminUser.createdAt.toISOString(),
     })),
   };
 }

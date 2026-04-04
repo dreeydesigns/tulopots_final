@@ -3,7 +3,7 @@ import { requireAdminUser } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('newsletter.read');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });

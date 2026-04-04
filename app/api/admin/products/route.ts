@@ -9,7 +9,7 @@ import { buildStoredProductFields } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('products.manage');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });

@@ -6,7 +6,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('support.manage');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });

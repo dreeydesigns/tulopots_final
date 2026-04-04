@@ -12,12 +12,13 @@ type CartItem = {
   quantity: number;
 };
 
-function totals(items: CartItem[], shippingCountry?: string) {
+function totals(items: CartItem[], shippingCountry?: string, shippingCity?: string) {
   const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.quantity || 0), 0);
   const summary = getDeliverySummary({
     subtotalKes: subtotal,
     itemCount: items.length,
     shippingCountry,
+    shippingCity,
   });
   return {
     subtotal: summary.subtotalKes,
@@ -25,6 +26,10 @@ function totals(items: CartItem[], shippingCountry?: string) {
     total: summary.totalKes,
     currency: 'KES',
     isInternational: summary.isInternational,
+    isNairobiCbd: summary.isNairobiCbd,
+    qualifiesForFreeNairobiCbdDelivery: summary.qualifiesForFreeNairobiCbdDelivery,
+    requiresLocationQuote: summary.requiresLocationQuote,
+    policyNote: summary.policyNote,
     shippingCountry: resolveSupportedCountry(shippingCountry),
   };
 }
@@ -42,10 +47,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const items = Array.isArray(body?.items) ? (body.items as CartItem[]) : [];
     const shippingCountry = resolveSupportedCountry(body?.shippingCountry);
+    const shippingCity = String(body?.shippingCity || '').trim();
     return NextResponse.json({
       ok: true,
       items,
-      ...totals(items, shippingCountry),
+      ...totals(items, shippingCountry, shippingCity),
       generatedAt: new Date().toISOString(),
     });
   } catch {

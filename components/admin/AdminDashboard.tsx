@@ -11,10 +11,12 @@ import {
   PanelsTopLeft,
   RefreshCw,
   Search,
+  Shield,
   Sparkles,
   Star,
   SquarePen,
   Trash2,
+  Truck,
 } from 'lucide-react';
 import type { User } from '@/components/Providers';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
@@ -35,11 +37,17 @@ export type Tab =
   | 'orders'
   | 'studio'
   | 'reviews'
-  | 'contact'
+  | 'support'
   | 'newsletter'
-  | 'content';
+  | 'content'
+  | 'automation'
+  | 'security';
 
 type DashboardData = {
+  adminAccess: {
+    allowedTabs: string[];
+    permissions: string[];
+  };
   counts: {
     products: number;
     orders: number;
@@ -134,6 +142,19 @@ type DashboardData = {
     orders: number;
     revenue: number;
   }>;
+  deliverySummary: {
+    pending: number;
+    delivered: number;
+    pendingLocations: Array<{
+      id: string;
+      orderNumber: string;
+      customerName: string;
+      shippingCity: string | null;
+      shippingAddr1: string | null;
+      status: string;
+      estimatedDeliveryAt: string | null;
+    }>;
+  };
   studioBriefs: Array<{
     id: string;
     referenceCode: string;
@@ -198,6 +219,61 @@ type DashboardData = {
     source: string | null;
     path: string | null;
     consentLevel: string;
+    createdAt: string;
+  }>;
+  supportThreads: Array<{
+    id: string;
+    source: string;
+    status: string;
+    priority: string;
+    customerName: string | null;
+    customerEmail: string | null;
+    customerPhone: string | null;
+    summary: string | null;
+    order: {
+      id: string;
+      orderNumber: string;
+      status: string;
+      shippingCity: string | null;
+      estimatedDeliveryAt: string | null;
+    } | null;
+    latestMessage: {
+      body: string;
+      createdAt: string;
+    } | null;
+    latestSummary: {
+      intent: string;
+      shortSummary: string;
+      suggestedNextStep: string | null;
+    } | null;
+    updatedAt: string;
+  }>;
+  automationJobs: Array<{
+    id: string;
+    type: string;
+    status: string;
+    dedupeKey: string | null;
+    runAt: string;
+    attempts: number;
+    lastError: string | null;
+    completedAt: string | null;
+    createdAt: string;
+  }>;
+  securityEvents: Array<{
+    id: string;
+    type: string;
+    severity: string;
+    route: string | null;
+    identifier: string | null;
+    createdAt: string;
+  }>;
+  adminUsers: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string;
+    isAdmin: boolean;
+    lastSignInAt: string | null;
     createdAt: string;
   }>;
 };
@@ -283,9 +359,11 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'orders', label: 'Orders', icon: ClipboardList },
   { id: 'studio', label: 'Studio', icon: Sparkles },
   { id: 'reviews', label: 'Reviews', icon: Star },
-  { id: 'contact', label: 'Contact', icon: Mail },
+  { id: 'support', label: 'Support', icon: Mail },
   { id: 'newsletter', label: 'Newsletter', icon: Boxes },
   { id: 'content', label: 'Content', icon: PanelsTopLeft },
+  { id: 'automation', label: 'Automation', icon: Truck },
+  { id: 'security', label: 'Security', icon: Shield },
 ];
 
 const orderStatusOptions = [
@@ -438,6 +516,10 @@ export function AdminDashboard({
   const [lastLoadedAt, setLastLoadedAt] = useState('');
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [newsletterSyncMessage, setNewsletterSyncMessage] = useState('');
+  const visibleTabs = useMemo(
+    () => tabs.filter((item) => user.allowedAdminTabs.includes(item.id)),
+    [user.allowedAdminTabs]
+  );
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
@@ -465,8 +547,13 @@ export function AdminDashboard({
   const [managedPageMessage, setManagedPageMessage] = useState('');
 
   useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
+    if (user.allowedAdminTabs.includes(initialTab)) {
+      setTab(initialTab);
+      return;
+    }
+
+    setTab((user.allowedAdminTabs[0] as Tab | undefined) || 'overview');
+  }, [initialTab, user.allowedAdminTabs]);
 
   async function loadDashboard() {
     try {
@@ -1178,7 +1265,7 @@ export function AdminDashboard({
               borderColor: 'color-mix(in srgb, var(--tp-border) 60%, transparent 40%)',
             }}
           >
-            {tabs.map((item) => {
+            {visibleTabs.map((item) => {
               const Icon = item.icon;
               const isActive = tab === item.id;
 
@@ -1295,7 +1382,7 @@ export function AdminDashboard({
                             ['Review newest order', 'orders'],
                             ['Respond to Studio brief', 'studio'],
                             ['Moderate newest review', 'reviews'],
-                            ['Triage contact message', 'contact'],
+                            ['Triage support message', 'support'],
                             ['Export newsletter list', 'newsletter'],
                           ].map(([label, nextTab]) => (
                             <button
@@ -2240,16 +2327,21 @@ export function AdminDashboard({
                   />
                 ) : null}
 
-                {tab === 'contact' ? (
+                {tab === 'support' ? (
                   <div className="grid gap-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <MetricCard label="Open threads" value={String(dashboard.supportThreads.filter((thread) => thread.status !== 'RESOLVED').length)} />
+                      <MetricCard label="Delivery follow-ups" value={String(dashboard.supportThreads.filter((thread) => thread.order && ['PAID', 'PROCESSING', 'SHIPPED'].includes(thread.order.status)).length)} />
+                      <MetricCard label="Pending delivery stops" value={String(dashboard.deliverySummary.pending)} />
+                    </div>
                     <SearchField
                       value={contactQuery}
                       onChange={setContactQuery}
                       placeholder="Search by sender, subject, status, email, or message context..."
                     />
                     <SplitPanel
-                      title="Contact messages"
-                      subtitle="Read each message and mark it as new, read, or handled."
+                      title="Support messages"
+                      subtitle="Read each message, see its delivery context, and mark it as new, read, or handled."
                       list={filteredContacts.map((message) => ({
                         id: message.id,
                         title: message.name,
@@ -2298,6 +2390,143 @@ export function AdminDashboard({
                           </div>
                           </div>
                         ) : null
+                      }
+                    />
+                  </div>
+                ) : null}
+
+                {tab === 'automation' ? (
+                  <div className="grid gap-4">
+                    <PanelShell
+                      title="Automation queue"
+                      subtitle="Queued operational work, delivery follow-ups, and customer notifications waiting to run."
+                    >
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <MetricCard
+                          label="Pending jobs"
+                          value={String(
+                            dashboard.automationJobs.filter((job) => job.status === 'PENDING').length
+                          )}
+                        />
+                        <MetricCard
+                          label="Failed jobs"
+                          value={String(
+                            dashboard.automationJobs.filter((job) => job.status === 'FAILED').length
+                          )}
+                        />
+                        <MetricCard
+                          label="Pending delivery"
+                          value={String(dashboard.deliverySummary.pending)}
+                        />
+                      </div>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => void runAutomationPass()}
+                          disabled={pendingKey === 'automation:operations'}
+                          className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                          style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                        >
+                          {pendingKey === 'automation:operations' ? 'Running…' : 'Run automation pass'}
+                        </button>
+                      </div>
+                      <div className="mt-6 grid gap-3">
+                        {dashboard.automationJobs.slice(0, 12).map((job) => (
+                          <div
+                            key={job.id}
+                            className="rounded-[1.25rem] border px-4 py-4"
+                            style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold" style={{ color: 'var(--tp-heading)' }}>
+                                  {job.type.replaceAll('_', ' ')}
+                                </div>
+                                <div className="mt-1 text-xs tp-text-soft">
+                                  Run {formatDate(job.runAt)} · Attempts {job.attempts}
+                                </div>
+                              </div>
+                              <span
+                                className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                style={{
+                                  background:
+                                    job.status === 'FAILED'
+                                      ? 'color-mix(in srgb, var(--tp-accent) 12%, var(--tp-card) 88%)'
+                                      : 'var(--tp-surface)',
+                                  color: job.status === 'FAILED' ? 'var(--tp-accent)' : 'var(--tp-heading)',
+                                }}
+                              >
+                                {job.status}
+                              </span>
+                            </div>
+                            {job.lastError ? (
+                              <div className="mt-3 text-sm leading-6" style={{ color: 'var(--tp-accent)' }}>
+                                {job.lastError}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </PanelShell>
+                  </div>
+                ) : null}
+
+                {tab === 'security' ? (
+                  <div className="grid gap-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <MetricCard label="Admin accounts" value={String(dashboard.adminUsers.length)} />
+                      <MetricCard
+                        label="Security events"
+                        value={String(dashboard.securityEvents.length)}
+                      />
+                      <MetricCard
+                        label="Pending deliveries"
+                        value={String(dashboard.deliverySummary.pending)}
+                      />
+                    </div>
+                    <SplitPanel
+                      title="Security activity"
+                      subtitle="Recent access, rate-limit, and permission events across the website."
+                      list={dashboard.securityEvents.map((event) => ({
+                        id: event.id,
+                        title: `${event.type.replaceAll('_', ' ')} · ${event.severity}`,
+                        body: event.route || event.identifier || 'Website event',
+                        meta: formatDate(event.createdAt),
+                      }))}
+                      selectedId={dashboard.securityEvents[0]?.id || null}
+                      onSelect={() => undefined}
+                      detail={
+                        <div className="space-y-4">
+                          <PanelShell
+                            title="Role access"
+                            subtitle="Every admin account now carries an explicit operational role."
+                          >
+                            <div className="grid gap-3">
+                              {dashboard.adminUsers.map((adminUser) => (
+                                <div
+                                  key={adminUser.id}
+                                  className="rounded-[1.25rem] border px-4 py-4"
+                                  style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                      <div className="text-sm font-semibold" style={{ color: 'var(--tp-heading)' }}>
+                                        {adminUser.name || adminUser.email || 'Admin account'}
+                                      </div>
+                                      <div className="mt-1 text-xs tp-text-soft">{adminUser.email}</div>
+                                    </div>
+                                    <span className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}>
+                                      {adminUser.role.replaceAll('_', ' ')}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 text-xs tp-text-soft">
+                                    Last sign-in {adminUser.lastSignInAt ? formatDate(adminUser.lastSignInAt) : 'not yet'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </PanelShell>
+                        </div>
                       }
                     />
                   </div>

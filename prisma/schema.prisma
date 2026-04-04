@@ -18,6 +18,7 @@ model User {
   passwordHash          String?
   avatar                String?
   isAdmin               Boolean          @default(false)
+  role                  UserRole         @default(CUSTOMER)
   acceptedTermsAt       DateTime?
   acceptedPrivacyAt     DateTime?
   acceptedPolicyVersion String?
@@ -39,6 +40,12 @@ model User {
   reviews               Review[]
   sessions              AuthSession[]
   analyticsEvents       AnalyticsEvent[]
+  securityEvents        SecurityEvent[]
+  loginAttempts         LoginAttempt[]
+  adminAuditLogs        AdminAuditLog[]  @relation("AdminAuditActor")
+  supportThreads        SupportThread[]
+  notificationAttempts  NotificationAttempt[]
+  deletionRequests      DeletionRequest[]
 }
 
 model AuthSession {
@@ -49,7 +56,10 @@ model AuthSession {
   expiresAt DateTime
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
+  lastSeenAt DateTime @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scope])
 }
 
 model Product {
@@ -115,6 +125,7 @@ model Order {
   trackingSessionKey String?
   estimatedDispatchAt DateTime?
   estimatedDeliveryAt DateTime?
+  deliveredAt   DateTime?
   trackingTimeline Json?
   notificationLog Json?
   adminNotes    String?       @db.Text
@@ -123,6 +134,7 @@ model Order {
   user          User?         @relation(fields: [userId], references: [id])
   items         OrderItem[]
   payments      Payment[]
+  supportThreads SupportThread[]
 }
 
 model OrderItem {
@@ -173,6 +185,7 @@ model StudioBrief {
   internalNotes String?           @db.Text
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+  supportThread SupportThread?
 }
 
 model ContactMessage {
@@ -188,6 +201,7 @@ model ContactMessage {
   handledAt DateTime?
   createdAt DateTime             @default(now())
   updatedAt DateTime             @default(now()) @updatedAt
+  supportThread SupportThread?
 }
 
 model NewsletterSubscriber {
@@ -249,9 +263,190 @@ model AnalyticsEvent {
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
+model SecurityEvent {
+  id         String            @id @default(cuid())
+  type       SecurityEventType
+  severity   SecuritySeverity
+  route      String?
+  userId     String?
+  sessionId  String?
+  ipHash     String?
+  identifier String?
+  metadata   Json?
+  createdAt  DateTime          @default(now())
+  user       User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([route, createdAt])
+}
+
+model LoginAttempt {
+  id            String   @id @default(cuid())
+  identifier    String
+  ipHash        String
+  userId        String?
+  wasSuccessful Boolean
+  failureReason String?
+  attemptedAt   DateTime @default(now())
+  lockoutUntil  DateTime?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([identifier, attemptedAt])
+  @@index([ipHash, attemptedAt])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorUserId String
+  action     String
+  targetType String
+  targetId   String?
+  summary    String
+  diffJson   Json?
+  createdAt  DateTime @default(now())
+  actor      User     @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model AutomationJob {
+  id                   String              @id @default(cuid())
+  type                 AutomationJobType
+  status               AutomationJobStatus @default(PENDING)
+  dedupeKey            String?             @unique
+  runAt                DateTime            @default(now())
+  payloadJson          Json
+  attempts             Int                 @default(0)
+  lastError            String?             @db.Text
+  lockedAt             DateTime?
+  lockedBy             String?
+  completedAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @default(now()) @updatedAt
+  notificationAttempts NotificationAttempt[]
+
+  @@index([status, runAt])
+}
+
+model NotificationTemplate {
+  id            String              @id @default(cuid())
+  key           String              @unique
+  channel       NotificationChannel
+  subject       String
+  body          String              @db.Text
+  enabled       Boolean             @default(true)
+  variablesJson Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @default(now()) @updatedAt
+}
+
+model NotificationAttempt {
+  id                   String              @id @default(cuid())
+  jobId                String?
+  userId               String?
+  templateKey          String?
+  channel              NotificationChannel
+  destination          String
+  provider             String
+  status               NotificationStatus  @default(PENDING)
+  payloadJson          Json?
+  providerResponseJson Json?
+  error                String?             @db.Text
+  sentAt               DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @default(now()) @updatedAt
+  job                  AutomationJob?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user                 User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([channel, status, createdAt])
+}
+
+model SupportThread {
+  id                    String              @id @default(cuid())
+  source                SupportSource
+  status                SupportThreadStatus @default(OPEN)
+  priority              SupportPriority     @default(NORMAL)
+  customerName          String?
+  customerEmail         String?
+  customerPhone         String?
+  userId                String?
+  orderId               String?
+  legacyContactMessageId String?            @unique
+  legacyStudioBriefId   String?             @unique
+  summary               String?             @db.Text
+  tagsJson              Json?
+  lastCustomerMessageAt DateTime?
+  lastAdminMessageAt    DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @default(now()) @updatedAt
+  user                  User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order                 Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  legacyContactMessage  ContactMessage?     @relation(fields: [legacyContactMessageId], references: [id], onDelete: SetNull)
+  legacyStudioBrief     StudioBrief?        @relation(fields: [legacyStudioBriefId], references: [id], onDelete: SetNull)
+  messages              SupportMessage[]
+  summaries             SupportSummary[]
+
+  @@index([status, priority, updatedAt])
+  @@index([source, createdAt])
+}
+
+model SupportMessage {
+  id        String             @id @default(cuid())
+  threadId  String
+  role      SupportMessageRole
+  channel   SupportChannel
+  body      String             @db.Text
+  metaJson  Json?
+  createdAt DateTime           @default(now())
+  thread    SupportThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model SupportSummary {
+  id                String        @id @default(cuid())
+  threadId          String
+  intent            String
+  confidence        Float?
+  suggestedNextStep String?
+  shortSummary      String        @db.Text
+  createdAt         DateTime      @default(now())
+  thread            SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model DeletionRequest {
+  id         String                @id @default(cuid())
+  userId     String?
+  email      String
+  type       DeletionRequestType
+  status     DeletionRequestStatus @default(PENDING)
+  notes      String?               @db.Text
+  requestedAt DateTime             @default(now())
+  resolvedAt DateTime?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @default(now()) @updatedAt
+  user       User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+  @@index([email, requestedAt])
+}
+
 enum AuthScope {
   CUSTOMER
   ADMIN
+}
+
+enum UserRole {
+  CUSTOMER
+  SUPER_ADMIN
+  OPERATIONS_ADMIN
+  DELIVERY_ADMIN
+  CONTENT_ADMIN
+  SUPPORT_ADMIN
+  ANALYST
 }
 
 enum OrderStatus {
@@ -293,4 +488,111 @@ enum ContactMessageStatus {
   NEW
   READ
   HANDLED
+}
+
+enum SecurityEventType {
+  FAILED_LOGIN
+  RATE_LIMIT_HIT
+  BLOCKED_CROSS_ORIGIN
+  PERMISSION_DENIED
+  INVALID_INPUT
+  PAYMENT_ANOMALY
+  SUSPICIOUS_UPLOAD
+  SESSION_EXPIRED
+}
+
+enum SecuritySeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AutomationJobType {
+  ORDER_ADVANCE
+  DELIVERY_CHECKIN
+  REVIEW_REQUEST
+  ABANDONED_CART_RECOVERY
+  LOW_STOCK_ALERT
+  FAILED_PAYMENT_FOLLOWUP
+  SUPPORT_ESCALATION_NOTIFY
+  SUPPORT_DIGEST
+  WHATSAPP_FOLLOWUP
+  SMS_FALLBACK
+  EMAIL_FOLLOWUP
+  VOICE_CALLBACK_REQUEST
+  DELIVERY_SUCCESS_CONFIRMATION
+}
+
+enum AutomationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  VOICE
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  MOCKED
+}
+
+enum SupportSource {
+  CONTACT
+  STUDIO
+  CHATBOT
+  ORDER
+  DELIVERY
+}
+
+enum SupportThreadStatus {
+  OPEN
+  PENDING
+  RESOLVED
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SupportMessageRole {
+  CUSTOMER
+  ASSISTANT
+  ADMIN
+  SYSTEM
+}
+
+enum SupportChannel {
+  CONTACT_FORM
+  STUDIO_FORM
+  CHATBOT
+  EMAIL
+  WHATSAPP
+  SMS
+  VOICE
+  ADMIN_NOTE
+  SYSTEM
+}
+
+enum DeletionRequestType {
+  EXPORT
+  DELETE
+}
+
+enum DeletionRequestStatus {
+  PENDING
+  IN_REVIEW
+  COMPLETED
+  REJECTED
 }

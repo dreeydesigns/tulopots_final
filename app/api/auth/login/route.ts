@@ -9,31 +9,97 @@ import {
   mapUserToSessionUser,
   verifyPassword,
 } from '@/lib/auth';
+import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
+import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
+import { loginSchema } from '@/lib/security/validation';
+import { recordLoginAttempt, recordSecurityEvent } from '@/lib/security/audit';
+import { normalizeUserRole } from '@/lib/access';
+
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
+const LOCKOUT_THRESHOLD = 5;
+
+async function getLockout(identifier: string, ip: string) {
+  const attempts = await prisma.loginAttempt.findMany({
+    where: {
+      identifier: identifier.toLowerCase(),
+      attemptedAt: {
+        gte: new Date(Date.now() - LOCKOUT_WINDOW_MS),
+      },
+    },
+    orderBy: {
+      attemptedAt: 'desc',
+    },
+    take: LOCKOUT_THRESHOLD,
+  });
+
+  const activeLock = attempts.find((attempt) => attempt.lockoutUntil && attempt.lockoutUntil > new Date());
+  if (activeLock?.lockoutUntil) {
+    return activeLock.lockoutUntil;
+  }
+
+  const recentFailures = attempts.filter((attempt) => !attempt.wasSuccessful).length;
+  if (recentFailures >= LOCKOUT_THRESHOLD) {
+    return new Date(Date.now() + LOCKOUT_WINDOW_MS);
+  }
+
+  return null;
+}
 
 export async function POST(request: NextRequest) {
+  const ip = getRequestIp(request);
+
   try {
-    const body = (await request.json()) as {
-      email?: string;
-      password?: string;
-      scope?: 'customer' | 'admin';
-    };
+    const rateLimit = await enforceRateLimit({
+      key: ip,
+      route: '/api/auth/login',
+      limit: 8,
+      windowMs: 60 * 1000,
+      ip,
+    });
 
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '');
-    const scope = body.scope === 'admin' ? 'ADMIN' : 'CUSTOMER';
-
-    if (!isValidEmail(email)) {
-      return NextResponse.json(
-        { ok: false, error: 'Enter a valid email address.' },
-        { status: 400 }
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Too many sign-in attempts. Please wait a moment and try again.',
+        429,
+        { retryAfter: rateLimit.retryAfterSeconds }
       );
     }
 
-    if (!isValidPassword(password)) {
-      return NextResponse.json(
-        { ok: false, error: 'Password must be at least 8 characters.' },
-        { status: 400 }
-      );
+    const parsed = loginSchema.safeParse(await request.json());
+
+    if (!parsed.success) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/auth/login',
+        ip,
+        metadata: {
+          issues: parsed.error.flatten(),
+        },
+      });
+      return jsonError('Enter a valid email address and password.', 400);
+    }
+
+    const email = parsed.data.email.trim().toLowerCase();
+    const password = parsed.data.password;
+    const scope = parsed.data.scope === 'admin' ? 'ADMIN' : 'CUSTOMER';
+
+    const lockoutUntil = await getLockout(email, ip);
+    if (lockoutUntil && lockoutUntil > new Date()) {
+      await recordLoginAttempt({
+        identifier: email,
+        ip,
+        wasSuccessful: false,
+        failureReason: 'locked',
+        lockoutUntil,
+      });
+      return jsonError('Sign-in is temporarily locked. Please try again shortly.', 429, {
+        lockoutUntil: lockoutUntil.toISOString(),
+      });
+    }
+
+    if (!isValidEmail(email) || !isValidPassword(password)) {
+      return jsonError('Enter a valid email address and password.', 400);
     }
 
     const user = await prisma.user.findUnique({
@@ -41,28 +107,59 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
-      return NextResponse.json(
-        { ok: false, error: 'Email or password is incorrect.' },
-        { status: 401 }
-      );
+      const nextLockout = await getLockout(email, ip);
+      await recordLoginAttempt({
+        identifier: email,
+        ip,
+        userId: user?.id,
+        wasSuccessful: false,
+        failureReason: 'invalid_credentials',
+        lockoutUntil: nextLockout,
+      });
+      await recordSecurityEvent({
+        type: 'FAILED_LOGIN',
+        severity: 'WARNING',
+        route: '/api/auth/login',
+        userId: user?.id,
+        identifier: email,
+        ip,
+      });
+      return jsonError('Email or password is incorrect.', 401);
     }
 
-    if (isAdminEmailAddress(email) && !user.isAdmin) {
+    const resolvedRole = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(email));
+
+    if ((isAdminEmailAddress(email) && !user.isAdmin) || user.role !== resolvedRole) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { isAdmin: true },
+        data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
       });
-      user.isAdmin = true;
+      user.isAdmin = resolvedRole !== 'CUSTOMER';
+      user.role = resolvedRole;
     }
 
-    if (scope === 'ADMIN' && !user.isAdmin) {
-      return NextResponse.json(
-        { ok: false, error: 'This account does not have admin access.' },
-        { status: 403 }
-      );
+    if (scope === 'ADMIN' && resolvedRole === 'CUSTOMER') {
+      await recordSecurityEvent({
+        type: 'PERMISSION_DENIED',
+        severity: 'WARNING',
+        route: '/api/auth/login',
+        userId: user.id,
+        identifier: email,
+        ip,
+        metadata: {
+          attemptedScope: scope,
+        },
+      });
+      return jsonError('This account does not have admin access.', 403);
     }
 
     const { token, expiresAt } = await createSession(user.id, scope);
+    await recordLoginAttempt({
+      identifier: email,
+      ip,
+      userId: user.id,
+      wasSuccessful: true,
+    });
     const response = NextResponse.json({
       ok: true,
       user: mapUserToSessionUser(user),
@@ -72,9 +169,6 @@ export async function POST(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error: any) {
-    return NextResponse.json(
-      { ok: false, error: error?.message || 'Unable to sign in right now.' },
-      { status: 500 }
-    );
+    return jsonError(getSafeErrorMessage(error, 'Unable to sign in right now.'), 500);
   }
 }

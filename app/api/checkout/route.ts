@@ -16,6 +16,9 @@ import {
 } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 import type { StoredAttribution } from '@/lib/tracking';
+import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
+import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
+import { recordSecurityEvent } from '@/lib/security/audit';
 
 type CheckoutItem = {
   key: string;
@@ -43,7 +46,25 @@ function sanitizeAttributionValue(value: unknown, maxLength = 160) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = getRequestIp(req);
+
   try {
+    const rateLimit = await enforceRateLimit({
+      key: ip,
+      route: '/api/checkout',
+      limit: 8,
+      windowMs: 60 * 1000,
+      ip,
+    });
+
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Too many checkout attempts were made from this connection. Please wait a moment and try again.',
+        429,
+        { retryAfter: rateLimit.retryAfterSeconds }
+      );
+    }
+
     const currentUser = await getCurrentUser();
     const body = await req.json();
     const {
@@ -79,38 +100,23 @@ export async function POST(req: NextRequest) {
     };
 
     if (!customerName?.trim()) {
-      return NextResponse.json(
-        { error: 'Customer name is required.' },
-        { status: 400 }
-      );
+      return jsonError('Customer name is required.', 400);
     }
 
     if (!isValidEmail(String(customerEmail || '').trim())) {
-      return NextResponse.json(
-        { error: 'A valid customer email is required.' },
-        { status: 400 }
-      );
+      return jsonError('A valid customer email is required.', 400);
     }
 
     if (!isValidPhone(String(customerPhone || '').trim())) {
-      return NextResponse.json(
-        { error: 'A valid customer phone is required.' },
-        { status: 400 }
-      );
+      return jsonError('A valid customer phone is required.', 400);
     }
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: 'Cart items are required.' },
-        { status: 400 }
-      );
+      return jsonError('Cart items are required.', 400);
     }
 
     if (!['CARD', 'MPESA'].includes(paymentMethod)) {
-      return NextResponse.json(
-        { error: 'Invalid payment method.' },
-        { status: 400 }
-      );
+      return jsonError('Invalid payment method.', 400);
     }
 
     const sanitizedItems = items.map((item) => ({
@@ -134,10 +140,17 @@ export async function POST(req: NextRequest) {
     );
 
     if (hasInvalidItem) {
-      return NextResponse.json(
-        { error: 'Invalid cart item payload.' },
-        { status: 400 }
-      );
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/checkout',
+        userId: currentUser?.id,
+        ip,
+        metadata: {
+          reason: 'invalid_cart_item',
+        },
+      });
+      return jsonError('Invalid cart item payload.', 400);
     }
 
     const subtotal = sanitizedItems.reduce(
@@ -157,6 +170,7 @@ export async function POST(req: NextRequest) {
       subtotalKes: subtotal,
       itemCount: sanitizedItems.length,
       shippingCountry: resolvedShippingCountry,
+      shippingCity: shippingCity || currentUser?.defaultShippingCity,
     });
     const deliveryFee = deliverySummary.deliveryFeeKes;
     const totalAmount = deliverySummary.totalKes;
@@ -264,6 +278,9 @@ export async function POST(req: NextRequest) {
         displayCurrency: order.displayCurrency,
         preferredLanguage: order.preferredLanguage,
         shippingCountry: order.shippingCountry,
+        shippingCity: order.shippingCity,
+        deliveryPolicyNote: deliverySummary.policyNote,
+        requiresLocationQuote: deliverySummary.requiresLocationQuote,
         createdAt: order.createdAt,
         attribution: {
           source: order.attributionSource,
@@ -277,9 +294,6 @@ export async function POST(req: NextRequest) {
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || 'Failed to create order.' },
-      { status: 500 }
-    );
+    return jsonError(getSafeErrorMessage(error, 'Failed to create order.'), 500);
   }
 }

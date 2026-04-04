@@ -1,25 +1,18 @@
-import { PrismaClient, StudioBrief } from '@prisma/client';
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
+import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
+import { recordSecurityEvent } from '@/lib/security/audit';
+import { studioSchema, sanitizeMultilineText, sanitizeText, sanitizeUrl } from '@/lib/security/validation';
+import { addSupportMessage, addSupportSummary, createSupportThread, queueSupportFollowUps } from '@/lib/support';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
-
-function cleanText(value: unknown) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function cleanUrl(value: unknown) {
-  const url = cleanText(value);
-
-  if (!url) return '';
-
-  try {
-    const parsed = new URL(url);
-    return parsed.toString();
-  } catch {
-    return '';
-  }
+function createReferenceCode() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `STUDIO-${stamp}-${rand}`;
 }
 
 function buildSummary(input: {
@@ -42,18 +35,10 @@ function buildSummary(input: {
   return lines.join('\n');
 }
 
-function createReferenceCode() {
-  const stamp = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `STUDIO-${stamp}-${rand}`;
-}
-
 export async function GET() {
   try {
     const briefs = await prisma.studioBrief.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
@@ -61,7 +46,7 @@ export async function GET() {
       {
         ok: true,
         count: briefs.length,
-        briefs: briefs.map((brief: StudioBrief) => ({
+        briefs: briefs.map((brief) => ({
           id: brief.referenceCode,
           createdAt: brief.createdAt,
           status: brief.status,
@@ -73,64 +58,65 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Studio GET error:', error);
-
     return Response.json(
       {
         ok: false,
-        error: 'Unable to load studio briefs right now.',
+        error: getSafeErrorMessage(error, 'Unable to load studio briefs right now.'),
       },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+export async function POST(request: NextRequest) {
+  const ip = getRequestIp(request);
 
-    const message = cleanText(body.message);
-    const imageFileName = cleanText(body.imageFileName);
-    const imagePreview = cleanText(body.imagePreview);
-    const referenceLink = cleanUrl(body.referenceLink);
-    const space = cleanText(body.space);
-    const helpType = cleanText(body.helpType);
-    const extraNote = cleanText(body.extraNote);
+  try {
+    const rateLimit = await enforceRateLimit({
+      key: ip,
+      route: '/api/studio',
+      limit: 6,
+      windowMs: 60 * 1000,
+      ip,
+    });
+
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Too many Studio submissions were sent from this connection. Please wait a moment and try again.',
+        429,
+        { retryAfter: rateLimit.retryAfterSeconds }
+      );
+    }
+
+    const parsed = studioSchema.safeParse(await request.json());
+
+    if (!parsed.success) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/studio',
+        ip,
+        metadata: {
+          issues: parsed.error.flatten(),
+        },
+      });
+      return jsonError('Please tell us the space and the kind of Studio help you need.', 400);
+    }
+
+    const message = sanitizeMultilineText(parsed.data.message, 3000);
+    const imageFileName = sanitizeText(parsed.data.imageFileName, 180);
+    const imagePreview = parsed.data.imagePreview.trim();
+    const referenceLink = sanitizeUrl(parsed.data.referenceLink);
+    const space = sanitizeText(parsed.data.space, 180);
+    const helpType = sanitizeText(parsed.data.helpType, 180);
+    const extraNote = sanitizeMultilineText(parsed.data.extraNote, 1200);
 
     const hasExpression = Boolean(message || imageFileName || referenceLink);
-
     if (!hasExpression) {
-      return Response.json(
-        {
-          ok: false,
-          error: 'Please share at least a thought, an image, or a reference link.',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!space) {
-      return Response.json(
-        {
-          ok: false,
-          error: 'Please tell us where this lives.',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!helpType) {
-      return Response.json(
-        {
-          ok: false,
-          error: 'Please tell us what you need help with.',
-        },
-        { status: 400 }
-      );
+      return jsonError('Please share at least a thought, an image, or a reference link.', 400);
     }
 
     const referenceCode = createReferenceCode();
-
     const summary = buildSummary({
       message,
       imageFileName,
@@ -154,6 +140,43 @@ export async function POST(request: Request) {
       },
     });
 
+    const thread = await createSupportThread({
+      source: 'STUDIO',
+      legacyStudioBriefId: record.id,
+      summary,
+      tagsJson: {
+        referenceCode,
+        space,
+        helpType,
+      },
+    });
+
+    await addSupportMessage({
+      threadId: thread.id,
+      role: 'CUSTOMER',
+      channel: 'STUDIO_FORM',
+      body: summary,
+      metaJson: {
+        referenceCode,
+        imagePreview: imagePreview || null,
+        referenceLink,
+      },
+    });
+
+    await addSupportSummary({
+      threadId: thread.id,
+      intent: 'studio_brief',
+      shortSummary: `New Studio brief for ${space.toLowerCase()} with help type ${helpType.toLowerCase()}.`,
+      suggestedNextStep: 'Review the Studio brief and respond with creative direction or delivery guidance.',
+      confidence: 0.86,
+    });
+
+    await queueSupportFollowUps({
+      threadId: thread.id,
+      summary,
+      needsHuman: true,
+    });
+
     return Response.json(
       {
         ok: true,
@@ -163,17 +186,16 @@ export async function POST(request: Request) {
           status: record.status,
           summary: record.summary,
         },
+        supportThreadId: thread.id,
         message: 'Your studio brief has been received.',
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Studio POST error:', error);
-
     return Response.json(
       {
         ok: false,
-        error: 'We could not save your studio brief right now.',
+        error: getSafeErrorMessage(error, 'We could not save your studio brief right now.'),
       },
       { status: 500 }
     );

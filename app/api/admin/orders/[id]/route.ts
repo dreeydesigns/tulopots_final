@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminOrderStatuses, requireAdminUser } from '@/lib/admin';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries, computeDeliveryDates } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
+import { queueAutomationJob } from '@/lib/automation';
+import { processAutomationJob } from '@/lib/operations';
+import { recordAdminAudit } from '@/lib/security/audit';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('orders.manage');
 
   if (!adminUser) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -47,6 +50,7 @@ export async function PATCH(
       isCustomOrder: nextIsCustomOrder,
       estimatedDispatchAt,
       estimatedDeliveryAt,
+      deliveredAt: nextStatus === 'DELIVERED' ? new Date() : existingOrder.deliveredAt,
       ...(status
         ? {
             trackingTimeline: appendTrackingEntry(
@@ -72,6 +76,35 @@ export async function PATCH(
       ...(body.adminNotes !== undefined ? { adminNotes: body.adminNotes || null } : {}),
     },
   });
+
+  await recordAdminAudit({
+    actorUserId: adminUser.id,
+    action: 'order.update',
+    targetType: 'order',
+    targetId: existingOrder.id,
+    summary: `Updated ${existingOrder.orderNumber} to ${nextStatus}.`,
+    diffJson: {
+      previousStatus: existingOrder.status,
+      nextStatus,
+      previousAdminNotes: existingOrder.adminNotes,
+      nextAdminNotes: body.adminNotes,
+    },
+  }).catch(() => undefined);
+
+  if (nextStatus === 'DELIVERED' && existingOrder.status !== 'DELIVERED') {
+    const job = await queueAutomationJob({
+      type: 'DELIVERY_SUCCESS_CONFIRMATION',
+      dedupeKey: `delivery-success:${existingOrder.id}`,
+      payloadJson: {
+        orderId: existingOrder.id,
+        orderNumber: existingOrder.orderNumber,
+      },
+    }).catch(() => undefined);
+
+    if (job?.id) {
+      await processAutomationJob(job.id).catch(() => undefined);
+    }
+  }
 
   return NextResponse.json({ ok: true, order });
 }

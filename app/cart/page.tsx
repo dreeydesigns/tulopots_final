@@ -134,7 +134,7 @@ export default function CartPage() {
         const res = await fetch('/api/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: checkoutItems, shippingCountry }),
+          body: JSON.stringify({ items: checkoutItems, shippingCountry, shippingCity }),
         });
 
         const data = await res.json();
@@ -153,6 +153,7 @@ export default function CartPage() {
           subtotalKes: subtotal,
           itemCount: cart.length,
           shippingCountry,
+          shippingCity,
         });
 
         if (active) {
@@ -173,7 +174,7 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, [cart, checkoutItems, hasItems, shippingCountry]);
+  }, [cart, checkoutItems, hasItems, shippingCountry, shippingCity]);
 
   function validateCheckout() {
     const nextErrors: FieldErrors = {};
@@ -328,11 +329,13 @@ export default function CartPage() {
     }
   }
 
-  const freeDeliveryGap = Math.max(0, 5000 - summary.subtotal);
+  const freeDeliveryGap = Math.max(0, 7000 - summary.subtotal);
   const deliveryMessage = isKenyanDelivery
-    ? summary.subtotal >= 5000
-      ? 'Free delivery unlocked for your order.'
-      : `Add ${formatDisplayMoney(freeDeliveryGap)} more to unlock free delivery in Kenya.`
+    ? shippingCity.trim().toLowerCase().includes('nairobi cbd')
+      ? summary.subtotal >= 7000
+        ? 'Free Nairobi CBD delivery is unlocked for your order.'
+        : `Add ${formatDisplayMoney(freeDeliveryGap)} more to unlock free Nairobi CBD delivery.`
+      : 'Delivery starts at KES 350 for Nairobi CBD. Further locations may cost more after routing review.'
     : summary.isInternational
     ? `International delivery has been estimated for ${getCountryLabel(shippingCountry)}.`
     : `Delivery will be estimated for ${getCountryLabel(shippingCountry)}.`;
@@ -718,8 +721,9 @@ export default function CartPage() {
 
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/52">
                     Card payments are processed through Stripe. M-Pesa orders use an STK push to
-                    the number above. Kenya orders unlock free delivery over KES 5,000, while
-                    non-Kenya destinations use an estimated international shipping fee.
+                    the number above. Nairobi CBD delivery is KES 350, orders above KES 7,000 to
+                    Nairobi CBD ship free, and further locations can carry an additional delivery
+                    charge after routing review.
                   </p>
                   <p className="text-[11px] leading-5 text-[var(--tp-text)]/46">
                     By continuing, you agree to the{' '}

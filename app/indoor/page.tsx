@@ -70,7 +70,7 @@ export default async function Page({
       route="indoor"
       title="For Interior Spaces"
       intro="Handcrafted terracotta forms paired for shelves, corners, entry tables, and rooms that ask for warmth, calm, and quiet presence."
-      facts={['Curated Forms', '3 Sizes', 'Free delivery over KSh 5,000']}
+      facts={['Curated Forms', '3 Sizes', 'Free Nairobi CBD delivery over KSh 7,000']}
       filters={['all', 'small', 'medium', 'large', 'new arrivals']}
       products={products}
       showing={`Showing ${products.length} of ${products.length} products`}

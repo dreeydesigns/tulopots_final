@@ -1,58 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncNewsletterSubscriberToHubSpot } from '@/lib/hubspot';
 import { prisma } from '@/lib/prisma';
+import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
+import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
+import { newsletterSchema, sanitizeText } from '@/lib/security/validation';
+import { recordSecurityEvent } from '@/lib/security/audit';
 
-// POST /api/newsletter
-//
-// Handles newsletter signups.  Expects a single `email` field (as form
-// data or JSON).  If the email is valid, it is stored (or updated) in the
-// `NewsletterSubscriber` table.  We return a simple acknowledgement so the
-// frontend can show a confirmation message.  Duplicate signups do not
-// create multiple records; the existing subscriber is preserved.
+async function parseNewsletterRequest(req: NextRequest) {
+  const contentType = req.headers.get('content-type') || '';
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  try {
-    let email = '';
-    let name = '';
-    let company = '';
-    let preferredChannel = 'email';
-    let source = 'footer';
-    let interests: string[] = [];
-
-    // Determine if the request is multipart/form-data or JSON
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('form-data')) {
-      const form = await req.formData();
-      name = String(form.get('name') ?? '').trim();
-      email = String(form.get('email') ?? '').trim();
-      company = String(form.get('company') ?? '').trim();
-      preferredChannel = String(form.get('preferredChannel') ?? 'email').trim() || 'email';
-      source = String(form.get('source') ?? 'footer').trim() || 'footer';
-      interests = form
+  if (contentType.includes('form-data')) {
+    const form = await req.formData();
+    return {
+      company: String(form.get('company') ?? ''),
+      name: String(form.get('name') ?? ''),
+      email: String(form.get('email') ?? ''),
+      preferredChannel: String(form.get('preferredChannel') ?? 'email'),
+      source: String(form.get('source') ?? 'footer'),
+      interests: form
         .getAll('interests')
         .map((item) => String(item).trim())
-        .filter(Boolean);
-    } else {
-      const body = await req.json().catch(() => ({}));
-      name = String(body?.name ?? '').trim();
-      email = String(body?.email ?? '').trim();
-      company = String(body?.company ?? '').trim();
-      preferredChannel = String(body?.preferredChannel ?? 'email').trim() || 'email';
-      source = String(body?.source ?? 'footer').trim() || 'footer';
-      interests = Array.isArray(body?.interests)
-        ? body.interests.map((item: unknown) => String(item).trim()).filter(Boolean)
-        : [];
+        .filter(Boolean),
+    };
+  }
+
+  const body = await req.json().catch(() => ({}));
+  return {
+    company: String(body?.company ?? ''),
+    name: String(body?.name ?? ''),
+    email: String(body?.email ?? ''),
+    preferredChannel: String(body?.preferredChannel ?? 'email'),
+    source: String(body?.source ?? 'footer'),
+    interests: Array.isArray(body?.interests)
+      ? body.interests.map((item: unknown) => String(item).trim()).filter(Boolean)
+      : [],
+  };
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const ip = getRequestIp(req);
+
+  try {
+    const rateLimit = await enforceRateLimit({
+      key: ip,
+      route: '/api/newsletter',
+      limit: 10,
+      windowMs: 60 * 1000,
+      ip,
+    });
+
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Too many newsletter signups were sent from this connection. Please wait a moment and try again.',
+        429,
+        { retryAfter: rateLimit.retryAfterSeconds }
+      );
     }
 
-    if (company) {
+    const parsed = newsletterSchema.safeParse(await parseNewsletterRequest(req));
+
+    if (!parsed.success) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/newsletter',
+        ip,
+        metadata: {
+          issues: parsed.error.flatten(),
+        },
+      });
+      return jsonError('A valid email address is required.', 400);
+    }
+
+    if (parsed.data.company) {
       return NextResponse.json({ ok: true, message: 'Thanks! You are subscribed.' });
     }
 
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return NextResponse.json({ error: 'A valid email is required' }, { status: 400 });
-    }
+    const name = sanitizeText(parsed.data.name, 120);
+    const email = sanitizeText(parsed.data.email.toLowerCase(), 180);
+    const preferredChannel = sanitizeText(parsed.data.preferredChannel, 40) || 'email';
+    const source = sanitizeText(parsed.data.source, 80) || 'footer';
+    const interests = parsed.data.interests.map((entry) => sanitizeText(entry, 80)).filter(Boolean);
 
-    // Upsert subscriber: create if not exist, else leave unchanged
     await prisma.newsletterSubscriber.upsert({
       where: { email },
       update: {
@@ -69,6 +98,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         source,
       },
     });
+
     let marketingSync: Awaited<ReturnType<typeof syncNewsletterSubscriberToHubSpot>> | null = null;
 
     try {
@@ -90,8 +120,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
     response.headers.set('Cache-Control', 'no-store');
     return response;
-  } catch (error: any) {
-    console.error('[api/newsletter] error saving subscription:', error);
-    return NextResponse.json({ error: 'Could not subscribe' }, { status: 500 });
+  } catch (error) {
+    return jsonError(getSafeErrorMessage(error, 'Could not subscribe.'), 500);
   }
 }

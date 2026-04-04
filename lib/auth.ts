@@ -1,12 +1,16 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import type { AuthScope, User } from '@prisma/client';
+import type { AuthScope, User, UserRole } from '@prisma/client';
+import { canAccessAdminTab, getAllowedAdminTabs, getRolePermissions, normalizeUserRole } from '@/lib/access';
 import { prisma } from '@/lib/prisma';
 import { hasAcceptedPolicies } from '@/lib/policies';
 
 export const SESSION_COOKIE = 'tp_session';
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
+const ADMIN_IDLE_TIMEOUT_SECONDS = 60 * 30;
+const SESSION_TOUCH_INTERVAL_SECONDS = 60 * 5;
 
 export type SessionUser = {
   id: string;
@@ -14,6 +18,9 @@ export type SessionUser = {
   email: string;
   phone?: string;
   isAdmin: boolean;
+  role: UserRole;
+  permissions: string[];
+  allowedAdminTabs: string[];
   avatar?: string;
   marketingConsent: boolean;
   emailNotifications: boolean;
@@ -36,6 +43,7 @@ type SessionUserRecord = Pick<
   | 'email'
   | 'phone'
   | 'isAdmin'
+  | 'role'
   | 'avatar'
   | 'marketingConsent'
   | 'emailNotifications'
@@ -57,12 +65,19 @@ export function mapUserToSessionUser(user: SessionUserRecord): SessionUser | nul
     return null;
   }
 
+  const role = normalizeUserRole(user.role, user.isAdmin);
+  const permissions = getRolePermissions(role);
+  const allowedAdminTabs = getAllowedAdminTabs(role);
+
   return {
     id: user.id,
     name: user.name || user.email.split('@')[0],
     email: user.email,
     phone: user.phone || undefined,
-    isAdmin: user.isAdmin,
+    isAdmin: role !== 'CUSTOMER',
+    role,
+    permissions,
+    allowedAdminTabs,
     avatar: user.avatar || undefined,
     marketingConsent: user.marketingConsent,
     emailNotifications: user.emailNotifications,
@@ -133,26 +148,61 @@ export function isAdminEmailAddress(email: string) {
   return adminEmails.includes(email.toLowerCase());
 }
 
+function getSessionMaxAgeSeconds(scope: AuthScope, role: UserRole) {
+  return scope === 'ADMIN' || role !== 'CUSTOMER'
+    ? ADMIN_SESSION_MAX_AGE_SECONDS
+    : CUSTOMER_SESSION_MAX_AGE_SECONDS;
+}
+
 export async function createSession(
   userId: string,
   scope: AuthScope = 'CUSTOMER'
 ) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      isAdmin: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('User account could not be found.');
+  }
+
+  const role = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(user.email || ''));
   const token = randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const expiresAt = new Date(Date.now() + getSessionMaxAgeSeconds(scope, role) * 1000);
+  const now = new Date();
 
   await prisma.$transaction([
+    ...(scope === 'ADMIN' || role !== 'CUSTOMER'
+      ? [
+          prisma.authSession.deleteMany({
+            where: {
+              userId,
+              scope: 'ADMIN',
+            },
+          }),
+        ]
+      : []),
     prisma.authSession.create({
       data: {
         token,
         userId,
         scope,
         expiresAt,
+        lastSeenAt: now,
       },
     }),
     prisma.user.update({
       where: { id: userId },
       data: {
-        lastSignInAt: new Date(),
+        lastSignInAt: now,
+        role,
+        isAdmin: role !== 'CUSTOMER',
       },
     }),
   ]);
@@ -165,6 +215,7 @@ export function attachSessionCookie(
   token: string,
   expiresAt: Date
 ) {
+  const maxAge = Math.max(1, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
   response.cookies.set({
     name: SESSION_COOKIE,
     value: token,
@@ -173,7 +224,7 @@ export function attachSessionCookie(
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: expiresAt,
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge,
     priority: 'high',
   });
 }
@@ -209,11 +260,40 @@ export async function getSessionRecord() {
     return null;
   }
 
-  if (session.expiresAt <= new Date()) {
+  const now = new Date();
+  const role = normalizeUserRole(session.user.role, session.user.isAdmin);
+  const isAdminSession = session.scope === 'ADMIN' || role !== 'CUSTOMER';
+  const idleSeconds = Math.floor((now.getTime() - session.lastSeenAt.getTime()) / 1000);
+
+  if (session.expiresAt <= now || (isAdminSession && idleSeconds > ADMIN_IDLE_TIMEOUT_SECONDS)) {
     await prisma.authSession
       .delete({ where: { id: session.id } })
       .catch(() => undefined);
     return null;
+  }
+
+  if (
+    isAdminSession &&
+    Math.floor((now.getTime() - session.createdAt.getTime()) / 1000) > ADMIN_SESSION_MAX_AGE_SECONDS
+  ) {
+    await prisma.authSession
+      .delete({ where: { id: session.id } })
+      .catch(() => undefined);
+    return null;
+  }
+
+  if (
+    now.getTime() - session.lastSeenAt.getTime() >
+    SESSION_TOUCH_INTERVAL_SECONDS * 1000
+  ) {
+    await prisma.authSession
+      .update({
+        where: { id: session.id },
+        data: {
+          lastSeenAt: now,
+        },
+      })
+      .catch(() => undefined);
   }
 
   return session;
@@ -253,4 +333,15 @@ export function isValidEmail(email: string) {
 
 export function isValidPassword(password: string) {
   return password.trim().length >= 8;
+}
+
+export function userCanAccessAdminTab(
+  user: Pick<SessionUser, 'role' | 'isAdmin'> | null | undefined,
+  tab: string
+) {
+  if (!user) {
+    return false;
+  }
+
+  return canAccessAdminTab(normalizeUserRole(user.role, user.isAdmin), tab as any);
 }

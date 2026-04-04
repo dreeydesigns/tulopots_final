@@ -3,6 +3,7 @@ import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import type { Tab } from '@/components/admin/AdminDashboard';
 import { AdminLoginPanel } from '@/components/admin/AdminLoginPanel';
 import { getCurrentUser } from '@/lib/auth';
+import { canAccessAdminTab } from '@/lib/access';
 
 export const metadata = {
   title: 'Admin | TuloPots',
@@ -15,9 +16,11 @@ const validTabs = new Set([
   'orders',
   'studio',
   'reviews',
-  'contact',
+  'support',
   'newsletter',
   'content',
+  'automation',
+  'security',
 ]);
 
 export default async function AdminPage({
@@ -39,5 +42,10 @@ export default async function AdminPage({
     redirect('/');
   }
 
-  return <AdminDashboard user={user} initialTab={initialTab} />;
+  const safeTab =
+    initialTab && canAccessAdminTab(user.role, initialTab)
+      ? initialTab
+      : (user.allowedAdminTabs[0] as Tab | undefined) || 'overview';
+
+  return <AdminDashboard user={user} initialTab={safeTab} />;
 }

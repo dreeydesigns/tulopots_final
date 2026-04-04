@@ -14,6 +14,16 @@ type ConsentResponse = {
     email: string;
     phone?: string;
     isAdmin: boolean;
+    role:
+      | 'CUSTOMER'
+      | 'SUPER_ADMIN'
+      | 'OPERATIONS_ADMIN'
+      | 'DELIVERY_ADMIN'
+      | 'CONTENT_ADMIN'
+      | 'SUPPORT_ADMIN'
+      | 'ANALYST';
+    permissions: string[];
+    allowedAdminTabs: string[];
     avatar?: string;
     marketingConsent: boolean;
     emailNotifications: boolean;

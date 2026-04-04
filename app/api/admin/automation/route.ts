@@ -15,7 +15,7 @@ function hasValidAutomationSecret(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const adminUser = await requireAdminUser();
+  const adminUser = await requireAdminUser('automation.manage');
   const secretIsValid = hasValidAutomationSecret(request);
 
   if (!adminUser && !secretIsValid) {
