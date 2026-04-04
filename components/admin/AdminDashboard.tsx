@@ -378,7 +378,17 @@ const orderStatusOptions = [
 ];
 
 const studioStatusOptions = ['RECEIVED', 'REVIEWING', 'RESPONDED', 'CLOSED'];
-const contactStatusOptions = ['NEW', 'READ', 'HANDLED'];
+const supportStatusOptions = ['OPEN', 'PENDING', 'RESOLVED'];
+const supportPriorityOptions = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+const adminRoleOptions = [
+  'SUPER_ADMIN',
+  'OPERATIONS_ADMIN',
+  'DELIVERY_ADMIN',
+  'CONTENT_ADMIN',
+  'SUPPORT_ADMIN',
+  'ANALYST',
+  'CUSTOMER',
+];
 
 function money(value: number) {
   return new Intl.NumberFormat('en-KE', {
@@ -536,15 +546,20 @@ export function AdminDashboard({
   const [briefNotes, setBriefNotes] = useState('');
 
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedSupportThreadId, setSelectedSupportThreadId] = useState<string | null>(null);
+  const [selectedSecurityEventId, setSelectedSecurityEventId] = useState<string | null>(null);
   const [productQuery, setProductQuery] = useState('');
   const [orderQuery, setOrderQuery] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
-  const [contactQuery, setContactQuery] = useState('');
+  const [supportQuery, setSupportQuery] = useState('');
   const [newsletterQuery, setNewsletterQuery] = useState('');
   const [selectedManagedPageKey, setSelectedManagedPageKey] = useState<string | null>(null);
   const [managedPageEditor, setManagedPageEditor] = useState('');
   const [managedPageMessage, setManagedPageMessage] = useState('');
+  const [supportStatus, setSupportStatus] = useState('OPEN');
+  const [supportPriority, setSupportPriority] = useState('NORMAL');
+  const [supportNote, setSupportNote] = useState('');
+  const [adminRoleDrafts, setAdminRoleDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user.allowedAdminTabs.includes(initialTab)) {
@@ -584,13 +599,21 @@ export function AdminDashboard({
         setSelectedReviewId(data.dashboard.reviews[0].id);
       }
 
-      if (!selectedContactId && data.dashboard.contactMessages.length) {
-        setSelectedContactId(data.dashboard.contactMessages[0].id);
+      if (!selectedSupportThreadId && data.dashboard.supportThreads.length) {
+        setSelectedSupportThreadId(data.dashboard.supportThreads[0].id);
+      }
+
+      if (!selectedSecurityEventId && data.dashboard.securityEvents.length) {
+        setSelectedSecurityEventId(data.dashboard.securityEvents[0].id);
       }
 
       if (!selectedManagedPageKey && data.dashboard.managedPages.length) {
         setSelectedManagedPageKey(data.dashboard.managedPages[0].key);
       }
+
+      setAdminRoleDrafts(
+        Object.fromEntries(data.dashboard.adminUsers.map((adminUser) => [adminUser.id, adminUser.role]))
+      );
     } catch {
       setError('Unable to load the admin dashboard.');
     } finally {
@@ -690,10 +713,16 @@ export function AdminDashboard({
     [dashboard, selectedBriefId]
   );
 
-  const selectedContact = useMemo(
+  const selectedSupportThread = useMemo(
     () =>
-      dashboard?.contactMessages.find((message) => message.id === selectedContactId) || null,
-    [dashboard, selectedContactId]
+      dashboard?.supportThreads.find((thread) => thread.id === selectedSupportThreadId) || null,
+    [dashboard, selectedSupportThreadId]
+  );
+
+  const selectedSecurityEvent = useMemo(
+    () =>
+      dashboard?.securityEvents.find((event) => event.id === selectedSecurityEventId) || null,
+    [dashboard, selectedSecurityEventId]
   );
 
   const selectedReview = useMemo(
@@ -757,30 +786,37 @@ export function AdminDashboard({
     });
   }, [dashboard, orderQuery, orderStatusFilter]);
 
-  const filteredContacts = useMemo(() => {
+  const filteredSupportThreads = useMemo(() => {
     if (!dashboard) {
       return [];
     }
 
-    const query = contactQuery.trim().toLowerCase();
+    const query = supportQuery.trim().toLowerCase();
     if (!query) {
-      return dashboard.contactMessages;
+      return dashboard.supportThreads;
     }
 
-    return dashboard.contactMessages.filter((message) =>
+    return dashboard.supportThreads.filter((thread) =>
       [
-        message.name,
-        message.email,
-        message.subject,
-        message.message,
-        message.context || '',
-        message.status,
+        thread.customerName || '',
+        thread.customerEmail || '',
+        thread.customerPhone || '',
+        thread.source,
+        thread.status,
+        thread.priority,
+        thread.summary || '',
+        thread.order?.orderNumber || '',
+        thread.order?.shippingCity || '',
+        thread.latestSummary?.intent || '',
+        thread.latestSummary?.shortSummary || '',
+        thread.latestSummary?.suggestedNextStep || '',
+        thread.latestMessage?.body || '',
       ]
         .join(' ')
         .toLowerCase()
         .includes(query)
     );
-  }, [dashboard, contactQuery]);
+  }, [dashboard, supportQuery]);
 
   const filteredNewsletterSubscribers = useMemo(() => {
     if (!dashboard) {
@@ -817,14 +853,32 @@ export function AdminDashboard({
   }, [filteredOrders, selectedOrderId]);
 
   useEffect(() => {
-    if (!filteredContacts.length) {
+    if (!filteredSupportThreads.length) {
       return;
     }
 
-    if (!filteredContacts.some((message) => message.id === selectedContactId)) {
-      setSelectedContactId(filteredContacts[0].id);
+    if (!filteredSupportThreads.some((thread) => thread.id === selectedSupportThreadId)) {
+      setSelectedSupportThreadId(filteredSupportThreads[0].id);
     }
-  }, [filteredContacts, selectedContactId]);
+  }, [filteredSupportThreads, selectedSupportThreadId]);
+
+  useEffect(() => {
+    if (selectedSupportThread) {
+      setSupportStatus(selectedSupportThread.status);
+      setSupportPriority(selectedSupportThread.priority);
+      setSupportNote('');
+    }
+  }, [selectedSupportThread]);
+
+  useEffect(() => {
+    if (!dashboard?.securityEvents.length) {
+      return;
+    }
+
+    if (!dashboard.securityEvents.some((event) => event.id === selectedSecurityEventId)) {
+      setSelectedSecurityEventId(dashboard.securityEvents[0].id);
+    }
+  }, [dashboard, selectedSecurityEventId]);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -1032,24 +1086,56 @@ export function AdminDashboard({
     }
   }
 
-  async function updateContactStatus(id: string, status: string) {
+  async function saveSupportThread() {
+    if (!selectedSupportThread) return;
+
     try {
-      setPendingKey(`contact:${id}`);
-      const response = await fetch(`/api/admin/contact/${id}`, {
+      setPendingKey(`support:${selectedSupportThread.id}`);
+      const response = await fetch(`/api/admin/support/${selectedSupportThread.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status: supportStatus,
+          priority: supportPriority,
+          note: supportNote.trim(),
+        }),
       });
       const data = (await response.json()) as { ok: boolean; error?: string };
 
       if (!response.ok || !data.ok) {
-        setError(data.error || 'Unable to update contact message.');
+        setError(data.error || 'Unable to update support thread.');
         return;
       }
 
       await loadDashboard();
     } catch {
-      setError('Unable to update contact message.');
+      setError('Unable to update support thread.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function updateAdminRole(id: string) {
+    const nextRole = adminRoleDrafts[id];
+    if (!nextRole) return;
+
+    try {
+      setPendingKey(`role:${id}`);
+      const response = await fetch(`/api/admin/security/users/${id}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      const data = (await response.json()) as { ok: boolean; error?: string };
+
+      if (!response.ok || !data.ok) {
+        setError(data.error || 'Unable to update admin role.');
+        return;
+      }
+
+      await loadDashboard();
+    } catch {
+      setError('Unable to update admin role.');
     } finally {
       setPendingKey(null);
     }
@@ -2335,59 +2421,117 @@ export function AdminDashboard({
                       <MetricCard label="Pending delivery stops" value={String(dashboard.deliverySummary.pending)} />
                     </div>
                     <SearchField
-                      value={contactQuery}
-                      onChange={setContactQuery}
-                      placeholder="Search by sender, subject, status, email, or message context..."
+                      value={supportQuery}
+                      onChange={setSupportQuery}
+                      placeholder="Search by customer, source, order number, location, status, or summary..."
                     />
                     <SplitPanel
-                      title="Support messages"
-                      subtitle="Read each message, see its delivery context, and mark it as new, read, or handled."
-                      list={filteredContacts.map((message) => ({
-                        id: message.id,
-                        title: message.name,
-                        body: `${message.subject} · ${message.status}`,
-                        meta: formatDate(message.createdAt),
+                      title="Support threads"
+                      subtitle="Manage customer help, delivery follow-up, studio requests, and chatbot escalations in one place."
+                      list={filteredSupportThreads.map((thread) => ({
+                        id: thread.id,
+                        title:
+                          thread.customerName ||
+                          thread.customerEmail ||
+                          thread.order?.orderNumber ||
+                          'Support thread',
+                        body: `${thread.source.replaceAll('_', ' ')} · ${thread.status} · ${thread.priority}`,
+                        meta: thread.order
+                          ? `${thread.order.orderNumber} · ${thread.order.shippingCity || 'Location pending'}`
+                          : formatDate(thread.updatedAt),
                       }))}
-                      selectedId={selectedContactId}
-                      onSelect={setSelectedContactId}
+                      selectedId={selectedSupportThreadId}
+                      onSelect={setSelectedSupportThreadId}
                       detail={
-                        selectedContact ? (
+                        selectedSupportThread ? (
                           <div className="space-y-5">
-                          <DetailIntro title={selectedContact.subject} subtitle={`${selectedContact.name} · ${selectedContact.email}`} />
-                          {selectedContact.context ? (
-                            <div className="rounded-[1.25rem] border px-4 py-4 text-sm" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-accent">
-                                Context
+                            <DetailIntro
+                              title={
+                                selectedSupportThread.customerName ||
+                                selectedSupportThread.customerEmail ||
+                                selectedSupportThread.order?.orderNumber ||
+                                'Support thread'
+                              }
+                              subtitle={`${selectedSupportThread.source.replaceAll('_', ' ')} · ${selectedSupportThread.status} · ${selectedSupportThread.priority}`}
+                            />
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <DetailStat
+                                label="Contact"
+                                value={
+                                  selectedSupportThread.customerEmail ||
+                                  selectedSupportThread.customerPhone ||
+                                  'No direct contact saved'
+                                }
+                              />
+                              <DetailStat
+                                label="Delivery"
+                                value={
+                                  selectedSupportThread.order
+                                    ? `${selectedSupportThread.order.orderNumber} · ${selectedSupportThread.order.shippingCity || 'Location pending'}`
+                                    : 'No linked order'
+                                }
+                              />
+                            </div>
+                            {selectedSupportThread.latestSummary ? (
+                              <div className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}>
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-accent">
+                                  Suggested next step
+                                </div>
+                                <div className="mt-2">
+                                  {selectedSupportThread.latestSummary.shortSummary}
+                                </div>
+                                {selectedSupportThread.latestSummary.suggestedNextStep ? (
+                                  <div className="mt-3 tp-text-soft">
+                                    {selectedSupportThread.latestSummary.suggestedNextStep}
+                                  </div>
+                                ) : null}
                               </div>
-                              <div className="mt-2">{selectedContact.context}</div>
+                            ) : null}
+                            {selectedSupportThread.latestMessage ? (
+                              <div className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                                {selectedSupportThread.latestMessage.body}
+                              </div>
+                            ) : null}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <SelectField
+                                label="Thread status"
+                                value={supportStatus}
+                                options={supportStatusOptions.map((status) => ({
+                                  value: status,
+                                  label: status,
+                                }))}
+                                onChange={setSupportStatus}
+                                disabled={!dashboard.adminAccess.permissions.includes('support.manage')}
+                              />
+                              <SelectField
+                                label="Priority"
+                                value={supportPriority}
+                                options={supportPriorityOptions.map((priority) => ({
+                                  value: priority,
+                                  label: priority,
+                                }))}
+                                onChange={setSupportPriority}
+                                disabled={!dashboard.adminAccess.permissions.includes('support.manage')}
+                              />
                             </div>
-                          ) : null}
-                          {selectedContact.imageUrl ? (
-                            <div className="overflow-hidden rounded-[1.25rem] border" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={selectedContact.imageUrl} alt="Support upload" className="h-72 w-full object-cover" />
-                            </div>
-                          ) : null}
-                          <div className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
-                            {selectedContact.message}
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                            {contactStatusOptions.map((status) => (
+                            <Field
+                              label="Admin note"
+                              value={supportNote}
+                              onChange={setSupportNote}
+                              multiline
+                              disabled={!dashboard.adminAccess.permissions.includes('support.manage')}
+                            />
+                            {dashboard.adminAccess.permissions.includes('support.manage') ? (
                               <button
-                                key={status}
                                 type="button"
-                                onClick={() => void updateContactStatus(selectedContact.id, status)}
-                                disabled={pendingKey === `contact:${selectedContact.id}`}
+                                onClick={() => void saveSupportThread()}
+                                disabled={pendingKey === `support:${selectedSupportThread.id}`}
                                 className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
-                                style={{
-                                  background: selectedContact.status === status ? 'var(--tp-accent)' : 'var(--tp-surface)',
-                                  color: selectedContact.status === status ? 'var(--tp-btn-primary-text)' : 'var(--tp-heading)',
-                                }}
+                                style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
                               >
-                                {status}
+                                {pendingKey === `support:${selectedSupportThread.id}` ? 'Saving…' : 'Save support thread'}
                               </button>
-                            ))}
-                          </div>
+                            ) : null}
                           </div>
                         ) : null
                       }
@@ -2493,10 +2637,39 @@ export function AdminDashboard({
                         body: event.route || event.identifier || 'Website event',
                         meta: formatDate(event.createdAt),
                       }))}
-                      selectedId={dashboard.securityEvents[0]?.id || null}
-                      onSelect={() => undefined}
+                      selectedId={selectedSecurityEventId}
+                      onSelect={setSelectedSecurityEventId}
                       detail={
                         <div className="space-y-4">
+                          <PanelShell
+                            title="Selected event"
+                            subtitle="Review what happened before changing permissions or roles."
+                          >
+                            {selectedSecurityEvent ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <DetailStat
+                                  label="Event"
+                                  value={`${selectedSecurityEvent.type.replaceAll('_', ' ')} · ${selectedSecurityEvent.severity}`}
+                                />
+                                <DetailStat
+                                  label="When"
+                                  value={formatDate(selectedSecurityEvent.createdAt)}
+                                />
+                                <DetailStat
+                                  label="Route"
+                                  value={selectedSecurityEvent.route || 'Route not recorded'}
+                                />
+                                <DetailStat
+                                  label="Identifier"
+                                  value={selectedSecurityEvent.identifier || 'No identifier recorded'}
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-sm tp-text-soft">
+                                No security event is selected yet.
+                              </div>
+                            )}
+                          </PanelShell>
                           <PanelShell
                             title="Role access"
                             subtitle="Every admin account now carries an explicit operational role."
@@ -2521,6 +2694,37 @@ export function AdminDashboard({
                                   </div>
                                   <div className="mt-3 text-xs tp-text-soft">
                                     Last sign-in {adminUser.lastSignInAt ? formatDate(adminUser.lastSignInAt) : 'not yet'}
+                                  </div>
+                                  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                    <SelectField
+                                      label="Admin role"
+                                      value={adminRoleDrafts[adminUser.id] || adminUser.role}
+                                      options={adminRoleOptions.map((role) => ({
+                                        value: role,
+                                        label: role.replaceAll('_', ' '),
+                                      }))}
+                                      onChange={(value) =>
+                                        setAdminRoleDrafts((current) => ({
+                                          ...current,
+                                          [adminUser.id]: value,
+                                        }))
+                                      }
+                                      disabled={!dashboard.adminAccess.permissions.includes('roles.manage')}
+                                    />
+                                    {dashboard.adminAccess.permissions.includes('roles.manage') ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => void updateAdminRole(adminUser.id)}
+                                        disabled={
+                                          pendingKey === `role:${adminUser.id}` ||
+                                          (adminRoleDrafts[adminUser.id] || adminUser.role) === adminUser.role
+                                        }
+                                        className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                                        style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                                      >
+                                        {pendingKey === `role:${adminUser.id}` ? 'Saving…' : 'Save role'}
+                                      </button>
+                                    ) : null}
                                   </div>
                                 </div>
                               ))}
@@ -3005,11 +3209,13 @@ function Field({
   value,
   onChange,
   multiline = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -3023,15 +3229,17 @@ function Field({
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
           rows={4}
-          className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+          className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60"
           style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
         />
       ) : (
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+          disabled={disabled}
+          className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60"
           style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
         />
       )}
@@ -3082,11 +3290,13 @@ function SelectField({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -3099,7 +3309,8 @@ function SelectField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none"
+        disabled={disabled}
+        className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60"
         style={{
           borderColor: 'var(--tp-border)',
           background: 'var(--tp-card)',

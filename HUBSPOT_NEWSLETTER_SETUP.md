@@ -42,7 +42,7 @@ After creating the app, HubSpot will show an access token.
 Copy it and save it as:
 
 ```text
-HUBSPOT_PRIVATE_APP_TOKEN
+HUBSPOT_PRIVATE_APP_TOKEN : your-hubspot-private-app-token
 ```
 
 ---
