@@ -107,9 +107,17 @@ export async function POST(request: NextRequest) {
       return jsonError('You need to accept the Terms and Privacy Policy to continue.', 400);
     }
 
-    const existing = await findUserForAuth({
-      OR: [{ email }, ...(phone ? [{ phone }] : [])],
-    });
+    let existing;
+    try {
+      existing = await findUserForAuth({
+        OR: [{ email }, ...(phone ? [{ phone }] : [])],
+      });
+    } catch (error) {
+      console.error('[auth/signup] lookup failed', error);
+      return jsonError('Unable to access account records right now.', 500, {
+        code: 'AUTH_LOOKUP_FAILED',
+      });
+    }
 
     if (existing?.passwordHash) {
       return jsonError('An account with those details already exists.', 409);
@@ -121,100 +129,119 @@ export async function POST(request: NextRequest) {
     );
 
     const now = new Date();
-    const user = existing
-      ? await (async () => {
-          const updateData = {
-            name,
-            email,
-            phone: phone || null,
-            passwordHash: hashPassword(password),
-            provider: mergeAuthProviders(existing.provider, 'password'),
-            isAdmin: nextRole !== 'CUSTOMER',
-            role: nextRole,
-            acceptedTermsAt: now,
-            acceptedPrivacyAt: now,
-            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
-            marketingConsent,
-            marketingConsentAt: marketingConsent ? now : null,
-            emailNotifications: true,
-            smsNotifications: false,
-            whatsappNotifications: false,
-            preferredContactChannel: 'email',
-            preferredLanguage,
-            preferredCurrency,
-            defaultShippingCountry,
-          };
-          const legacyUpdateData = {
-            name,
-            email,
-            phone: phone || null,
-            passwordHash: hashPassword(password),
-            provider: mergeAuthProviders(existing.provider, 'password'),
-            isAdmin: nextRole !== 'CUSTOMER',
-            acceptedTermsAt: now,
-            acceptedPrivacyAt: now,
-            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
-            marketingConsent,
-            marketingConsentAt: marketingConsent ? now : null,
-            emailNotifications: true,
-            smsNotifications: false,
-            whatsappNotifications: false,
-            preferredContactChannel: 'email',
-            preferredLanguage,
-            preferredCurrency,
-            defaultShippingCountry,
-          };
-          return updateUserForAuth(existing.id, updateData, legacyUpdateData);
-        })()
-      : await (async () => {
-          const createData = {
-            name,
-            email,
-            phone: phone || null,
-            passwordHash: hashPassword(password),
-            provider: 'password',
-            isAdmin: nextRole !== 'CUSTOMER',
-            role: nextRole,
-            acceptedTermsAt: now,
-            acceptedPrivacyAt: now,
-            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
-            marketingConsent,
-            marketingConsentAt: marketingConsent ? now : null,
-            emailNotifications: true,
-            smsNotifications: false,
-            whatsappNotifications: false,
-            preferredContactChannel: 'email',
-            preferredLanguage,
-            preferredCurrency,
-            defaultShippingCountry,
-          };
-          const legacyCreateData = {
-            name,
-            email,
-            phone: phone || null,
-            passwordHash: hashPassword(password),
-            provider: 'password',
-            isAdmin: nextRole !== 'CUSTOMER',
-            acceptedTermsAt: now,
-            acceptedPrivacyAt: now,
-            acceptedPolicyVersion: CURRENT_POLICY_VERSION,
-            marketingConsent,
-            marketingConsentAt: marketingConsent ? now : null,
-            emailNotifications: true,
-            smsNotifications: false,
-            whatsappNotifications: false,
-            preferredContactChannel: 'email',
-            preferredLanguage,
-            preferredCurrency,
-            defaultShippingCountry,
-          };
-          return createUserForAuth(createData, legacyCreateData);
-        })();
+    let user;
+    try {
+      user = existing
+        ? await (async () => {
+            const updateData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: mergeAuthProviders(existing.provider, 'password'),
+              isAdmin: nextRole !== 'CUSTOMER',
+              role: nextRole,
+              acceptedTermsAt: now,
+              acceptedPrivacyAt: now,
+              acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+              marketingConsent,
+              marketingConsentAt: marketingConsent ? now : null,
+              emailNotifications: true,
+              smsNotifications: false,
+              whatsappNotifications: false,
+              preferredContactChannel: 'email',
+              preferredLanguage,
+              preferredCurrency,
+              defaultShippingCountry,
+            };
+            const legacyUpdateData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: mergeAuthProviders(existing.provider, 'password'),
+              isAdmin: nextRole !== 'CUSTOMER',
+              acceptedTermsAt: now,
+              acceptedPrivacyAt: now,
+              acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+              marketingConsent,
+              marketingConsentAt: marketingConsent ? now : null,
+              emailNotifications: true,
+              smsNotifications: false,
+              whatsappNotifications: false,
+              preferredContactChannel: 'email',
+              preferredLanguage,
+              preferredCurrency,
+              defaultShippingCountry,
+            };
+            return updateUserForAuth(existing.id, updateData, legacyUpdateData);
+          })()
+        : await (async () => {
+            const createData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: 'password',
+              isAdmin: nextRole !== 'CUSTOMER',
+              role: nextRole,
+              acceptedTermsAt: now,
+              acceptedPrivacyAt: now,
+              acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+              marketingConsent,
+              marketingConsentAt: marketingConsent ? now : null,
+              emailNotifications: true,
+              smsNotifications: false,
+              whatsappNotifications: false,
+              preferredContactChannel: 'email',
+              preferredLanguage,
+              preferredCurrency,
+              defaultShippingCountry,
+            };
+            const legacyCreateData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: 'password',
+              isAdmin: nextRole !== 'CUSTOMER',
+              acceptedTermsAt: now,
+              acceptedPrivacyAt: now,
+              acceptedPolicyVersion: CURRENT_POLICY_VERSION,
+              marketingConsent,
+              marketingConsentAt: marketingConsent ? now : null,
+              emailNotifications: true,
+              smsNotifications: false,
+              whatsappNotifications: false,
+              preferredContactChannel: 'email',
+              preferredLanguage,
+              preferredCurrency,
+              defaultShippingCountry,
+            };
+            return createUserForAuth(createData, legacyCreateData);
+          })();
+    } catch (error) {
+      console.error('[auth/signup] account create failed', error);
+      return jsonError('Unable to create your account right now.', 500, {
+        code: 'AUTH_CREATE_FAILED',
+      });
+    }
 
-    const { token, expiresAt } = await createSession(
-      user.id,
-      nextRole !== 'CUSTOMER' ? 'ADMIN' : 'CUSTOMER'
-    );
+    let token;
+    let expiresAt;
+    try {
+      const session = await createSession(
+        user.id,
+        nextRole !== 'CUSTOMER' ? 'ADMIN' : 'CUSTOMER'
+      );
+      token = session.token;
+      expiresAt = session.expiresAt;
+    } catch (error) {
+      console.error('[auth/signup] session create failed', error);
+      return jsonError('Unable to start your session right now.', 500, {
+        code: 'AUTH_SESSION_FAILED',
+      });
+    }
     const response = NextResponse.json({
       ok: true,
       user: mapUserToSessionUser(user),

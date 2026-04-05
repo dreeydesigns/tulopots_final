@@ -120,7 +120,15 @@ export async function POST(request: NextRequest) {
       return jsonError('Enter a valid email address and password.', 400);
     }
 
-    const user = await findUserForAuth({ email });
+    let user;
+    try {
+      user = await findUserForAuth({ email });
+    } catch (error) {
+      console.error('[auth/login] lookup failed', error);
+      return jsonError('Unable to access account records right now.', 500, {
+        code: 'AUTH_LOOKUP_FAILED',
+      });
+    }
 
     if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
       const nextLockout = await getLockout(email, ip);
@@ -147,18 +155,25 @@ export async function POST(request: NextRequest) {
 
     if ((isAdminEmailAddress(email) && !user.isAdmin) || user.role !== resolvedRole) {
       try {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
-        });
-      } catch (error) {
-        if (!isSchemaCompatibilityError(error)) {
-          throw error;
-        }
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
+          });
+        } catch (error) {
+          if (!isSchemaCompatibilityError(error)) {
+            throw error;
+          }
 
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { isAdmin: resolvedRole !== 'CUSTOMER' },
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { isAdmin: resolvedRole !== 'CUSTOMER' },
+          });
+        }
+      } catch (error) {
+        console.error('[auth/login] role sync failed', error);
+        return jsonError('Unable to prepare your account right now.', 500, {
+          code: 'AUTH_ROLE_SYNC_FAILED',
         });
       }
       user.isAdmin = resolvedRole !== 'CUSTOMER';
@@ -180,7 +195,18 @@ export async function POST(request: NextRequest) {
       return jsonError('This account does not have admin access.', 403);
     }
 
-    const { token, expiresAt } = await createSession(user.id, scope);
+    let token;
+    let expiresAt;
+    try {
+      const session = await createSession(user.id, scope);
+      token = session.token;
+      expiresAt = session.expiresAt;
+    } catch (error) {
+      console.error('[auth/login] session create failed', error);
+      return jsonError('Unable to start your session right now.', 500, {
+        code: 'AUTH_SESSION_FAILED',
+      });
+    }
     await recordLoginAttempt({
       identifier: email,
       ip,
