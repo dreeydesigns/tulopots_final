@@ -438,7 +438,8 @@ export function getAuthProviderStatus() {
 export async function startOAuthFlow(
   request: NextRequest,
   provider: OAuthProvider,
-  returnTo?: string
+  returnTo?: string,
+  mode: 'json' | 'redirect' = 'json'
 ) {
   const origin = getRequestOrigin(request);
   const safeReturnTo = getSafeReturnPath(returnTo);
@@ -447,11 +448,14 @@ export async function startOAuthFlow(
     provider === 'google'
       ? getGoogleAuthorizeUrl(origin, state)
       : getAppleAuthorizeUrl(origin, state);
-  const response = NextResponse.json({
-    ok: true,
-    provider,
-    url: authorizeUrl,
-  });
+  const response =
+    mode === 'redirect'
+      ? NextResponse.redirect(authorizeUrl)
+      : NextResponse.json({
+          ok: true,
+          provider,
+          url: authorizeUrl,
+        });
 
   setOAuthCookies(response, provider, state, safeReturnTo);
   response.headers.set('Cache-Control', 'no-store');

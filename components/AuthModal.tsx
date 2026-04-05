@@ -288,29 +288,10 @@ export function AuthModal() {
         typeof window !== 'undefined'
           ? `${window.location.pathname}${window.location.search}`
           : pathname || '/';
-      const response = await fetch('/api/auth/oauth/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider,
-          returnTo,
-        }),
-      });
-      const data = (await response.json()) as {
-        ok: boolean;
-        url?: string;
-        error?: string;
-      };
-
-      if (!response.ok || !data.ok || !data.url) {
-        setError(data.error || 'We could not start that sign-in flow.');
-        setActiveAction(null);
-        return;
-      }
-
-      window.location.href = data.url;
+      const startUrl = new URL('/api/auth/oauth/start', window.location.origin);
+      startUrl.searchParams.set('provider', provider);
+      startUrl.searchParams.set('returnTo', returnTo);
+      window.location.assign(startUrl.toString());
     } catch {
       setError('We could not start that sign-in flow.');
       setActiveAction(null);
