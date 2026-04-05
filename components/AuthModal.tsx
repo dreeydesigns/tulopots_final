@@ -300,18 +300,19 @@ export function AuthModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] overflow-y-auto bg-black/60 px-4 py-5 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-8"
+      className="fixed inset-0 z-[200] overflow-hidden bg-black/60 px-3 py-3 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-8"
+      style={{ touchAction: 'pan-y' }}
       onClick={(event) => event.target === event.currentTarget && close()}
     >
-      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] shadow-2xl">
+      <div className="relative mx-auto flex h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-3rem)]">
         <div
-          className="max-h-[calc(100dvh-2.5rem)] overflow-y-auto overscroll-contain"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
-          <div className="sticky top-0 z-10 border-b border-[var(--tp-border)] bg-[var(--tp-surface)] px-8 pb-6 pt-8">
+          <div className="sticky top-0 z-10 border-b border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-8">
             <button
               onClick={close}
-              className="absolute right-5 top-5 rounded-full p-2 text-[var(--tp-text)]/55 transition hover:bg-[var(--tp-card)]"
+              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full p-2 text-[var(--tp-text)]/55 transition hover:bg-[var(--tp-card)] sm:right-5 sm:top-5"
               type="button"
             >
               <X className="h-4 w-4" />
@@ -343,7 +344,10 @@ export function AuthModal() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6 pb-7 sm:pb-6">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 px-5 py-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-6 sm:pb-6"
+          >
             {hasOAuthProviders ? (
               <>
                 <button
