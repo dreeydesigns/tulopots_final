@@ -33,6 +33,38 @@ function isValidPhone(phone: string) {
   return !phone || /^\+?[0-9]{10,15}$/.test(phone);
 }
 
+function getAuthFailureDetail(error: unknown) {
+  const code =
+    typeof error === 'object' && error && 'code' in error
+      ? String((error as { code?: unknown }).code || '').toUpperCase()
+      : '';
+  const message = String((error as Error | null | undefined)?.message || '').toLowerCase();
+
+  if (code === 'P1001' || message.includes("can't reach database server")) {
+    return 'DB_UNREACHABLE';
+  }
+
+  if (code === 'P2002' || message.includes('unique constraint')) {
+    return 'UNIQUE_CONSTRAINT';
+  }
+
+  if (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    message.includes('column') ||
+    message.includes('relation') ||
+    message.includes('does not exist')
+  ) {
+    return 'SCHEMA_COMPAT';
+  }
+
+  if (message.includes('timed out') || message.includes('timeout')) {
+    return 'TIMEOUT';
+  }
+
+  return 'UNKNOWN';
+}
+
 export async function POST(request: NextRequest) {
   const ip = getRequestIp(request);
 
@@ -246,6 +278,7 @@ export async function POST(request: NextRequest) {
       console.error('[auth/signup] account create failed', error);
       return jsonError('Unable to create your account right now.', 500, {
         code: 'AUTH_CREATE_FAILED',
+        detail: getAuthFailureDetail(error),
       });
     }
 
@@ -262,6 +295,7 @@ export async function POST(request: NextRequest) {
       console.error('[auth/signup] session create failed', error);
       return jsonError('Unable to start your session right now.', 500, {
         code: 'AUTH_SESSION_FAILED',
+        detail: getAuthFailureDetail(error),
       });
     }
     const response = NextResponse.json({
