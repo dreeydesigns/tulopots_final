@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 export default function CursorHalo() {
-  const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(false);
   const [pressed, setPressed] = useState(false);
 
@@ -13,6 +12,8 @@ export default function CursorHalo() {
   const mouse = useRef({ x: -100, y: -100 });
   const ring = useRef({ x: -100, y: -100 });
   const visibleRef = useRef(false);
+  const activeRef = useRef(false);
+  const pressedRef = useRef(false);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -26,14 +27,17 @@ export default function CursorHalo() {
       if (!enabled) {
         document.body.classList.remove('cursor-halo-on');
         visibleRef.current = false;
-        setVisible(false);
+        activeRef.current = false;
+        pressedRef.current = false;
         setActive(false);
         setPressed(false);
         if (dotRef.current) {
           dotRef.current.style.opacity = '0';
+          dotRef.current.classList.remove('is-active', 'is-pressed');
         }
         if (ringRef.current) {
           ringRef.current.style.opacity = '0';
+          ringRef.current.classList.remove('is-active', 'is-pressed');
         }
         return;
       }
@@ -51,7 +55,6 @@ export default function CursorHalo() {
         ring.current.y = e.clientY;
       }
       visibleRef.current = true;
-      setVisible(true);
 
       if (dotRef.current) {
         dotRef.current.style.left = `${mouse.current.x}px`;
@@ -64,28 +67,40 @@ export default function CursorHalo() {
       if (!enabled) return;
       if (e && e.pointerType !== 'mouse') return;
       visibleRef.current = true;
-      setVisible(true);
     };
     const leave = () => {
       visibleRef.current = false;
-      setVisible(false);
+      activeRef.current = false;
+      pressedRef.current = false;
       setActive(false);
       setPressed(false);
       if (dotRef.current) {
         dotRef.current.style.opacity = '0';
+        dotRef.current.classList.remove('is-active', 'is-pressed');
       }
       if (ringRef.current) {
         ringRef.current.style.opacity = '0';
+        ringRef.current.classList.remove('is-active', 'is-pressed');
       }
     };
 
     const down = (e: PointerEvent) => {
       if (!enabled || e.pointerType !== 'mouse') return;
-      setPressed(true);
+      if (!pressedRef.current) {
+        pressedRef.current = true;
+        setPressed(true);
+        dotRef.current?.classList.add('is-pressed');
+        ringRef.current?.classList.add('is-pressed');
+      }
     };
     const up = (e: PointerEvent) => {
       if (!enabled || e.pointerType !== 'mouse') return;
-      setPressed(false);
+      if (pressedRef.current) {
+        pressedRef.current = false;
+        setPressed(false);
+        dotRef.current?.classList.remove('is-pressed');
+        ringRef.current?.classList.remove('is-pressed');
+      }
     };
 
     const over = (e: PointerEvent) => {
@@ -98,12 +113,23 @@ export default function CursorHalo() {
         'a, button, input, textarea, select, [role="button"], .cursor-hover'
       );
 
-      setActive(Boolean(interactive));
+      const nextActive = Boolean(interactive);
+      if (nextActive !== activeRef.current) {
+        activeRef.current = nextActive;
+        setActive(nextActive);
+        if (nextActive) {
+          dotRef.current?.classList.add('is-active');
+          ringRef.current?.classList.add('is-active');
+        } else {
+          dotRef.current?.classList.remove('is-active');
+          ringRef.current?.classList.remove('is-active');
+        }
+      }
     };
 
     const animate = () => {
-      ring.current.x += (mouse.current.x - ring.current.x) * 0.32;
-      ring.current.y += (mouse.current.y - ring.current.y) * 0.32;
+      ring.current.x += (mouse.current.x - ring.current.x) * 0.45;
+      ring.current.y += (mouse.current.y - ring.current.y) * 0.45;
 
       if (ringRef.current) {
         ringRef.current.style.left = `${ring.current.x}px`;

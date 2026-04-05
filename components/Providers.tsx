@@ -275,7 +275,8 @@ export function Providers({
 
   const setIsLoggedIn = (value: boolean) => {
     if (value) {
-      setShowAuthModal(true);
+      setIsLoggedInRaw(true);
+      setShowAuthModal(false);
       return;
     }
 
