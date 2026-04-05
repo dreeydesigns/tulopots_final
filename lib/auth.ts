@@ -294,6 +294,30 @@ async function updateLegacyRawUser(userId: string, data: Record<string, unknown>
   return withFallbackRole(rows[0]);
 }
 
+async function createLegacyRawSession(input: {
+  token: string;
+  userId: string;
+  scope: AuthScope;
+  expiresAt: Date;
+  includeTimestamps?: boolean;
+}) {
+  const sessionId = `session_${randomBytes(12).toString('hex')}`;
+  const now = new Date();
+  const columns = input.includeTimestamps
+    ? ['id', 'token', 'userId', 'scope', 'expiresAt', 'createdAt', 'updatedAt']
+    : ['id', 'token', 'userId', 'scope', 'expiresAt'];
+  const values = input.includeTimestamps
+    ? [sessionId, input.token, input.userId, input.scope, input.expiresAt, now, now]
+    : [sessionId, input.token, input.userId, input.scope, input.expiresAt];
+  const placeholders = values.map((_, index) => `$${index + 1}`);
+
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "AuthSession" (${columns.map((column) => `"${column}"`).join(', ')})
+     VALUES (${placeholders.join(', ')})`,
+    ...values
+  );
+}
+
 export function isSchemaCompatibilityError(error: unknown) {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as any).code) : '';
   const message = String((error as any)?.message || '').toLowerCase();
@@ -648,32 +672,84 @@ export async function createSession(
       throw error;
     }
 
-    await prisma.$transaction([
-      ...(scope === 'ADMIN' || role !== 'CUSTOMER'
-        ? [
-            prisma.authSession.deleteMany({
-              where: {
-                userId,
-                scope: 'ADMIN',
-              },
-            }),
-          ]
-        : []),
-      prisma.authSession.create({
-        data: {
+    try {
+      await prisma.$transaction([
+        ...(scope === 'ADMIN' || role !== 'CUSTOMER'
+          ? [
+              prisma.authSession.deleteMany({
+                where: {
+                  userId,
+                  scope: 'ADMIN',
+                },
+              }),
+            ]
+          : []),
+        prisma.authSession.create({
+          data: {
+            token,
+            userId,
+            scope,
+            expiresAt,
+          },
+        }),
+        prisma.user.update({
+          where: { id: userId },
+          data: {
+            isAdmin: role !== 'CUSTOMER',
+          },
+        }),
+      ]);
+    } catch (legacyError) {
+      if (!isSchemaCompatibilityError(legacyError)) {
+        throw legacyError;
+      }
+
+      if (scope === 'ADMIN' || role !== 'CUSTOMER') {
+        await prisma.authSession.deleteMany({
+          where: {
+            userId,
+            scope: 'ADMIN',
+          },
+        });
+      }
+
+      try {
+        await createLegacyRawSession({
           token,
           userId,
           scope,
           expiresAt,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: {
+          includeTimestamps: true,
+        });
+      } catch (rawSessionError) {
+        if (!isSchemaCompatibilityError(rawSessionError)) {
+          throw rawSessionError;
+        }
+
+        await createLegacyRawSession({
+          token,
+          userId,
+          scope,
+          expiresAt,
+          includeTimestamps: false,
+        });
+      }
+
+      try {
+        await updateLegacyRawUser(userId, {
+          lastSignInAt: now,
           isAdmin: role !== 'CUSTOMER',
-        },
-      }),
-    ]);
+        });
+      } catch (rawUserError) {
+        if (!isSchemaCompatibilityError(rawUserError)) {
+          throw rawUserError;
+        }
+
+        await updateLegacyRawUser(userId, {
+          isAdmin: role !== 'CUSTOMER',
+        });
+      }
+    }
   }
 
   return { token, expiresAt };
