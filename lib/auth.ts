@@ -256,8 +256,14 @@ export async function findUserForSession(userId: string) {
 export async function updateUserForAuth(
   userId: string,
   data: Prisma.UserUpdateInput,
-  legacyData?: Prisma.UserUpdateInput
+  legacyData?: Prisma.UserUpdateInput | Prisma.UserUpdateInput[]
 ) {
+  const fallbackData = Array.isArray(legacyData)
+    ? legacyData.filter(Boolean)
+    : legacyData
+      ? [legacyData]
+      : [];
+
   try {
     const user = await prisma.user.update({
       where: { id: userId },
@@ -271,20 +277,40 @@ export async function updateUserForAuth(
       throw error;
     }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: legacyData ?? data,
-      select: legacyUserSelect,
-    });
+    const updateAttempts = fallbackData.length ? fallbackData : [data];
+    let lastError = error;
 
-    return withFallbackRole(user);
+    for (const attempt of updateAttempts) {
+      try {
+        const user = await prisma.user.update({
+          where: { id: userId },
+          data: attempt,
+          select: legacyUserSelect,
+        });
+
+        return withFallbackRole(user);
+      } catch (fallbackError) {
+        lastError = fallbackError;
+        if (!isSchemaCompatibilityError(fallbackError)) {
+          throw fallbackError;
+        }
+      }
+    }
+
+    throw lastError;
   }
 }
 
 export async function createUserForAuth(
   data: Prisma.UserCreateInput,
-  legacyData?: Prisma.UserCreateInput
+  legacyData?: Prisma.UserCreateInput | Prisma.UserCreateInput[]
 ) {
+  const fallbackData = Array.isArray(legacyData)
+    ? legacyData.filter(Boolean)
+    : legacyData
+      ? [legacyData]
+      : [];
+
   try {
     const user = await prisma.user.create({
       data,
@@ -297,12 +323,26 @@ export async function createUserForAuth(
       throw error;
     }
 
-    const user = await prisma.user.create({
-      data: legacyData ?? data,
-      select: legacyUserSelect,
-    });
+    const createAttempts = fallbackData.length ? fallbackData : [data];
+    let lastError = error;
 
-    return withFallbackRole(user);
+    for (const attempt of createAttempts) {
+      try {
+        const user = await prisma.user.create({
+          data: attempt,
+          select: legacyUserSelect,
+        });
+
+        return withFallbackRole(user);
+      } catch (fallbackError) {
+        lastError = fallbackError;
+        if (!isSchemaCompatibilityError(fallbackError)) {
+          throw fallbackError;
+        }
+      }
+    }
+
+    throw lastError;
   }
 }
 

@@ -174,7 +174,18 @@ export async function POST(request: NextRequest) {
               preferredCurrency,
               defaultShippingCountry,
             };
-            return updateUserForAuth(existing.id, updateData, legacyUpdateData);
+            const minimalLegacyUpdateData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: mergeAuthProviders(existing.provider, 'password'),
+              isAdmin: nextRole !== 'CUSTOMER',
+            };
+            return updateUserForAuth(existing.id, updateData, [
+              legacyUpdateData,
+              minimalLegacyUpdateData,
+            ]);
           })()
         : await (async () => {
             const createData = {
@@ -218,7 +229,18 @@ export async function POST(request: NextRequest) {
               preferredCurrency,
               defaultShippingCountry,
             };
-            return createUserForAuth(createData, legacyCreateData);
+            const minimalLegacyCreateData = {
+              name,
+              email,
+              phone: phone || null,
+              passwordHash: hashPassword(password),
+              provider: 'password',
+              isAdmin: nextRole !== 'CUSTOMER',
+            };
+            return createUserForAuth(createData, [
+              legacyCreateData,
+              minimalLegacyCreateData,
+            ]);
           })();
     } catch (error) {
       console.error('[auth/signup] account create failed', error);

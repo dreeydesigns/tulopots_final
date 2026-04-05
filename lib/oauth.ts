@@ -371,7 +371,19 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
         : existing.isAdmin,
       ...providerField,
     };
-    return updateUserForAuth(existing.id, updateData, legacyUpdateData);
+    const minimalLegacyUpdateData = {
+      name: nextName,
+      email: email || existing.email,
+      provider: providerLabel,
+      isAdmin: email
+        ? existing.isAdmin || isAdminEmailAddress(email)
+        : existing.isAdmin,
+      ...providerField,
+    };
+    return updateUserForAuth(existing.id, updateData, [
+      legacyUpdateData,
+      minimalLegacyUpdateData,
+    ]);
   }
 
   const createData = {
@@ -404,7 +416,17 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     defaultShippingCountry: 'KE',
     ...providerField,
   };
-  return createUserForAuth(createData, legacyCreateData);
+  const minimalLegacyCreateData = {
+    name: nextName,
+    email,
+    provider: providerLabel,
+    isAdmin: email ? isAdminEmailAddress(email) : false,
+    ...providerField,
+  };
+  return createUserForAuth(createData, [
+    legacyCreateData,
+    minimalLegacyCreateData,
+  ]);
 }
 
 function getGoogleAuthorizeUrl(origin: string, state: string) {
