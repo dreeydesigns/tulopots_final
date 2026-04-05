@@ -21,6 +21,46 @@ import { normalizeUserRole } from '@/lib/access';
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 const LOCKOUT_THRESHOLD = 5;
 
+function getAuthFailureDetail(error: unknown) {
+  const code =
+    typeof error === 'object' && error && 'code' in error
+      ? String((error as { code?: unknown }).code || '').toUpperCase()
+      : '';
+  const message = String((error as Error | null | undefined)?.message || '').toLowerCase();
+
+  if (code === 'P1001' || message.includes("can't reach database server")) {
+    return 'DB_UNREACHABLE';
+  }
+
+  if (message.includes('auth_session_insert_failed')) {
+    return 'SESSION_INSERT_FAILED';
+  }
+
+  if (message.includes('auth_session_user_sync_failed')) {
+    return 'SESSION_USER_SYNC_FAILED';
+  }
+
+  if (message.includes('auth_session_delete_failed')) {
+    return 'SESSION_DELETE_FAILED';
+  }
+
+  if (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    message.includes('column') ||
+    message.includes('relation') ||
+    message.includes('does not exist')
+  ) {
+    return 'SCHEMA_COMPAT';
+  }
+
+  if (message.includes('timed out') || message.includes('timeout')) {
+    return 'TIMEOUT';
+  }
+
+  return 'UNKNOWN';
+}
+
 async function getLockout(identifier: string, ip: string) {
   let attempts: Array<{
     wasSuccessful: boolean;
@@ -196,6 +236,7 @@ export async function POST(request: NextRequest) {
       console.error('[auth/login] session create failed', error);
       return jsonError('Unable to start your session right now.', 500, {
         code: 'AUTH_SESSION_FAILED',
+        detail: getAuthFailureDetail(error),
       });
     }
     await recordLoginAttempt({

@@ -705,12 +705,20 @@ export async function createSession(
       }
 
       if (scope === 'ADMIN' || role !== 'CUSTOMER') {
-        await prisma.authSession.deleteMany({
-          where: {
-            userId,
-            scope: 'ADMIN',
-          },
-        });
+        try {
+          await prisma.authSession.deleteMany({
+            where: {
+              userId,
+              scope: 'ADMIN',
+            },
+          });
+        } catch (deleteError) {
+          if (!isSchemaCompatibilityError(deleteError)) {
+            throw deleteError;
+          }
+
+          throw new Error('AUTH_SESSION_DELETE_FAILED');
+        }
       }
 
       try {
@@ -726,13 +734,21 @@ export async function createSession(
           throw rawSessionError;
         }
 
-        await createLegacyRawSession({
-          token,
-          userId,
-          scope,
-          expiresAt,
-          includeTimestamps: false,
-        });
+        try {
+          await createLegacyRawSession({
+            token,
+            userId,
+            scope,
+            expiresAt,
+            includeTimestamps: false,
+          });
+        } catch (rawSessionFallbackError) {
+          if (!isSchemaCompatibilityError(rawSessionFallbackError)) {
+            throw rawSessionFallbackError;
+          }
+
+          throw new Error('AUTH_SESSION_INSERT_FAILED');
+        }
       }
 
       try {
@@ -745,9 +761,17 @@ export async function createSession(
           throw rawUserError;
         }
 
-        await updateLegacyRawUser(userId, {
-          isAdmin: role !== 'CUSTOMER',
-        });
+        try {
+          await updateLegacyRawUser(userId, {
+            isAdmin: role !== 'CUSTOMER',
+          });
+        } catch (rawUserFallbackError) {
+          if (!isSchemaCompatibilityError(rawUserFallbackError)) {
+            throw rawUserFallbackError;
+          }
+
+          throw new Error('AUTH_SESSION_USER_SYNC_FAILED');
+        }
       }
     }
   }

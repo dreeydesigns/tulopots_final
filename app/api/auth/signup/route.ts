@@ -49,6 +49,24 @@ function getAuthFailureDetail(error: unknown) {
   }
 
   if (
+    message.includes('auth_session_insert_failed')
+  ) {
+    return 'SESSION_INSERT_FAILED';
+  }
+
+  if (
+    message.includes('auth_session_user_sync_failed')
+  ) {
+    return 'SESSION_USER_SYNC_FAILED';
+  }
+
+  if (
+    message.includes('auth_session_delete_failed')
+  ) {
+    return 'SESSION_DELETE_FAILED';
+  }
+
+  if (
     code === 'P2021' ||
     code === 'P2022' ||
     message.includes('column') ||
