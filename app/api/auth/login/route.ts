@@ -3,7 +3,9 @@ import { prisma } from '@/lib/prisma';
 import {
   attachSessionCookie,
   createSession,
+  findUserForAuth,
   isAdminEmailAddress,
+  isSchemaCompatibilityError,
   isValidEmail,
   isValidPassword,
   mapUserToSessionUser,
@@ -19,18 +21,34 @@ const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 const LOCKOUT_THRESHOLD = 5;
 
 async function getLockout(identifier: string, ip: string) {
-  const attempts = await prisma.loginAttempt.findMany({
-    where: {
-      identifier: identifier.toLowerCase(),
-      attemptedAt: {
-        gte: new Date(Date.now() - LOCKOUT_WINDOW_MS),
+  let attempts: Array<{
+    wasSuccessful: boolean;
+    lockoutUntil: Date | null;
+  }> = [];
+
+  try {
+    attempts = await prisma.loginAttempt.findMany({
+      where: {
+        identifier: identifier.toLowerCase(),
+        attemptedAt: {
+          gte: new Date(Date.now() - LOCKOUT_WINDOW_MS),
+        },
       },
-    },
-    orderBy: {
-      attemptedAt: 'desc',
-    },
-    take: LOCKOUT_THRESHOLD,
-  });
+      orderBy: {
+        attemptedAt: 'desc',
+      },
+      take: LOCKOUT_THRESHOLD,
+      select: {
+        wasSuccessful: true,
+        lockoutUntil: true,
+      },
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+    return null;
+  }
 
   const activeLock = attempts.find((attempt) => attempt.lockoutUntil && attempt.lockoutUntil > new Date());
   if (activeLock?.lockoutUntil) {
@@ -102,9 +120,7 @@ export async function POST(request: NextRequest) {
       return jsonError('Enter a valid email address and password.', 400);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await findUserForAuth({ email });
 
     if (!user?.passwordHash || !verifyPassword(password, user.passwordHash)) {
       const nextLockout = await getLockout(email, ip);
@@ -130,10 +146,21 @@ export async function POST(request: NextRequest) {
     const resolvedRole = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(email));
 
     if ((isAdminEmailAddress(email) && !user.isAdmin) || user.role !== resolvedRole) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
-      });
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
+        });
+      } catch (error) {
+        if (!isSchemaCompatibilityError(error)) {
+          throw error;
+        }
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { isAdmin: resolvedRole !== 'CUSTOMER' },
+        });
+      }
       user.isAdmin = resolvedRole !== 'CUSTOMER';
       user.role = resolvedRole;
     }

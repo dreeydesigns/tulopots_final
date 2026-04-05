@@ -18,6 +18,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
+    const hadPassword = Boolean(session.user.passwordHash);
     const body = (await request.json()) as {
       currentPassword?: string;
       newPassword?: string;
@@ -59,7 +60,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     await prisma.$transaction([
-      prisma.user.update({
+      prisma.user.updateMany({
         where: { id: session.userId },
         data: {
           passwordHash: hashPassword(newPassword),
@@ -77,7 +78,7 @@ export async function PATCH(request: NextRequest) {
 
     const response = NextResponse.json({
       ok: true,
-      message: session.user.passwordHash
+      message: hadPassword
         ? 'Password updated successfully.'
         : 'Password created successfully.',
     });

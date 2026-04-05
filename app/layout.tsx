@@ -1,5 +1,5 @@
 import './globals.css';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 
@@ -99,7 +99,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [user, siteSections] = await Promise.all([getCurrentUser(), getSiteSections()]);
+  const [userResult, siteSectionsResult] = await Promise.allSettled([
+    getCurrentUser(),
+    getSiteSections(),
+  ]);
+  const user = userResult.status === 'fulfilled' ? userResult.value : null;
+  const siteSections = siteSectionsResult.status === 'fulfilled' ? siteSectionsResult.value : [];
   const documentLanguage = resolveSupportedLanguage(user?.preferredLanguage);
 
   return (
@@ -110,12 +115,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         <LoadingScreen />
         <Providers initialUser={user} initialSiteSections={siteSections}>
-          <TrackingProvider />
+          <Suspense fallback={null}>
+            <TrackingProvider />
+          </Suspense>
           <Cursor />
           <Nav />
-          <AuthModal />
+          <Suspense fallback={null}>
+            <AuthModal />
+          </Suspense>
           <PolicyGate />
-          <Chatbot />
+          <Suspense fallback={null}>
+            <Chatbot />
+          </Suspense>
           {children}
           <Footer />
           <CookieBanner />

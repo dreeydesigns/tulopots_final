@@ -5,6 +5,7 @@ import type {
   SecuritySeverity,
   UserRole,
 } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { canAccessAdminTab, hasPermission, type AdminTabId, type PermissionKey } from '@/lib/access';
 
@@ -28,18 +29,25 @@ export async function recordSecurityEvent(input: {
   ip?: string | null;
   metadata?: Prisma.InputJsonValue | null;
 }) {
-  return prisma.securityEvent.create({
-    data: {
-      type: input.type,
-      severity: input.severity,
-      route: input.route || null,
-      userId: input.userId || null,
-      sessionId: input.sessionId || null,
-      identifier: input.identifier || null,
-      ipHash: hashIdentifier(input.ip),
-      metadata: input.metadata ?? undefined,
-    },
-  });
+  try {
+    return await prisma.securityEvent.create({
+      data: {
+        type: input.type,
+        severity: input.severity,
+        route: input.route || null,
+        userId: input.userId || null,
+        sessionId: input.sessionId || null,
+        identifier: input.identifier || null,
+        ipHash: hashIdentifier(input.ip),
+        metadata: input.metadata ?? undefined,
+      },
+    });
+  } catch (error) {
+    if (isSchemaCompatibilityError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function recordLoginAttempt(input: {
@@ -50,16 +58,23 @@ export async function recordLoginAttempt(input: {
   failureReason?: string | null;
   lockoutUntil?: Date | null;
 }) {
-  return prisma.loginAttempt.create({
-    data: {
-      identifier: input.identifier.toLowerCase(),
-      ipHash: hashIdentifier(input.ip) || 'unknown',
-      userId: input.userId || null,
-      wasSuccessful: input.wasSuccessful,
-      failureReason: input.failureReason || null,
-      lockoutUntil: input.lockoutUntil || null,
-    },
-  });
+  try {
+    return await prisma.loginAttempt.create({
+      data: {
+        identifier: input.identifier.toLowerCase(),
+        ipHash: hashIdentifier(input.ip) || 'unknown',
+        userId: input.userId || null,
+        wasSuccessful: input.wasSuccessful,
+        failureReason: input.failureReason || null,
+        lockoutUntil: input.lockoutUntil || null,
+      },
+    });
+  } catch (error) {
+    if (isSchemaCompatibilityError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function recordAdminAudit(input: {
@@ -70,16 +85,23 @@ export async function recordAdminAudit(input: {
   summary: string;
   diffJson?: Prisma.InputJsonValue | null;
 }) {
-  return prisma.adminAuditLog.create({
-    data: {
-      actorUserId: input.actorUserId,
-      action: input.action,
-      targetType: input.targetType,
-      targetId: input.targetId || null,
-      summary: input.summary,
-      diffJson: input.diffJson ?? undefined,
-    },
-  });
+  try {
+    return await prisma.adminAuditLog.create({
+      data: {
+        actorUserId: input.actorUserId,
+        action: input.action,
+        targetType: input.targetType,
+        targetId: input.targetId || null,
+        summary: input.summary,
+        diffJson: input.diffJson ?? undefined,
+      },
+    });
+  } catch (error) {
+    if (isSchemaCompatibilityError(error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export function assertPermission(role: UserRole | null | undefined, permission: PermissionKey) {

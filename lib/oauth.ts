@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   attachSessionCookie,
+  createUserForAuth,
   createSession,
+  findUserForAuth,
   isAdminEmailAddress,
   mergeAuthProviders,
+  updateUserForAuth,
 } from '@/lib/auth';
 import { getRequestOrigin, getSafeReturnPath } from '@/lib/request';
 
@@ -314,10 +317,8 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     identity.provider === 'google'
       ? { googleId: identity.providerAccountId }
       : { appleId: identity.providerAccountId };
-  const existing = await prisma.user.findFirst({
-    where: {
-      OR: [providerField, ...(email ? [{ email }] : [])],
-    },
+  const existing = await findUserForAuth({
+    OR: [providerField, ...(email ? [{ email }] : [])],
   });
 
   if (!existing && !email) {
@@ -334,33 +335,29 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     (email ? email.split('@')[0] : `${identity.provider} account`);
 
   if (existing) {
-    return prisma.user.update({
-      where: { id: existing.id },
-      data: {
-        name: nextName,
-        email: email || existing.email,
-        avatar: identity.avatar || existing.avatar,
-        provider: providerLabel,
-        isAdmin: email
-          ? existing.isAdmin || isAdminEmailAddress(email)
-          : existing.isAdmin,
-        ...providerField,
-      },
-    });
+    const updateData = {
+      name: nextName,
+      email: email || existing.email,
+      avatar: identity.avatar || existing.avatar,
+      provider: providerLabel,
+      isAdmin: email
+        ? existing.isAdmin || isAdminEmailAddress(email)
+        : existing.isAdmin,
+      ...providerField,
+    };
+    return updateUserForAuth(existing.id, updateData);
   }
 
-  return prisma.user.create({
-    data: {
-      name: nextName,
-      email,
-      avatar: identity.avatar || null,
-      provider: providerLabel,
-      isAdmin: email ? isAdminEmailAddress(email) : false,
-      preferredLanguage: 'en',
-      preferredCurrency: 'KES',
-      defaultShippingCountry: 'KE',
-      ...providerField,
-    },
+  return createUserForAuth({
+    name: nextName,
+    email,
+    avatar: identity.avatar || null,
+    provider: providerLabel,
+    isAdmin: email ? isAdminEmailAddress(email) : false,
+    preferredLanguage: 'en',
+    preferredCurrency: 'KES',
+    defaultShippingCountry: 'KE',
+    ...providerField,
   });
 }
 

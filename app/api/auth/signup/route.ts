@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   attachSessionCookie,
+  createUserForAuth,
   createSession,
+  findUserForAuth,
+  updateUserForAuth,
   hashPassword,
   isAdminEmailAddress,
   isValidEmail,
@@ -104,10 +107,8 @@ export async function POST(request: NextRequest) {
       return jsonError('You need to accept the Terms and Privacy Policy to continue.', 400);
     }
 
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [{ email }, ...(phone ? [{ phone }] : [])],
-      },
+    const existing = await findUserForAuth({
+      OR: [{ email }, ...(phone ? [{ phone }] : [])],
     });
 
     if (existing?.passwordHash) {
@@ -121,9 +122,8 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const user = existing
-      ? await prisma.user.update({
-          where: { id: existing.id },
-          data: {
+      ? await (async () => {
+          const updateData = {
             name,
             email,
             phone: phone || null,
@@ -139,10 +139,12 @@ export async function POST(request: NextRequest) {
             preferredLanguage,
             preferredCurrency,
             defaultShippingCountry,
-          },
-        })
-      : await prisma.user.create({
-          data: {
+          };
+          const { role, ...legacyUpdateData } = updateData;
+          return updateUserForAuth(existing.id, updateData, legacyUpdateData);
+        })()
+      : await (async () => {
+          const createData = {
             name,
             email,
             phone: phone || null,
@@ -158,8 +160,10 @@ export async function POST(request: NextRequest) {
             preferredLanguage,
             preferredCurrency,
             defaultShippingCountry,
-          },
-        });
+          };
+          const { role, ...legacyCreateData } = createData;
+          return createUserForAuth(createData, legacyCreateData);
+        })();
 
     const { token, expiresAt } = await createSession(
       user.id,

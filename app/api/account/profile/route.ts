@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
+import { findUserForSession, getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
 import {
   resolveSupportedCountry,
   resolveSupportedCurrency,
@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.update({
+    await prisma.user.updateMany({
       where: { id: session.userId },
       data: {
         name,
@@ -79,6 +79,12 @@ export async function PATCH(request: NextRequest) {
         preferredCurrency,
       },
     });
+
+    const user = await findUserForSession(session.userId);
+
+    if (!user) {
+      throw new Error('Your account could not be reloaded after saving.');
+    }
 
     const response = NextResponse.json({
       ok: true,

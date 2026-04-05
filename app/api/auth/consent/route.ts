@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
+import { findUserForSession, getSessionRecord, mapUserToSessionUser } from '@/lib/auth';
 import { CURRENT_POLICY_VERSION } from '@/lib/policies';
 import { prisma } from '@/lib/prisma';
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    const user = await prisma.user.update({
+    await prisma.user.updateMany({
       where: { id: session.userId },
       data: {
         acceptedTermsAt: now,
@@ -41,6 +41,12 @@ export async function POST(request: NextRequest) {
         marketingConsentAt: body.marketingConsent ? now : null,
       },
     });
+
+    const user = await findUserForSession(session.userId);
+
+    if (!user) {
+      throw new Error('Your account could not be reloaded after saving.');
+    }
 
     const response = NextResponse.json({
       ok: true,
