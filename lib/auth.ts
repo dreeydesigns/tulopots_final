@@ -103,6 +103,33 @@ type SessionRecord = {
   user: SessionUserRecord;
 };
 
+const LEGACY_RAW_USER_COLUMNS = new Set([
+  'name',
+  'email',
+  'phone',
+  'provider',
+  'isAdmin',
+  'passwordHash',
+  'avatar',
+  'googleId',
+  'appleId',
+  'acceptedTermsAt',
+  'acceptedPrivacyAt',
+  'acceptedPolicyVersion',
+  'marketingConsent',
+  'marketingConsentAt',
+  'emailNotifications',
+  'smsNotifications',
+  'whatsappNotifications',
+  'preferredContactChannel',
+  'preferredLanguage',
+  'preferredCurrency',
+  'defaultShippingAddress',
+  'defaultShippingCity',
+  'defaultShippingCountry',
+  'lastSignInAt',
+]);
+
 const modernUserSelect = {
   id: true,
   name: true,
@@ -182,6 +209,89 @@ function withFallbackRole<T extends { isAdmin: boolean }>(user: T): T & { role?:
     ...user,
     role: 'role' in user ? (user as { role?: UserRole | null }).role ?? null : null,
   };
+}
+
+function getLegacyRawUserEntries(data: Record<string, unknown>) {
+  return Object.entries(data).filter(
+    ([key, value]) => LEGACY_RAW_USER_COLUMNS.has(key) && value !== undefined
+  );
+}
+
+async function createLegacyRawUser(data: Record<string, unknown>) {
+  const entries = getLegacyRawUserEntries(data);
+  const userId = String(data.id || `legacy_${randomBytes(12).toString('hex')}`);
+  const columns = ['id', ...entries.map(([key]) => key)];
+  const values = [userId, ...entries.map(([, value]) => value)];
+  const placeholders = values.map((_, index) => `$${index + 1}`);
+  const rows = (await prisma.$queryRawUnsafe(
+    `INSERT INTO "User" (${columns.map((column) => `"${column}"`).join(', ')})
+     VALUES (${placeholders.join(', ')})
+     RETURNING "id", "name", "email", "phone", "provider", "passwordHash", "isAdmin"`,
+    ...values
+  )) as Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+    provider: string | null;
+    passwordHash: string | null;
+    isAdmin: boolean;
+  }>;
+
+  if (!rows[0]) {
+    throw new Error('Raw user create did not return a user record.');
+  }
+
+  return withFallbackRole(rows[0]);
+}
+
+async function updateLegacyRawUser(userId: string, data: Record<string, unknown>) {
+  const entries = getLegacyRawUserEntries(data);
+
+  if (!entries.length) {
+    const rows = (await prisma.$queryRawUnsafe(
+      'SELECT "id", "name", "email", "phone", "provider", "passwordHash", "isAdmin" FROM "User" WHERE "id" = $1',
+      userId
+    )) as Array<{
+      id: string;
+      name: string | null;
+      email: string | null;
+      phone: string | null;
+      provider: string | null;
+      passwordHash: string | null;
+      isAdmin: boolean;
+    }>;
+
+    if (!rows[0]) {
+      throw new Error('Raw user update could not find the user record.');
+    }
+
+    return withFallbackRole(rows[0]);
+  }
+
+  const assignments = entries.map(([key], index) => `"${key}" = $${index + 2}`);
+  const values = [userId, ...entries.map(([, value]) => value)];
+  const rows = (await prisma.$queryRawUnsafe(
+    `UPDATE "User"
+     SET ${assignments.join(', ')}
+     WHERE "id" = $1
+     RETURNING "id", "name", "email", "phone", "provider", "passwordHash", "isAdmin"`,
+    ...values
+  )) as Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+    provider: string | null;
+    passwordHash: string | null;
+    isAdmin: boolean;
+  }>;
+
+  if (!rows[0]) {
+    throw new Error('Raw user update did not return a user record.');
+  }
+
+  return withFallbackRole(rows[0]);
 }
 
 export function isSchemaCompatibilityError(error: unknown) {
@@ -291,6 +401,17 @@ export async function updateUserForAuth(
       }
     }
 
+    for (const attempt of [...updateAttempts].reverse()) {
+      try {
+        return await updateLegacyRawUser(userId, attempt as Record<string, unknown>);
+      } catch (rawError) {
+        lastError = rawError;
+        if (!isSchemaCompatibilityError(rawError)) {
+          throw rawError;
+        }
+      }
+    }
+
     throw lastError;
   }
 }
@@ -332,6 +453,17 @@ export async function createUserForAuth(
         lastError = fallbackError;
         if (!isSchemaCompatibilityError(fallbackError)) {
           throw fallbackError;
+        }
+      }
+    }
+
+    for (const attempt of [...createAttempts].reverse()) {
+      try {
+        return await createLegacyRawUser(attempt as Record<string, unknown>);
+      } catch (rawError) {
+        lastError = rawError;
+        if (!isSchemaCompatibilityError(rawError)) {
+          throw rawError;
         }
       }
     }

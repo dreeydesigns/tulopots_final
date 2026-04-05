@@ -214,9 +214,16 @@ export async function POST(request: NextRequest) {
               provider: mergeAuthProviders(existing.provider, 'password'),
               isAdmin: nextRole !== 'CUSTOMER',
             };
+            const classicLegacyUpdateData = {
+              name,
+              email,
+              passwordHash: hashPassword(password),
+              isAdmin: nextRole !== 'CUSTOMER',
+            };
             return updateUserForAuth(existing.id, updateData, [
               legacyUpdateData,
               minimalLegacyUpdateData,
+              classicLegacyUpdateData,
             ]);
           })()
         : await (async () => {
@@ -269,9 +276,16 @@ export async function POST(request: NextRequest) {
               provider: 'password',
               isAdmin: nextRole !== 'CUSTOMER',
             };
+            const classicLegacyCreateData = {
+              name,
+              email,
+              passwordHash: hashPassword(password),
+              isAdmin: nextRole !== 'CUSTOMER',
+            };
             return createUserForAuth(createData, [
               legacyCreateData,
               minimalLegacyCreateData,
+              classicLegacyCreateData,
             ]);
           })();
     } catch (error) {

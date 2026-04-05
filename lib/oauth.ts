@@ -382,9 +382,17 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
         : existing.isAdmin,
       ...providerField,
     };
+    const classicLegacyUpdateData = {
+      name: nextName,
+      email: email || existing.email,
+      isAdmin: email
+        ? existing.isAdmin || isAdminEmailAddress(email)
+        : existing.isAdmin,
+    };
     return updateUserForAuth(existing.id, updateData, [
       legacyUpdateData,
       minimalLegacyUpdateData,
+      classicLegacyUpdateData,
     ]);
   }
 
@@ -425,9 +433,15 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     isAdmin: email ? isAdminEmailAddress(email) : false,
     ...providerField,
   };
+  const classicLegacyCreateData = {
+    name: nextName,
+    email,
+    isAdmin: email ? isAdminEmailAddress(email) : false,
+  };
   return createUserForAuth(createData, [
     legacyCreateData,
     minimalLegacyCreateData,
+    classicLegacyCreateData,
   ]);
 }
 
