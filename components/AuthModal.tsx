@@ -132,6 +132,25 @@ export function AuthModal() {
   }, [showAuthModal]);
 
   useEffect(() => {
+    if (!showAuthModal) {
+      return;
+    }
+
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
+  }, [showAuthModal]);
+
+  useEffect(() => {
     if (!showAuthModal || providersLoaded) {
       return;
     }
@@ -281,89 +300,93 @@ export function AuthModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] overflow-y-auto bg-black/60 px-4 py-5 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-8"
       onClick={(event) => event.target === event.currentTarget && close()}
     >
-      <div className="relative mx-4 w-full max-w-md overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] shadow-2xl">
-        <div className="border-b border-[var(--tp-border)] bg-[var(--tp-surface)] px-8 pb-6 pt-8">
-          <button
-            onClick={close}
-            className="absolute right-5 top-5 rounded-full p-2 text-[var(--tp-text)]/55 transition hover:bg-[var(--tp-card)]"
-            type="button"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="serif-display text-3xl text-[var(--tp-heading)]">
-            Tulo<span className="text-[var(--tp-accent)]">Pots</span>
-          </div>
-          <p className="mt-1 text-sm text-[var(--tp-text)]/65">
-            {tab === 'signin' ? 'Welcome back' : 'Create your account'}
-          </p>
-          <div className="mt-5 flex gap-1 rounded-full bg-[var(--tp-card)] p-1">
-            {(['signin', 'signup'] as const).map((item) => (
-              <button
-                key={item}
-                onClick={() => {
-                  setTab(item);
-                  setError('');
-                }}
-                type="button"
-                className={`flex-1 rounded-full py-2 text-[11px] font-semibold uppercase tracking-[0.15em] transition ${
-                  tab === item
-                    ? 'bg-[var(--tp-heading)] text-[var(--tp-bg)] shadow'
-                    : 'text-[var(--tp-text)]/55 hover:text-[var(--tp-heading)]'
-                }`}
-              >
-                {item === 'signin' ? 'Sign In' : 'Sign Up'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6">
-          {hasOAuthProviders ? (
-            <>
-              <button
-                type="button"
-                onClick={() => startSocialSignIn('google')}
-                disabled={isBusy || !providers.google}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm font-medium text-[var(--tp-heading)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--tp-card)] text-sm font-semibold text-[var(--tp-heading)]">
-                  G
-                </span>
-                {activeAction === 'google'
-                  ? 'Connecting to Google...'
-                  : 'Continue with Google'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => startSocialSignIn('apple')}
-                disabled={isBusy || !providers.apple}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm font-medium text-[var(--tp-heading)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--tp-card)] text-sm font-semibold text-[var(--tp-heading)]">
-                  A
-                </span>
-                {activeAction === 'apple'
-                  ? 'Connecting to Apple...'
-                  : 'Continue with Apple'}
-              </button>
-
-              <div className="flex items-center gap-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--tp-text)]/40">
-                <span className="h-px flex-1 bg-[var(--tp-border)]" />
-                Or continue with email
-                <span className="h-px flex-1 bg-[var(--tp-border)]" />
-              </div>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3 text-xs leading-6 text-[var(--tp-text)]/65">
-              Google and Apple sign-in become available as soon as their provider
-              credentials are added. Social sign-in users will also confirm the
-              latest TuloPots terms on first entry.
+      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-card)] shadow-2xl">
+        <div
+          className="max-h-[calc(100dvh-2.5rem)] overflow-y-auto overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <div className="sticky top-0 z-10 border-b border-[var(--tp-border)] bg-[var(--tp-surface)] px-8 pb-6 pt-8">
+            <button
+              onClick={close}
+              className="absolute right-5 top-5 rounded-full p-2 text-[var(--tp-text)]/55 transition hover:bg-[var(--tp-card)]"
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="serif-display text-3xl text-[var(--tp-heading)]">
+              Tulo<span className="text-[var(--tp-accent)]">Pots</span>
             </div>
-          )}
+            <p className="mt-1 text-sm text-[var(--tp-text)]/65">
+              {tab === 'signin' ? 'Welcome back' : 'Create your account'}
+            </p>
+            <div className="mt-5 flex gap-1 rounded-full bg-[var(--tp-card)] p-1">
+              {(['signin', 'signup'] as const).map((item) => (
+                <button
+                  key={item}
+                  onClick={() => {
+                    setTab(item);
+                    setError('');
+                  }}
+                  type="button"
+                  className={`flex-1 rounded-full py-2 text-[11px] font-semibold uppercase tracking-[0.15em] transition ${
+                    tab === item
+                      ? 'bg-[var(--tp-heading)] text-[var(--tp-bg)] shadow'
+                      : 'text-[var(--tp-text)]/55 hover:text-[var(--tp-heading)]'
+                  }`}
+                >
+                  {item === 'signin' ? 'Sign In' : 'Sign Up'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6 pb-7 sm:pb-6">
+            {hasOAuthProviders ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => startSocialSignIn('google')}
+                  disabled={isBusy || !providers.google}
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm font-medium text-[var(--tp-heading)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--tp-card)] text-sm font-semibold text-[var(--tp-heading)]">
+                    G
+                  </span>
+                  {activeAction === 'google'
+                    ? 'Connecting to Google...'
+                    : 'Continue with Google'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => startSocialSignIn('apple')}
+                  disabled={isBusy || !providers.apple}
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-5 py-3.5 text-sm font-medium text-[var(--tp-heading)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--tp-card)] text-sm font-semibold text-[var(--tp-heading)]">
+                    A
+                  </span>
+                  {activeAction === 'apple'
+                    ? 'Connecting to Apple...'
+                    : 'Continue with Apple'}
+                </button>
+
+                <div className="flex items-center gap-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--tp-text)]/40">
+                  <span className="h-px flex-1 bg-[var(--tp-border)]" />
+                  Or continue with email
+                  <span className="h-px flex-1 bg-[var(--tp-border)]" />
+                </div>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-3 text-xs leading-6 text-[var(--tp-text)]/65">
+                Google and Apple sign-in become available as soon as their provider
+                credentials are added. Social sign-in users will also confirm the
+                latest TuloPots terms on first entry.
+              </div>
+            )}
 
           {tab === 'signup' && (
             <div className="relative">
@@ -599,7 +622,8 @@ export function AuthModal() {
             </Link>
             . Your account also remembers your country, display language, and currency preference.
           </p>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

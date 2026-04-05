@@ -235,38 +235,38 @@ function getPalette(isLight: boolean): ThemePalette {
   if (isLight) {
     return {
       sceneText: '#231711',
-      sceneTextSoft: 'rgba(35,23,17,0.78)',
-      sceneTextFaint: 'rgba(35,23,17,0.58)',
+      sceneTextSoft: 'rgba(35,23,17,0.84)',
+      sceneTextFaint: 'rgba(35,23,17,0.64)',
       sceneTextMuted: 'rgba(35,23,17,0.34)',
       statBorder: 'rgba(35,23,17,0.12)',
       primaryBtnBg: '#d0824d',
       primaryBtnText: '#ffffff',
       primaryBtnHover: '#c3723d',
-      secondaryBtnBg: 'rgba(247,242,234,0.72)',
+      secondaryBtnBg: 'rgba(247,242,234,0.84)',
       secondaryBtnText: '#2a1b14',
       secondaryBtnBorder: 'rgba(35,23,17,0.16)',
-      secondaryBtnHover: 'rgba(255,255,255,0.86)',
-      navBtnBg: 'rgba(247,242,234,0.34)',
+      secondaryBtnHover: 'rgba(255,255,255,0.92)',
+      navBtnBg: 'rgba(247,242,234,0.46)',
       navBtnBorder: 'rgba(35,23,17,0.14)',
       navBtnText: '#231711',
-      navBtnHover: 'rgba(247,242,234,0.56)',
+      navBtnHover: 'rgba(247,242,234,0.64)',
       cardShell: '#f6efe6',
-      cardInfoBg: 'linear-gradient(180deg,rgba(248,244,239,0.98) 0%,rgba(241,231,219,0.98) 100%)',
+      cardInfoBg: 'linear-gradient(180deg,rgba(246,239,230,0.98) 0%,rgba(236,223,208,0.98) 100%)',
       cardTitle: '#20140f',
       cardSecondaryText: 'rgba(32,20,15,0.72)',
       cardBorder: 'rgba(35,23,17,0.10)',
       cardSecondaryBg: 'rgba(255,255,255,0.60)',
       cardSecondaryHover: 'rgba(255,255,255,0.88)',
       storyOverlay:
-        'linear-gradient(to top, rgba(247,242,234,0.94) 0%, rgba(247,242,234,0.22) 56%, rgba(247,242,234,0.04) 100%)',
-      storySecondaryBg: 'rgba(255,255,255,0.62)',
+        'linear-gradient(to top, rgba(247,242,234,0.78) 0%, rgba(247,242,234,0.14) 52%, rgba(247,242,234,0.02) 100%)',
+      storySecondaryBg: 'rgba(255,255,255,0.74)',
       storySecondaryBorder: 'rgba(35,23,17,0.12)',
       potPanelBg:
-        'linear-gradient(180deg,rgba(255,255,255,0.78) 0%,rgba(239,229,217,0.96) 100%)',
+        'linear-gradient(180deg,rgba(255,252,248,0.76) 0%,rgba(236,224,210,0.96) 100%)',
       potPanelBorder: 'rgba(35,23,17,0.10)',
       potPanelText: '#20140f',
       potPanelMuted: 'rgba(32,20,15,0.68)',
-      potChipBg: 'rgba(255,255,255,0.64)',
+      potChipBg: 'rgba(255,255,255,0.74)',
       potChipBorder: 'rgba(35,23,17,0.10)',
     };
   }
@@ -1059,7 +1059,7 @@ export default function LoggedInHome() {
                 fill
                 priority={index === 0}
                 sizes="100vw"
-                className="object-cover"
+                className="scene-bg object-cover"
               />
               <div className="tp-scene-overlay tp-scene-overlay-a absolute inset-0" />
               <div className="tp-scene-overlay tp-scene-overlay-b absolute inset-0" />
@@ -1092,8 +1092,8 @@ export default function LoggedInHome() {
               </div>
             )}
 
-            <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-[1600px] items-end px-5 pb-12 pt-28 sm:px-6 md:h-screen md:items-center md:px-[4.5%] md:pb-[84px] md:pt-[84px]">
-              <div className="grid w-full items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] xl:gap-20">
+            <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-[1680px] items-end px-5 pb-12 pt-28 sm:px-6 md:h-screen md:items-center md:px-[4.5%] md:pb-[84px] md:pt-[84px]">
+              <div className="grid w-full items-center gap-12 lg:grid-cols-[0.74fr_1.26fr] xl:gap-24 2xl:gap-32">
                 <div className="relative z-30 max-w-[430px]">
                   {slide.kicker ? (
                     <p
@@ -1242,7 +1242,7 @@ export default function LoggedInHome() {
 
                 <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
                   {slide.storyMode ? (
-                    <div className="absolute right-0 top-1/2 flex w-full -translate-y-1/2 items-start pr-10">
+                    <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-12 pr-12 xl:pl-20 xl:pr-16 2xl:pl-28 2xl:pr-20">
                       <div
                         className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
                         style={{
@@ -1351,7 +1351,7 @@ export default function LoggedInHome() {
                         </div>
                       )}
 
-                      <div className="absolute right-0 top-1/2 flex w-full -translate-y-1/2 items-start pr-10">
+                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-12 pr-12 xl:pl-20 xl:pr-16 2xl:pl-28 2xl:pr-20">
                         {slide.cardItems.map((item, ci) => {
                           const product = productMap[item.slug];
                           if (!product) return null;
@@ -1369,7 +1369,7 @@ export default function LoggedInHome() {
                                 width: CARD_WIDTHS[ci],
                                 height: CARD_HEIGHTS[ci],
                                 marginTop: CARD_MARGINS[ci],
-                                marginLeft: ci === 0 ? 0 : 12,
+                                marginLeft: ci === 0 ? 0 : 16,
                                 zIndex: 30 - ci,
                                 background: palette.cardShell,
                                 border: `1px solid ${palette.cardBorder}`,
@@ -1577,19 +1577,19 @@ export default function LoggedInHome() {
         .tp-scene-light .tp-scene-overlay-a {
           background: linear-gradient(
             90deg,
-            rgba(247, 242, 234, 0.54) 0%,
-            rgba(247, 242, 234, 0.34) 28%,
-            rgba(247, 242, 234, 0.12) 56%,
-            rgba(247, 242, 234, 0.04) 100%
+            rgba(247, 242, 234, 0.34) 0%,
+            rgba(247, 242, 234, 0.18) 28%,
+            rgba(247, 242, 234, 0.07) 56%,
+            rgba(247, 242, 234, 0.02) 100%
           );
         }
 
         .tp-scene-light .tp-scene-overlay-b {
           background: linear-gradient(
             to top,
-            rgba(255, 248, 240, 0.22) 0%,
-            rgba(255, 248, 240, 0.08) 38%,
-            rgba(255, 248, 240, 0.02) 100%
+            rgba(255, 248, 240, 0.12) 0%,
+            rgba(255, 248, 240, 0.04) 38%,
+            rgba(255, 248, 240, 0.01) 100%
           );
         }
 

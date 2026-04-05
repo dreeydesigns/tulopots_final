@@ -423,7 +423,7 @@ html[data-theme='dark'] .scene-bg {
 }
 
 html[data-theme='light'] .scene-bg {
-  filter: saturate(1.02) brightness(0.98);
+  filter: saturate(1) brightness(0.88) contrast(1.03);
 }
 
 img,
