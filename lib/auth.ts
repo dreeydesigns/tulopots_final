@@ -300,15 +300,26 @@ async function createLegacyRawSession(input: {
   scope: AuthScope;
   expiresAt: Date;
   includeTimestamps?: boolean;
+  includeScope?: boolean;
 }) {
   const sessionId = `session_${randomBytes(12).toString('hex')}`;
   const now = new Date();
-  const columns = input.includeTimestamps
-    ? ['id', 'token', 'userId', 'scope', 'expiresAt', 'createdAt', 'updatedAt']
-    : ['id', 'token', 'userId', 'scope', 'expiresAt'];
-  const values = input.includeTimestamps
-    ? [sessionId, input.token, input.userId, input.scope, input.expiresAt, now, now]
-    : [sessionId, input.token, input.userId, input.scope, input.expiresAt];
+  const columns = ['id', 'token', 'userId'];
+  const values: unknown[] = [sessionId, input.token, input.userId];
+
+  if (input.includeScope !== false) {
+    columns.push('scope');
+    values.push(input.scope);
+  }
+
+  columns.push('expiresAt');
+  values.push(input.expiresAt);
+
+  if (input.includeTimestamps) {
+    columns.push('createdAt', 'updatedAt');
+    values.push(now, now);
+  }
+
   const placeholders = values.map((_, index) => `$${index + 1}`);
 
   await prisma.$executeRawUnsafe(
@@ -717,7 +728,18 @@ export async function createSession(
             throw deleteError;
           }
 
-          throw new Error('AUTH_SESSION_DELETE_FAILED');
+          try {
+            await prisma.$executeRawUnsafe(
+              'DELETE FROM "AuthSession" WHERE "userId" = $1',
+              userId
+            );
+          } catch (rawDeleteError) {
+            if (!isSchemaCompatibilityError(rawDeleteError)) {
+              throw rawDeleteError;
+            }
+
+            throw new Error('AUTH_SESSION_DELETE_FAILED');
+          }
         }
       }
 
@@ -728,6 +750,7 @@ export async function createSession(
           scope,
           expiresAt,
           includeTimestamps: true,
+          includeScope: true,
         });
       } catch (rawSessionError) {
         if (!isSchemaCompatibilityError(rawSessionError)) {
@@ -741,13 +764,44 @@ export async function createSession(
             scope,
             expiresAt,
             includeTimestamps: false,
+            includeScope: true,
           });
         } catch (rawSessionFallbackError) {
           if (!isSchemaCompatibilityError(rawSessionFallbackError)) {
             throw rawSessionFallbackError;
           }
 
-          throw new Error('AUTH_SESSION_INSERT_FAILED');
+          try {
+            await createLegacyRawSession({
+              token,
+              userId,
+              scope,
+              expiresAt,
+              includeTimestamps: true,
+              includeScope: false,
+            });
+          } catch (rawSessionNoScopeError) {
+            if (!isSchemaCompatibilityError(rawSessionNoScopeError)) {
+              throw rawSessionNoScopeError;
+            }
+
+            try {
+              await createLegacyRawSession({
+                token,
+                userId,
+                scope,
+                expiresAt,
+                includeTimestamps: false,
+                includeScope: false,
+              });
+            } catch (rawSessionFinalError) {
+              if (!isSchemaCompatibilityError(rawSessionFinalError)) {
+                throw rawSessionFinalError;
+              }
+
+              throw new Error('AUTH_SESSION_INSERT_FAILED');
+            }
+          }
         }
       }
 
@@ -867,6 +921,39 @@ export async function getSessionRecord() {
           user: withFallbackRole(legacySession.user),
         }
       : null;
+
+    if (!session) {
+      try {
+        const legacyScopeLessSession = await prisma.authSession.findUnique({
+          where: { token },
+          select: {
+            id: true,
+            token: true,
+            userId: true,
+            expiresAt: true,
+            createdAt: true,
+            updatedAt: true,
+            user: {
+              select: legacySessionUserSelect,
+            },
+          },
+        });
+
+        session = legacyScopeLessSession
+          ? {
+              ...legacyScopeLessSession,
+              scope: 'CUSTOMER',
+              lastSeenAt:
+                legacyScopeLessSession.updatedAt ?? legacyScopeLessSession.createdAt,
+              user: withFallbackRole(legacyScopeLessSession.user),
+            }
+          : null;
+      } catch (scopeLessError) {
+        if (!isSchemaCompatibilityError(scopeLessError)) {
+          throw scopeLessError;
+        }
+      }
+    }
   }
 
   if (!session) {
