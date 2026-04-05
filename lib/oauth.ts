@@ -53,10 +53,13 @@ function setOAuthCookies(
   state: string,
   returnTo: string
 ) {
+  const sameSite =
+    provider === 'apple' && process.env.NODE_ENV === 'production'
+      ? ('none' as const)
+      : ('lax' as const);
   const cookieOptions = {
     httpOnly: true,
-    sameSite:
-      process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
+    sameSite,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
@@ -80,11 +83,14 @@ function setOAuthCookies(
   });
 }
 
-function clearOAuthCookies(response: NextResponse) {
+function clearOAuthCookies(response: NextResponse, provider: OAuthProvider) {
+  const sameSite =
+    provider === 'apple' && process.env.NODE_ENV === 'production'
+      ? ('none' as const)
+      : ('lax' as const);
   const cookieOptions = {
     httpOnly: true,
-    sameSite:
-      process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
+    sameSite,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: new Date(0),
@@ -112,6 +118,17 @@ function clearOAuthCookies(response: NextResponse) {
 function buildAuthErrorUrl(origin: string, returnTo: string, code: string) {
   const url = new URL(returnTo, origin);
   url.searchParams.set('authError', code);
+  return url;
+}
+
+function buildAuthSuccessUrl(
+  origin: string,
+  returnTo: string,
+  provider: OAuthProvider
+) {
+  const url = new URL(returnTo, origin);
+  url.searchParams.delete('authError');
+  url.searchParams.set('authSuccess', provider);
   return url;
 }
 
@@ -437,6 +454,7 @@ export async function startOAuthFlow(
   });
 
   setOAuthCookies(response, provider, state, safeReturnTo);
+  response.headers.set('Cache-Control', 'no-store');
   return response;
 }
 
@@ -490,10 +508,13 @@ export async function completeOAuthFlow(input: {
       user.id,
       user.isAdmin ? 'ADMIN' : 'CUSTOMER'
     );
-    const response = NextResponse.redirect(new URL(returnTo, origin));
+    const response = NextResponse.redirect(
+      buildAuthSuccessUrl(origin, returnTo, input.provider)
+    );
 
-    clearOAuthCookies(response);
+    clearOAuthCookies(response, input.provider);
     attachSessionCookie(response, token, expiresAt);
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {
     const code =
@@ -502,7 +523,8 @@ export async function completeOAuthFlow(input: {
       buildAuthErrorUrl(origin, returnTo, code)
     );
 
-    clearOAuthCookies(response);
+    clearOAuthCookies(response, input.provider);
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   }
 }

@@ -90,7 +90,7 @@ function mapAuthError(code: string) {
 }
 
 export function AuthModal() {
-  const { showAuthModal, setShowAuthModal, setUser } = useStore();
+  const { showAuthModal, setShowAuthModal, setUser, refreshSession } = useStore();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
@@ -177,6 +177,25 @@ export function AuthModal() {
       active = false;
     };
   }, [providersLoaded, showAuthModal]);
+
+  useEffect(() => {
+    const authSuccess = searchParams.get('authSuccess');
+
+    if (!authSuccess) {
+      return;
+    }
+
+    void refreshSession().finally(() => {
+      setError('');
+      setShowAuthModal(false);
+
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('authSuccess');
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    });
+  }, [refreshSession, searchParams, setShowAuthModal]);
 
   useEffect(() => {
     const authError = searchParams.get('authError');
