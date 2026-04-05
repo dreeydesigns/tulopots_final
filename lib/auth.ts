@@ -65,10 +65,10 @@ type AuthUserRecord = {
   name: string | null;
   email: string | null;
   phone: string | null;
-  provider: string | null;
-  googleId: string | null;
-  appleId: string | null;
-  passwordHash: string | null;
+  provider?: string | null;
+  googleId?: string | null;
+  appleId?: string | null;
+  passwordHash?: string | null;
   avatar?: string | null;
   isAdmin: boolean;
   role?: UserRole | null;
@@ -87,8 +87,8 @@ type AuthUserRecord = {
   acceptedPrivacyAt?: Date | null;
   acceptedPolicyVersion?: string | null;
   lastSignInAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type SessionRecord = {
@@ -140,13 +140,8 @@ const legacyUserSelect = {
   email: true,
   phone: true,
   provider: true,
-  googleId: true,
-  appleId: true,
   passwordHash: true,
-  avatar: true,
   isAdmin: true,
-  createdAt: true,
-  updatedAt: true,
 } satisfies Prisma.UserSelect;
 
 const modernSessionUserSelect = {
@@ -180,7 +175,6 @@ const legacySessionUserSelect = {
   phone: true,
   isAdmin: true,
   passwordHash: true,
-  avatar: true,
 } satisfies Prisma.UserSelect;
 
 function withFallbackRole<T extends { isAdmin: boolean }>(user: T): T & { role?: UserRole | null } {

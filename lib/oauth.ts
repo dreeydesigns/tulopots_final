@@ -337,6 +337,8 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
   const existing = await findUserForAuth({
     OR: [providerField, ...(email ? [{ email }] : [])],
   });
+  const existingAvatar =
+    existing && 'avatar' in existing ? (existing.avatar ?? null) : null;
 
   if (!existing && !email) {
     throw new OAuthFlowError(
@@ -355,7 +357,7 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     const updateData = {
       name: nextName,
       email: email || existing.email,
-      avatar: identity.avatar || existing.avatar,
+      avatar: identity.avatar || existingAvatar,
       provider: providerLabel,
       isAdmin: email
         ? existing.isAdmin || isAdminEmailAddress(email)
