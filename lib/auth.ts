@@ -201,6 +201,7 @@ export function isSchemaCompatibilityError(error: unknown) {
     message.includes('column') ||
     message.includes('relation') ||
     message.includes('lastseenat') ||
+    message.includes('lastsigninat') ||
     message.includes('loginattempt') ||
     message.includes('securityevent') ||
     message.includes('adminauditlog') ||
@@ -503,7 +504,6 @@ export async function createSession(
       prisma.user.update({
         where: { id: userId },
         data: {
-          lastSignInAt: now,
           isAdmin: role !== 'CUSTOMER',
         },
       }),
