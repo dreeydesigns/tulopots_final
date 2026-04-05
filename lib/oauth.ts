@@ -362,10 +362,19 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
         : existing.isAdmin,
       ...providerField,
     };
-    return updateUserForAuth(existing.id, updateData);
+    const legacyUpdateData = {
+      name: nextName,
+      email: email || existing.email,
+      provider: providerLabel,
+      isAdmin: email
+        ? existing.isAdmin || isAdminEmailAddress(email)
+        : existing.isAdmin,
+      ...providerField,
+    };
+    return updateUserForAuth(existing.id, updateData, legacyUpdateData);
   }
 
-  return createUserForAuth({
+  const createData = {
     name: nextName,
     email,
     avatar: identity.avatar || null,
@@ -375,7 +384,15 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     preferredCurrency: 'KES',
     defaultShippingCountry: 'KE',
     ...providerField,
-  });
+  };
+  const legacyCreateData = {
+    name: nextName,
+    email,
+    provider: providerLabel,
+    isAdmin: email ? isAdminEmailAddress(email) : false,
+    ...providerField,
+  };
+  return createUserForAuth(createData, legacyCreateData);
 }
 
 function getGoogleAuthorizeUrl(origin: string, state: string) {

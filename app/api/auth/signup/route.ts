@@ -140,7 +140,14 @@ export async function POST(request: NextRequest) {
             preferredCurrency,
             defaultShippingCountry,
           };
-          const { role, ...legacyUpdateData } = updateData;
+          const legacyUpdateData = {
+            name,
+            email,
+            phone: phone || null,
+            passwordHash: hashPassword(password),
+            provider: mergeAuthProviders(existing.provider, 'password'),
+            isAdmin: nextRole !== 'CUSTOMER',
+          };
           return updateUserForAuth(existing.id, updateData, legacyUpdateData);
         })()
       : await (async () => {
@@ -161,7 +168,14 @@ export async function POST(request: NextRequest) {
             preferredCurrency,
             defaultShippingCountry,
           };
-          const { role, ...legacyCreateData } = createData;
+          const legacyCreateData = {
+            name,
+            email,
+            phone: phone || null,
+            passwordHash: hashPassword(password),
+            provider: 'password',
+            isAdmin: nextRole !== 'CUSTOMER',
+          };
           return createUserForAuth(createData, legacyCreateData);
         })();
 

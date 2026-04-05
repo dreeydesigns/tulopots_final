@@ -44,20 +44,20 @@ type SessionUserRecord = {
   isAdmin: boolean;
   role?: UserRole | null;
   passwordHash?: string | null;
-  avatar: string | null;
-  marketingConsent: boolean;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  whatsappNotifications: boolean;
-  preferredContactChannel: string | null;
-  preferredLanguage: string | null;
-  preferredCurrency: string | null;
-  defaultShippingAddress: string | null;
-  defaultShippingCity: string | null;
-  defaultShippingCountry: string | null;
-  acceptedTermsAt: Date | null;
-  acceptedPrivacyAt: Date | null;
-  acceptedPolicyVersion: string | null;
+  avatar?: string | null;
+  marketingConsent?: boolean | null;
+  emailNotifications?: boolean | null;
+  smsNotifications?: boolean | null;
+  whatsappNotifications?: boolean | null;
+  preferredContactChannel?: string | null;
+  preferredLanguage?: string | null;
+  preferredCurrency?: string | null;
+  defaultShippingAddress?: string | null;
+  defaultShippingCity?: string | null;
+  defaultShippingCountry?: string | null;
+  acceptedTermsAt?: Date | null;
+  acceptedPrivacyAt?: Date | null;
+  acceptedPolicyVersion?: string | null;
 };
 
 type AuthUserRecord = {
@@ -69,24 +69,24 @@ type AuthUserRecord = {
   googleId: string | null;
   appleId: string | null;
   passwordHash: string | null;
-  avatar: string | null;
+  avatar?: string | null;
   isAdmin: boolean;
   role?: UserRole | null;
-  marketingConsent: boolean;
-  marketingConsentAt: Date | null;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  whatsappNotifications: boolean;
-  preferredContactChannel: string | null;
-  preferredLanguage: string | null;
-  preferredCurrency: string | null;
-  defaultShippingAddress: string | null;
-  defaultShippingCity: string | null;
-  defaultShippingCountry: string | null;
-  acceptedTermsAt: Date | null;
-  acceptedPrivacyAt: Date | null;
-  acceptedPolicyVersion: string | null;
-  lastSignInAt: Date | null;
+  marketingConsent?: boolean | null;
+  marketingConsentAt?: Date | null;
+  emailNotifications?: boolean | null;
+  smsNotifications?: boolean | null;
+  whatsappNotifications?: boolean | null;
+  preferredContactChannel?: string | null;
+  preferredLanguage?: string | null;
+  preferredCurrency?: string | null;
+  defaultShippingAddress?: string | null;
+  defaultShippingCity?: string | null;
+  defaultShippingCountry?: string | null;
+  acceptedTermsAt?: Date | null;
+  acceptedPrivacyAt?: Date | null;
+  acceptedPolicyVersion?: string | null;
+  lastSignInAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -145,21 +145,6 @@ const legacyUserSelect = {
   passwordHash: true,
   avatar: true,
   isAdmin: true,
-  marketingConsent: true,
-  marketingConsentAt: true,
-  emailNotifications: true,
-  smsNotifications: true,
-  whatsappNotifications: true,
-  preferredContactChannel: true,
-  preferredLanguage: true,
-  preferredCurrency: true,
-  defaultShippingAddress: true,
-  defaultShippingCity: true,
-  defaultShippingCountry: true,
-  acceptedTermsAt: true,
-  acceptedPrivacyAt: true,
-  acceptedPolicyVersion: true,
-  lastSignInAt: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;
@@ -196,19 +181,6 @@ const legacySessionUserSelect = {
   isAdmin: true,
   passwordHash: true,
   avatar: true,
-  marketingConsent: true,
-  emailNotifications: true,
-  smsNotifications: true,
-  whatsappNotifications: true,
-  preferredContactChannel: true,
-  preferredLanguage: true,
-  preferredCurrency: true,
-  defaultShippingAddress: true,
-  defaultShippingCity: true,
-  defaultShippingCountry: true,
-  acceptedTermsAt: true,
-  acceptedPrivacyAt: true,
-  acceptedPolicyVersion: true,
 } satisfies Prisma.UserSelect;
 
 function withFallbackRole<T extends { isAdmin: boolean }>(user: T): T & { role?: UserRole | null } {

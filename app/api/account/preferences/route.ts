@@ -27,12 +27,16 @@ export async function PATCH(request: NextRequest) {
     const now = new Date();
     const marketingConsent = Boolean(body.marketingConsent);
     const emailNotifications =
-      body.emailNotifications === undefined ? session.user.emailNotifications : Boolean(body.emailNotifications);
+      body.emailNotifications === undefined
+        ? Boolean(session.user.emailNotifications ?? true)
+        : Boolean(body.emailNotifications);
     const smsNotifications =
-      body.smsNotifications === undefined ? session.user.smsNotifications : Boolean(body.smsNotifications);
+      body.smsNotifications === undefined
+        ? Boolean(session.user.smsNotifications)
+        : Boolean(body.smsNotifications);
     const whatsappNotifications =
       body.whatsappNotifications === undefined
-        ? session.user.whatsappNotifications
+        ? Boolean(session.user.whatsappNotifications)
         : Boolean(body.whatsappNotifications);
     const preferredContactChannel = ['email', 'sms', 'whatsapp'].includes(
       String(body.preferredContactChannel || '')
