@@ -9,6 +9,7 @@ import {
   isValidEmail,
   isValidPassword,
   mapUserToSessionUser,
+  updateUserForAuth,
   verifyPassword,
 } from '@/lib/auth';
 import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
@@ -155,21 +156,11 @@ export async function POST(request: NextRequest) {
 
     if ((isAdminEmailAddress(email) && !user.isAdmin) || user.role !== resolvedRole) {
       try {
-        try {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
-          });
-        } catch (error) {
-          if (!isSchemaCompatibilityError(error)) {
-            throw error;
-          }
-
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { isAdmin: resolvedRole !== 'CUSTOMER' },
-          });
-        }
+        await updateUserForAuth(
+          user.id,
+          { isAdmin: resolvedRole !== 'CUSTOMER', role: resolvedRole },
+          { isAdmin: resolvedRole !== 'CUSTOMER' }
+        );
       } catch (error) {
         console.error('[auth/login] role sync failed', error);
         return jsonError('Unable to prepare your account right now.', 500, {
