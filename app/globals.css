@@ -176,6 +176,7 @@ html.page-fullscreen body {
   border-color: var(--tp-border);
   color: var(--tp-text);
   box-shadow: var(--tp-shadow-soft);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -226,6 +227,7 @@ html.page-fullscreen body {
   background: var(--tp-nav-bg);
   border-color: var(--tp-border);
   color: var(--tp-text);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -296,6 +298,7 @@ html.page-fullscreen body {
   background: var(--tp-card);
   color: var(--tp-text);
   box-shadow: var(--tp-shadow-soft);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
