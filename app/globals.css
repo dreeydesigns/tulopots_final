@@ -49,6 +49,11 @@ html[data-theme='light'] {
 
   --tp-btn-primary-text: #fffaf4;
   --tp-btn-secondary-bg: transparent;
+  --tp-cursor-dot: rgba(246, 237, 227, 0.96);
+  --tp-cursor-dot-glow: rgba(182, 106, 60, 0.26);
+  --tp-cursor-ring: rgba(138, 78, 45, 0.7);
+  --tp-cursor-ring-active: rgba(182, 106, 60, 0.94);
+  --tp-cursor-ring-fill: rgba(255, 250, 244, 0.08);
 }
 
 html[data-theme='dark'] {
@@ -84,6 +89,11 @@ html[data-theme='dark'] {
 
   --tp-btn-primary-text: #1b120d;
   --tp-btn-secondary-bg: transparent;
+  --tp-cursor-dot: rgba(255, 247, 238, 0.94);
+  --tp-cursor-dot-glow: rgba(224, 185, 122, 0.22);
+  --tp-cursor-ring: rgba(255, 245, 233, 0.74);
+  --tp-cursor-ring-active: rgba(224, 185, 122, 0.96);
+  --tp-cursor-ring-fill: rgba(255, 247, 238, 0.06);
 }
 
 /* Base */
@@ -350,38 +360,47 @@ div {
 .cursor-dot {
   width: 10px;
   height: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  mix-blend-mode: difference;
+  background: var(--tp-cursor-dot);
+  box-shadow: 0 0 0 10px var(--tp-cursor-dot-glow);
   transition:
     width 120ms ease,
     height 120ms ease,
     opacity 120ms ease,
-    transform 120ms ease;
+    transform 120ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
 }
 
 .cursor-ring {
   z-index: 9998;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  mix-blend-mode: difference;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--tp-cursor-ring);
+  background: var(--tp-cursor-ring-fill);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 10px 24px rgba(0, 0, 0, 0.14);
   transition:
     width 140ms ease,
     height 140ms ease,
     opacity 140ms ease,
     border-color 140ms ease,
-    transform 140ms ease;
+    transform 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .cursor-dot.is-active {
   width: 14px;
   height: 14px;
+  box-shadow: 0 0 0 14px var(--tp-cursor-dot-glow);
 }
 
 .cursor-ring.is-active {
-  width: 56px;
-  height: 56px;
-  border-color: rgba(255, 255, 255, 0.95);
+  width: 54px;
+  height: 54px;
+  border-color: var(--tp-cursor-ring-active);
+  background: color-mix(in srgb, var(--tp-cursor-ring-fill) 65%, transparent);
 }
 
 .cursor-dot.is-pressed {

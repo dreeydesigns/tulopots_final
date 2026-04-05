@@ -195,6 +195,29 @@ const modernSessionUserSelect = {
   acceptedPolicyVersion: true,
 } satisfies Prisma.UserSelect;
 
+const compatibilitySessionUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  isAdmin: true,
+  passwordHash: true,
+  avatar: true,
+  marketingConsent: true,
+  emailNotifications: true,
+  smsNotifications: true,
+  whatsappNotifications: true,
+  preferredContactChannel: true,
+  preferredLanguage: true,
+  preferredCurrency: true,
+  defaultShippingAddress: true,
+  defaultShippingCity: true,
+  defaultShippingCountry: true,
+  acceptedTermsAt: true,
+  acceptedPrivacyAt: true,
+  acceptedPolicyVersion: true,
+} satisfies Prisma.UserSelect;
+
 const legacySessionUserSelect = {
   id: true,
   name: true,
@@ -383,10 +406,23 @@ export async function findUserForSession(userId: string) {
       throw error;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: legacySessionUserSelect,
-    });
+    let user = null;
+
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: compatibilitySessionUserSelect,
+      });
+    } catch (fallbackError) {
+      if (!isSchemaCompatibilityError(fallbackError)) {
+        throw fallbackError;
+      }
+
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: legacySessionUserSelect,
+      });
+    }
 
     return user ? withFallbackRole(user) : null;
   }
@@ -898,21 +934,45 @@ export async function getSessionRecord() {
       throw error;
     }
 
-    const legacySession = await prisma.authSession.findUnique({
-      where: { token },
-      select: {
-        id: true,
-        token: true,
-        scope: true,
-        userId: true,
-        expiresAt: true,
-        createdAt: true,
-        updatedAt: true,
-        user: {
-          select: legacySessionUserSelect,
+    let legacySession = null;
+
+    try {
+      legacySession = await prisma.authSession.findUnique({
+        where: { token },
+        select: {
+          id: true,
+          token: true,
+          scope: true,
+          userId: true,
+          expiresAt: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: compatibilitySessionUserSelect,
+          },
         },
-      },
-    });
+      });
+    } catch (fallbackError) {
+      if (!isSchemaCompatibilityError(fallbackError)) {
+        throw fallbackError;
+      }
+
+      legacySession = await prisma.authSession.findUnique({
+        where: { token },
+        select: {
+          id: true,
+          token: true,
+          scope: true,
+          userId: true,
+          expiresAt: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: legacySessionUserSelect,
+          },
+        },
+      });
+    }
 
     session = legacySession
       ? {
@@ -924,20 +984,43 @@ export async function getSessionRecord() {
 
     if (!session) {
       try {
-        const legacyScopeLessSession = await prisma.authSession.findUnique({
-          where: { token },
-          select: {
-            id: true,
-            token: true,
-            userId: true,
-            expiresAt: true,
-            createdAt: true,
-            updatedAt: true,
-            user: {
-              select: legacySessionUserSelect,
+        let legacyScopeLessSession = null;
+
+        try {
+          legacyScopeLessSession = await prisma.authSession.findUnique({
+            where: { token },
+            select: {
+              id: true,
+              token: true,
+              userId: true,
+              expiresAt: true,
+              createdAt: true,
+              updatedAt: true,
+              user: {
+                select: compatibilitySessionUserSelect,
+              },
             },
-          },
-        });
+          });
+        } catch (scopeFallbackError) {
+          if (!isSchemaCompatibilityError(scopeFallbackError)) {
+            throw scopeFallbackError;
+          }
+
+          legacyScopeLessSession = await prisma.authSession.findUnique({
+            where: { token },
+            select: {
+              id: true,
+              token: true,
+              userId: true,
+              expiresAt: true,
+              createdAt: true,
+              updatedAt: true,
+              user: {
+                select: legacySessionUserSelect,
+              },
+            },
+          });
+        }
 
         session = legacyScopeLessSession
           ? {

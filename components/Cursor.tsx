@@ -12,6 +12,7 @@ export default function CursorHalo() {
 
   const mouse = useRef({ x: -100, y: -100 });
   const ring = useRef({ x: -100, y: -100 });
+  const visibleRef = useRef(false);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -24,9 +25,16 @@ export default function CursorHalo() {
 
       if (!enabled) {
         document.body.classList.remove('cursor-halo-on');
+        visibleRef.current = false;
         setVisible(false);
         setActive(false);
         setPressed(false);
+        if (dotRef.current) {
+          dotRef.current.style.opacity = '0';
+        }
+        if (ringRef.current) {
+          ringRef.current.style.opacity = '0';
+        }
         return;
       }
 
@@ -38,6 +46,11 @@ export default function CursorHalo() {
 
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
+      if (!visibleRef.current) {
+        ring.current.x = e.clientX;
+        ring.current.y = e.clientY;
+      }
+      visibleRef.current = true;
       setVisible(true);
 
       if (dotRef.current) {
@@ -50,12 +63,20 @@ export default function CursorHalo() {
     const enter = (e?: PointerEvent) => {
       if (!enabled) return;
       if (e && e.pointerType !== 'mouse') return;
+      visibleRef.current = true;
       setVisible(true);
     };
     const leave = () => {
+      visibleRef.current = false;
       setVisible(false);
       setActive(false);
       setPressed(false);
+      if (dotRef.current) {
+        dotRef.current.style.opacity = '0';
+      }
+      if (ringRef.current) {
+        ringRef.current.style.opacity = '0';
+      }
     };
 
     const down = (e: PointerEvent) => {
@@ -81,13 +102,13 @@ export default function CursorHalo() {
     };
 
     const animate = () => {
-      ring.current.x += (mouse.current.x - ring.current.x) * 0.18;
-      ring.current.y += (mouse.current.y - ring.current.y) * 0.18;
+      ring.current.x += (mouse.current.x - ring.current.x) * 0.32;
+      ring.current.y += (mouse.current.y - ring.current.y) * 0.32;
 
       if (ringRef.current) {
         ringRef.current.style.left = `${ring.current.x}px`;
         ringRef.current.style.top = `${ring.current.y}px`;
-        ringRef.current.style.opacity = visible ? '1' : '0';
+        ringRef.current.style.opacity = visibleRef.current ? '1' : '0';
       }
 
       rafRef.current = window.requestAnimationFrame(animate);
