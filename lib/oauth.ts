@@ -380,6 +380,10 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
     avatar: identity.avatar || null,
     provider: providerLabel,
     isAdmin: email ? isAdminEmailAddress(email) : false,
+    emailNotifications: true,
+    smsNotifications: false,
+    whatsappNotifications: false,
+    preferredContactChannel: 'email',
     preferredLanguage: 'en',
     preferredCurrency: 'KES',
     defaultShippingCountry: 'KE',
@@ -388,8 +392,16 @@ async function upsertOAuthUser(identity: OAuthIdentity) {
   const legacyCreateData = {
     name: nextName,
     email,
+    avatar: identity.avatar || null,
     provider: providerLabel,
     isAdmin: email ? isAdminEmailAddress(email) : false,
+    emailNotifications: true,
+    smsNotifications: false,
+    whatsappNotifications: false,
+    preferredContactChannel: 'email',
+    preferredLanguage: 'en',
+    preferredCurrency: 'KES',
+    defaultShippingCountry: 'KE',
     ...providerField,
   };
   return createUserForAuth(createData, legacyCreateData);
