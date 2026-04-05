@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, isValidEmail } from '@/lib/auth';
+import type { Prisma } from '@prisma/client';
+import { getCurrentUser, isSchemaCompatibilityError, isValidEmail } from '@/lib/auth';
 import {
   getDeliverySummary,
   resolveSupportedCountry,
@@ -32,6 +33,77 @@ type CheckoutItem = {
   quantity: number;
 };
 
+const checkoutOrderItemSelect = {
+  id: true,
+  productSlug: true,
+  sku: true,
+  name: true,
+  image: true,
+  mode: true,
+  sizeLabel: true,
+  unitPrice: true,
+  quantity: true,
+  lineTotal: true,
+} satisfies Prisma.OrderItemSelect;
+
+const modernCheckoutOrderSelect = {
+  id: true,
+  orderNumber: true,
+  paymentMethod: true,
+  status: true,
+  subtotal: true,
+  deliveryFee: true,
+  totalAmount: true,
+  currency: true,
+  displayCurrency: true,
+  preferredLanguage: true,
+  shippingCountry: true,
+  shippingCity: true,
+  createdAt: true,
+  attributionSource: true,
+  attributionMedium: true,
+  attributionCampaign: true,
+  landingPath: true,
+  items: {
+    select: checkoutOrderItemSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+const compatibilityCheckoutOrderSelect = {
+  id: true,
+  orderNumber: true,
+  paymentMethod: true,
+  status: true,
+  subtotal: true,
+  deliveryFee: true,
+  totalAmount: true,
+  currency: true,
+  shippingCity: true,
+  createdAt: true,
+  attributionSource: true,
+  attributionMedium: true,
+  attributionCampaign: true,
+  landingPath: true,
+  items: {
+    select: checkoutOrderItemSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+const legacyCheckoutOrderSelect = {
+  id: true,
+  orderNumber: true,
+  paymentMethod: true,
+  status: true,
+  subtotal: true,
+  deliveryFee: true,
+  totalAmount: true,
+  currency: true,
+  createdAt: true,
+  items: {
+    select: checkoutOrderItemSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
 function isValidPhone(value: string) {
   return /^\+?[0-9]{10,15}$/.test(value);
 }
@@ -43,6 +115,43 @@ function createOrderNumber() {
 function sanitizeAttributionValue(value: unknown, maxLength = 160) {
   const nextValue = String(value || '').trim();
   return nextValue ? nextValue.slice(0, maxLength) : null;
+}
+
+async function createCheckoutOrderWithFallback({
+  orderData,
+  compatibilityData,
+  legacyData,
+}: {
+  orderData: Prisma.OrderCreateInput;
+  compatibilityData: Prisma.OrderCreateInput;
+  legacyData: Prisma.OrderCreateInput;
+}) {
+  try {
+    return await prisma.order.create({
+      data: orderData,
+      select: modernCheckoutOrderSelect,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    try {
+      return await prisma.order.create({
+        data: compatibilityData,
+        select: compatibilityCheckoutOrderSelect,
+      });
+    } catch (compatibilityError) {
+      if (!isSchemaCompatibilityError(compatibilityError)) {
+        throw compatibilityError;
+      }
+
+      return await prisma.order.create({
+        data: legacyData,
+        select: legacyCheckoutOrderSelect,
+      });
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -220,24 +329,49 @@ export async function POST(req: NextRequest) {
           landingPath: null,
           trackingSessionKey: sanitizeAttributionValue(sessionKey, 120),
         };
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
+    const orderItems = sanitizedItems.map((item) => ({
+      productSlug: item.productSlug,
+      sku: item.sku,
+      name: item.name,
+      image: item.image,
+      mode: item.mode,
+      sizeLabel: item.sizeLabel,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      lineTotal: item.lineTotal,
+    }));
+
+    const baseOrderData = {
+      orderNumber,
+      ...(currentUser?.id
+        ? {
+            user: {
+              connect: { id: currentUser.id },
+            },
+          }
+        : {}),
+      paymentMethod,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerPhone: customerPhone.trim(),
+      shippingAddr1: shippingAddr1?.trim() || null,
+      shippingAddr2: shippingAddr2?.trim() || null,
+      shippingCity: shippingCity?.trim() || null,
+      shippingNotes: shippingNotes?.trim() || null,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+      items: {
+        create: orderItems,
+      },
+    } satisfies Prisma.OrderCreateInput;
+
+    const order = await createCheckoutOrderWithFallback({
+      orderData: {
+        ...baseOrderData,
         trackingCode,
-        userId: currentUser?.id || null,
-        paymentMethod,
         isCustomOrder,
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim().toLowerCase(),
-        customerPhone: customerPhone.trim(),
-        shippingAddr1: shippingAddr1?.trim() || null,
-        shippingAddr2: shippingAddr2?.trim() || null,
-        shippingCity: shippingCity?.trim() || null,
         shippingCountry: resolvedShippingCountry,
-        shippingNotes: shippingNotes?.trim() || null,
-        subtotal,
-        deliveryFee,
-        totalAmount,
         displayCurrency: resolvedDisplayCurrency,
         preferredLanguage: resolvedPreferredLanguage,
         estimatedDispatchAt,
@@ -245,23 +379,18 @@ export async function POST(req: NextRequest) {
         trackingTimeline,
         notificationLog,
         ...sanitizedAttribution,
-        items: {
-          create: sanitizedItems.map((item) => ({
-            productSlug: item.productSlug,
-            sku: item.sku,
-            name: item.name,
-            image: item.image,
-            mode: item.mode,
-            sizeLabel: item.sizeLabel,
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            lineTotal: item.lineTotal,
-          })),
-        },
       },
-      include: {
-        items: true,
+      compatibilityData: {
+        ...baseOrderData,
+        trackingCode,
+        isCustomOrder,
+        estimatedDispatchAt,
+        estimatedDeliveryAt,
+        trackingTimeline,
+        notificationLog,
+        ...sanitizedAttribution,
       },
+      legacyData: baseOrderData,
     });
 
     const response = NextResponse.json({
@@ -275,18 +404,30 @@ export async function POST(req: NextRequest) {
         deliveryFee: order.deliveryFee,
         totalAmount: order.totalAmount,
         currency: order.currency,
-        displayCurrency: order.displayCurrency,
-        preferredLanguage: order.preferredLanguage,
-        shippingCountry: order.shippingCountry,
-        shippingCity: order.shippingCity,
+        displayCurrency:
+          'displayCurrency' in order && order.displayCurrency
+            ? order.displayCurrency
+            : resolvedDisplayCurrency,
+        preferredLanguage:
+          'preferredLanguage' in order && order.preferredLanguage
+            ? order.preferredLanguage
+            : resolvedPreferredLanguage,
+        shippingCountry:
+          'shippingCountry' in order && order.shippingCountry
+            ? order.shippingCountry
+            : resolvedShippingCountry,
+        shippingCity:
+          'shippingCity' in order && order.shippingCity
+            ? order.shippingCity
+            : shippingCity?.trim() || null,
         deliveryPolicyNote: deliverySummary.policyNote,
         requiresLocationQuote: deliverySummary.requiresLocationQuote,
         createdAt: order.createdAt,
         attribution: {
-          source: order.attributionSource,
-          medium: order.attributionMedium,
-          campaign: order.attributionCampaign,
-          landingPath: order.landingPath,
+          source: 'attributionSource' in order ? order.attributionSource : null,
+          medium: 'attributionMedium' in order ? order.attributionMedium : null,
+          campaign: 'attributionCampaign' in order ? order.attributionCampaign : null,
+          landingPath: 'landingPath' in order ? order.landingPath : null,
         },
         items: order.items,
       },
