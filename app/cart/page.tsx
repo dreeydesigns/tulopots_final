@@ -237,7 +237,8 @@ export default function CartPage() {
     if (
       code === 'STRIPE_TEMPORARY_UNAVAILABLE' ||
       code === 'STRIPE_SESSION_INVALID' ||
-      code === 'STRIPE_SESSION_FAILED'
+      code === 'STRIPE_SESSION_FAILED' ||
+      code === 'STRIPE_UNKNOWN'
     ) {
       return `${orderLabel}Card checkout could not start right now. Please try again or use M-Pesa.`;
     }
@@ -245,7 +246,8 @@ export default function CartPage() {
     if (
       code === 'MPESA_NOT_CONFIGURED' ||
       code === 'MPESA_WRONG_CREDENTIALS' ||
-      code === 'MPESA_AUTH_FAILED'
+      code === 'MPESA_AUTH_FAILED' ||
+      code === 'MPESA_UNKNOWN'
     ) {
       return `${orderLabel}M-Pesa is not ready on this deployment yet. Please use card checkout or contact us.`;
     }

@@ -128,6 +128,19 @@ function createPaymentProviderError(
   return new PaymentProviderError(provider, code, message, status);
 }
 
+function buildErrorSignature(error: any) {
+  return [
+    String(error?.message || ''),
+    String(error?.type || error?.name || ''),
+    String(error?.code || ''),
+    String(error?.raw?.code || ''),
+    String(error?.cause?.code || ''),
+    String(error?.cause?.message || ''),
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
 function normalizeMpesaBaseUrl(baseUrl?: string) {
   if (!baseUrl) {
     return baseUrl;
@@ -232,14 +245,12 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
       throw error;
     }
 
-    const message = String(error?.message || '');
-    const type = String(error?.type || error?.name || '').toLowerCase();
-    const code = String(error?.code || '').toLowerCase();
+    const signature = buildErrorSignature(error);
 
     if (
-      /api key/i.test(message) ||
-      type.includes('authentication') ||
-      code.includes('api_key')
+      signature.includes('api key') ||
+      signature.includes('authentication') ||
+      signature.includes('api_key')
     ) {
       throw createPaymentProviderError(
         'STRIPE',
@@ -248,7 +259,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
       );
     }
 
-    if (/invalid api version/i.test(message)) {
+    if (signature.includes('invalid api version')) {
       throw createPaymentProviderError(
         'STRIPE',
         'STRIPE_API_VERSION',
@@ -257,9 +268,16 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
     }
 
     if (
-      type.includes('connection') ||
-      type.includes('apierror') ||
-      type.includes('ratelimit')
+      signature.includes('connection') ||
+      signature.includes('fetch failed') ||
+      signature.includes('socket') ||
+      signature.includes('timeout') ||
+      signature.includes('timed out') ||
+      signature.includes('econn') ||
+      signature.includes('tls') ||
+      signature.includes('ssl') ||
+      signature.includes('apierror') ||
+      signature.includes('ratelimit')
     ) {
       throw createPaymentProviderError(
         'STRIPE',
@@ -325,16 +343,37 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
     );
   }
 
-  const authRes = await fetch(
-    `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
-    {
-      headers: {
-        Authorization: `Basic ${basicAuth(clientKey!, clientSecret!)}`,
-      },
-      cache: 'no-store',
-    }
-  );
-  const authData = await authRes.json();
+  let authRes: Response;
+  try {
+    authRes = await fetch(
+      `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth(clientKey!, clientSecret!)}`,
+        },
+        cache: 'no-store',
+      }
+    );
+  } catch (error: any) {
+    const signature = buildErrorSignature(error);
+    throw createPaymentProviderError(
+      'MPESA',
+      'MPESA_REQUEST_FAILED',
+      signature.includes('timeout') ||
+        signature.includes('fetch failed') ||
+        signature.includes('econn') ||
+        signature.includes('socket')
+        ? 'M-Pesa could not be reached right now. Please try again or use card checkout.'
+        : 'Failed to authenticate with the M-Pesa API.'
+    );
+  }
+
+  let authData: any = null;
+  try {
+    authData = await authRes.json();
+  } catch {
+    authData = null;
+  }
 
   if (!authRes.ok || !authData.access_token) {
     throw createPaymentProviderError(
@@ -364,15 +403,36 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
     AccountReference: input.accountReference || input.orderNumber,
     TransactionDesc: `TuloPots ${input.orderNumber}`,
   };
-  const stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${authData.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(stkPayload),
-  });
-  const stkData = await stkRes.json();
+  let stkRes: Response;
+  try {
+    stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${authData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(stkPayload),
+    });
+  } catch (error: any) {
+    const signature = buildErrorSignature(error);
+    throw createPaymentProviderError(
+      'MPESA',
+      'MPESA_REQUEST_FAILED',
+      signature.includes('timeout') ||
+        signature.includes('fetch failed') ||
+        signature.includes('econn') ||
+        signature.includes('socket')
+        ? 'M-Pesa could not be reached right now. Please try again or use card checkout.'
+        : 'Failed to initiate M-Pesa STK push.'
+    );
+  }
+
+  let stkData: any = null;
+  try {
+    stkData = await stkRes.json();
+  } catch {
+    stkData = null;
+  }
 
   if (!stkRes.ok || stkData?.ResponseCode === '1') {
     const credentialError =
