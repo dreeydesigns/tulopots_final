@@ -22,6 +22,17 @@ function basicAuth(clientKey: string, clientSecret: string) {
   return Buffer.from(`${clientKey}:${clientSecret}`).toString('base64');
 }
 
+function readEnvValue(...keys: string[]) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value) {
+      return value;
+    }
+  }
+
+  return '';
+}
+
 function normalizeMpesaBaseUrl(baseUrl?: string) {
   if (!baseUrl) {
     return baseUrl;
@@ -36,7 +47,9 @@ function normalizeMpesaBaseUrl(baseUrl?: string) {
 }
 
 function kesToUsdCents(kes: number): number {
-  const rate = parseFloat(process.env.STRIPE_KES_TO_USD_RATE || '130');
+  const rate = parseFloat(
+    readEnvValue('STRIPE_KES_TO_USD_RATE', 'STRIPE_RATE_KES_TO_USD') || '130'
+  );
   const usd = kes / rate;
   return Math.max(50, Math.round(usd * 100));
 }
@@ -60,11 +73,17 @@ function normalizeKenyanPhone(phone: string) {
 }
 
 export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const secretKey = readEnvValue(
+    'STRIPE_SECRET_KEY',
+    'STRIPE_API_KEY',
+    'STRIPE_SECRET',
+    'STRIPE_TEST_SECRET_KEY',
+    'STRIPE_LIVE_SECRET_KEY'
+  );
 
   if (!secretKey) {
     throw new Error(
-      'Missing STRIPE_SECRET_KEY. Add it to your deployment environment before taking card payments live.'
+      'Card payment setup is incomplete in this deployment. Add the Stripe secret key in Vercel and redeploy.'
     );
   }
 
@@ -73,47 +92,65 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
   const stripe = new Stripe(secretKey, {
     apiVersion: '2026-02-25.clover' as any,
   });
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    client_reference_id: input.orderId,
-    success_url: `${baseUrl}/order-confirmation?order=${input.orderId}&payment=success`,
-    cancel_url: `${baseUrl}/cart?payment=cancelled&order=${input.orderId}`,
-    customer_email: input.customerEmail,
-    metadata: {
-      orderId: input.orderId,
-      orderNumber: input.orderNumber,
-    },
-    payment_intent_data: {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      client_reference_id: input.orderId,
+      success_url: `${baseUrl}/order-confirmation?order=${input.orderId}&payment=success`,
+      cancel_url: `${baseUrl}/cart?payment=cancelled&order=${input.orderId}`,
+      customer_email: input.customerEmail,
       metadata: {
         orderId: input.orderId,
         orderNumber: input.orderNumber,
       },
-    },
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: 'usd',
-          unit_amount: usdCents,
-          product_data: {
-            name: `TuloPots Order ${input.orderNumber}`,
-            description: `Handcrafted terracotta from Nairobi · KES ${input.amountKES.toLocaleString()}`,
-          },
+      payment_intent_data: {
+        metadata: {
+          orderId: input.orderId,
+          orderNumber: input.orderNumber,
         },
       },
-    ],
-  });
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: usdCents,
+            product_data: {
+              name: `TuloPots Order ${input.orderNumber}`,
+              description: `Handcrafted terracotta from Nairobi · KES ${input.amountKES.toLocaleString()}`,
+            },
+          },
+        },
+      ],
+    });
 
-  if (!session.url) {
-    throw new Error('Stripe did not return a checkout URL.');
+    if (!session.url) {
+      throw new Error('Stripe did not return a checkout URL.');
+    }
+
+    return {
+      id: session.id,
+      url: session.url,
+      usdCents,
+      raw: session,
+    };
+  } catch (error: any) {
+    const message = String(error?.message || '');
+
+    if (/api key/i.test(message)) {
+      throw new Error(
+        'Card payment setup is incomplete in this deployment. Check the Stripe secret key in Vercel and redeploy.'
+      );
+    }
+
+    if (/invalid api version/i.test(message)) {
+      throw new Error(
+        'Stripe rejected the API version configured for this deployment. Update the Stripe setup and redeploy.'
+      );
+    }
+
+    throw error;
   }
-
-  return {
-    id: session.id,
-    url: session.url,
-    usdCents,
-    raw: session,
-  };
 }
 
 export async function initiateMpesaStkPush(input: MpesaStkInput) {

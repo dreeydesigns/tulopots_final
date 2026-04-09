@@ -5,8 +5,22 @@ import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
+function readEnvValue(...keys: string[]) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value) {
+      return value;
+    }
+  }
+
+  return '';
+}
+
 export async function POST(req: NextRequest) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = readEnvValue(
+    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_WEBHOOK_SIGNING_SECRET'
+  );
 
   try {
     const rawBody = await req.text();
@@ -14,9 +28,18 @@ export async function POST(req: NextRequest) {
 
     if (webhookSecret) {
       const signature = req.headers.get('stripe-signature') || '';
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      const stripe = new Stripe(
+        readEnvValue(
+          'STRIPE_SECRET_KEY',
+          'STRIPE_API_KEY',
+          'STRIPE_SECRET',
+          'STRIPE_TEST_SECRET_KEY',
+          'STRIPE_LIVE_SECRET_KEY'
+        ),
+        {
         apiVersion: '2026-02-25.clover' as any,
-      });
+        }
+      );
 
       event = stripe.webhooks.constructEvent(
         rawBody,
