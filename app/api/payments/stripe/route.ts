@@ -9,6 +9,14 @@ import { recordSecurityEvent } from '@/lib/security/audit';
 
 export const runtime = 'nodejs';
 
+type StripePaymentResponse = {
+  id: string | null;
+  provider: 'STRIPE';
+  status: 'INITIATED';
+  checkoutUrl: string;
+  persistenceDeferred?: boolean;
+};
+
 export async function POST(req: NextRequest) {
   const ip = getRequestIp(req);
 
@@ -81,27 +89,56 @@ export async function POST(req: NextRequest) {
       baseUrl: getRequestOrigin(req),
     });
 
-    const payment = await prisma.payment.create({
-      data: {
-        orderId: order.id,
+    let paymentPayload: StripePaymentResponse = {
+      id: null,
+      provider: 'STRIPE',
+      status: 'INITIATED',
+      checkoutUrl: session.url,
+      persistenceDeferred: true,
+    };
+
+    try {
+      const payment = await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          provider: 'STRIPE',
+          status: 'INITIATED',
+          amount: order.totalAmount,
+          currency: 'KES',
+          externalRef: session.id,
+          checkoutUrl: session.url,
+          providerResponseRaw: JSON.stringify(session.raw),
+        },
+      });
+
+      paymentPayload = {
+        id: payment.id,
         provider: 'STRIPE',
         status: 'INITIATED',
-        amount: order.totalAmount,
-        currency: 'KES',
-        externalRef: session.id,
-        checkoutUrl: session.url,
-        providerResponseRaw: JSON.stringify(session.raw),
-      },
-    });
+        checkoutUrl: payment.checkoutUrl || session.url,
+      };
+    } catch (paymentError: any) {
+      console.error('[stripe] payment log fallback:', paymentError);
+      await recordSecurityEvent({
+        type: 'PAYMENT_ANOMALY',
+        severity: 'WARNING',
+        route: '/api/payments/stripe',
+        identifier: order.orderNumber,
+        ip,
+        metadata: {
+          phase: 'payment_log_create_failed',
+          sessionId: session.id,
+          message:
+            paymentError instanceof Error
+              ? paymentError.message.slice(0, 240)
+              : 'unknown',
+        },
+      }).catch(() => undefined);
+    }
 
     const response = NextResponse.json({
       ok: true,
-      payment: {
-        id: payment.id,
-        provider: payment.provider,
-        status: payment.status,
-        checkoutUrl: payment.checkoutUrl,
-      },
+      payment: paymentPayload,
     });
     response.headers.set('Cache-Control', 'no-store');
     return response;
