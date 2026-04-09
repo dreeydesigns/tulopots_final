@@ -68,11 +68,13 @@ export const whatsappSchema = z.object({
 
 export const paymentOrderIdSchema = z.object({
   orderId: z.string().trim().min(1),
+  paymentSnapshot: z.string().trim().optional().default(''),
 });
 
 export const mpesaSchema = z.object({
   orderId: z.string().trim().min(1),
   phone: phoneSchema,
+  paymentSnapshot: z.string().trim().optional().default(''),
 });
 
 export const studioSchema = z.object({

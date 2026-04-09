@@ -15,6 +15,7 @@ import {
   computeDeliveryDates,
   createTrackingCode,
 } from '@/lib/fulfillment';
+import { createPaymentOrderSnapshot } from '@/lib/payment-snapshot';
 import { prisma } from '@/lib/prisma';
 import type { StoredAttribution } from '@/lib/tracking';
 import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
@@ -430,6 +431,12 @@ export async function POST(req: NextRequest) {
           landingPath: 'landingPath' in order ? order.landingPath : null,
         },
         items: order.items,
+        paymentSnapshot: createPaymentOrderSnapshot({
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          customerEmail: customerEmail.trim().toLowerCase(),
+        }),
       },
     });
     response.headers.set('Cache-Control', 'no-store');

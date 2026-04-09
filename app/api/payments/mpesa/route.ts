@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { initiateMpesaStkPush, PaymentProviderError } from '@/lib/payments';
+import { readPaymentOrderSnapshot } from '@/lib/payment-snapshot';
 import { getRequestOrigin } from '@/lib/request';
 import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
 import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
 import { mpesaSchema } from '@/lib/security/validation';
 import { recordSecurityEvent } from '@/lib/security/audit';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -44,15 +46,94 @@ export async function POST(req: NextRequest) {
       return jsonError('orderId and a valid phone number are required', 400);
     }
 
-    const { orderId, phone } = parsed.data;
+    const { orderId, phone, paymentSnapshot } = parsed.data;
 
     if (!orderId || !phone) {
       return jsonError('orderId and phone are required', 400);
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
+    const snapshot = readPaymentOrderSnapshot(paymentSnapshot);
+
+    if (paymentSnapshot && !snapshot) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/payments/mpesa',
+        identifier: orderId,
+        ip,
+        metadata: {
+          reason: 'invalid_payment_snapshot',
+        },
+      });
+      return jsonError('The saved checkout session expired. Please try again.', 400);
+    }
+
+    if (snapshot && snapshot.orderId !== orderId) {
+      await recordSecurityEvent({
+        type: 'INVALID_INPUT',
+        severity: 'WARNING',
+        route: '/api/payments/mpesa',
+        identifier: orderId,
+        ip,
+        metadata: {
+          reason: 'payment_snapshot_mismatch',
+        },
+      });
+      return jsonError('The saved checkout session did not match this order.', 400);
+    }
+
+    let order:
+      | {
+          id: string;
+          orderNumber: string;
+          totalAmount: number;
+          status: string;
+        }
+      | null = null;
+
+    try {
+      order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          orderNumber: true,
+          totalAmount: true,
+          status: true,
+        },
+      });
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code?: unknown }).code || '').toUpperCase()
+          : '';
+      const message = String((error as Error | null | undefined)?.message || '').toLowerCase();
+
+      if (
+        snapshot &&
+        (isSchemaCompatibilityError(error) ||
+          code === 'P1001' ||
+          message.includes("can't reach database server") ||
+          message.includes('server has closed the connection'))
+      ) {
+        order = {
+          id: snapshot.orderId,
+          orderNumber: snapshot.orderNumber,
+          totalAmount: snapshot.totalAmount,
+          status: 'PENDING',
+        };
+      } else {
+        throw error;
+      }
+    }
+
+    if (!order && snapshot) {
+      order = {
+        id: snapshot.orderId,
+        orderNumber: snapshot.orderNumber,
+        totalAmount: snapshot.totalAmount,
+        status: 'PENDING',
+      };
+    }
 
     if (!order) {
       return jsonError('Order not found', 404);

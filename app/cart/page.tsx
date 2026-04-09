@@ -31,6 +31,7 @@ type CheckoutOrder = {
   totalAmount: number;
   displayCurrency?: string | null;
   preferredLanguage?: string | null;
+  paymentSnapshot?: string | null;
 };
 
 type FieldErrors = Partial<
@@ -369,7 +370,11 @@ export default function CartPage() {
       const payRes = await fetch('/api/payments/mpesa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id, phone: customerPhone }),
+        body: JSON.stringify({
+          orderId: order.id,
+          phone: customerPhone,
+          paymentSnapshot: order.paymentSnapshot,
+        }),
       });
 
       const payData = await payRes.json();
@@ -415,7 +420,10 @@ export default function CartPage() {
       const payRes = await fetch('/api/payments/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id }),
+        body: JSON.stringify({
+          orderId: order.id,
+          paymentSnapshot: order.paymentSnapshot,
+        }),
       });
 
       const payData = await payRes.json();
