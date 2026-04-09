@@ -110,6 +110,7 @@ type DashboardData = {
     subtotal: number;
     deliveryFee: number;
     shippingCity: string | null;
+    shippingAddr1: string | null;
     adminNotes: string | null;
     createdAt: string;
     trackingCode: string;
@@ -648,6 +649,8 @@ export function AdminDashboard({
   const canManageAutomation = user.permissions.includes('automation.manage');
   const canReadExports = user.permissions.includes('exports.read');
   const canManageNewsletter = user.permissions.includes('newsletter.manage');
+  const isDeliveryWorkspace =
+    user.role === 'DELIVERY_ADMIN' || user.role === 'OPERATIONS_ADMIN';
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
@@ -680,6 +683,80 @@ export function AdminDashboard({
   const [supportPriority, setSupportPriority] = useState('NORMAL');
   const [supportNote, setSupportNote] = useState('');
   const [adminRoleDrafts, setAdminRoleDrafts] = useState<Record<string, string>>({});
+
+  const overviewMetrics = useMemo(() => {
+    if (!dashboard) {
+      return [] as Array<{ label: string; value: string }>;
+    }
+
+    switch (user.role) {
+      case 'DELIVERY_ADMIN':
+        return [
+          { label: 'Active deliveries', value: String(dashboard.deliverySummary.pending) },
+          { label: 'Delivered', value: String(dashboard.deliverySummary.delivered) },
+          {
+            label: 'Delivery follow-ups',
+            value: String(
+              dashboard.supportThreads.filter(
+                (thread) => thread.order && ['PAID', 'PROCESSING', 'SHIPPED'].includes(thread.order.status)
+              ).length
+            ),
+          },
+          { label: 'Visible locations', value: String(dashboard.deliverySummary.pendingLocations.length) },
+        ];
+      case 'OPERATIONS_ADMIN':
+        return [
+          { label: 'Live orders', value: String(dashboard.counts.orders) },
+          { label: 'Active deliveries', value: String(dashboard.deliverySummary.pending) },
+          {
+            label: 'Open support',
+            value: String(dashboard.supportThreads.filter((thread) => thread.status !== 'RESOLVED').length),
+          },
+          { label: 'Queued jobs', value: String(dashboard.automationJobs.filter((job) => job.status === 'PENDING').length) },
+        ];
+      case 'CONTENT_ADMIN':
+        return [
+          { label: 'Products', value: String(dashboard.counts.products) },
+          { label: 'Review queue', value: String(dashboard.counts.pendingReviews) },
+          { label: 'Newsletter audience', value: String(dashboard.counts.newsletterSubscribers) },
+          { label: 'Managed pages', value: String(dashboard.managedPages.length) },
+        ];
+      case 'SUPPORT_ADMIN':
+        return [
+          {
+            label: 'Open threads',
+            value: String(dashboard.supportThreads.filter((thread) => thread.status !== 'RESOLVED').length),
+          },
+          {
+            label: 'Delivery issues',
+            value: String(
+              dashboard.supportThreads.filter(
+                (thread) => thread.order && ['PAID', 'PROCESSING', 'SHIPPED'].includes(thread.order.status)
+              ).length
+            ),
+          },
+          { label: 'Studio briefs', value: String(dashboard.counts.studioBriefs) },
+          { label: 'Contact inbox', value: String(dashboard.counts.contactMessages) },
+        ];
+      case 'ANALYST':
+        return [
+          { label: 'Signals', value: String(dashboard.counts.analyticsEvents) },
+          { label: 'Orders', value: String(dashboard.counts.orders) },
+          { label: 'Top campaigns', value: String(dashboard.orderAttributionSummary.length) },
+          { label: 'Subscribers', value: String(dashboard.counts.newsletterSubscribers) },
+        ];
+      default:
+        return [
+          { label: 'Products', value: String(dashboard.counts.products) },
+          { label: 'Orders', value: String(dashboard.counts.orders) },
+          { label: 'Studio Briefs', value: String(dashboard.counts.studioBriefs) },
+          { label: 'Contacts', value: String(dashboard.counts.contactMessages) },
+          { label: 'Newsletter', value: String(dashboard.counts.newsletterSubscribers) },
+          { label: 'Review Queue', value: String(dashboard.counts.pendingReviews) },
+          { label: 'Signals', value: String(dashboard.counts.analyticsEvents) },
+        ];
+    }
+  }, [dashboard, user.role]);
 
   useEffect(() => {
     if (user.allowedAdminTabs.includes(initialTab)) {
@@ -1515,17 +1592,9 @@ export function AdminDashboard({
 
                 {tab === 'overview' ? (
                   <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-                      {[
-                        ['Products', dashboard.counts.products],
-                        ['Orders', dashboard.counts.orders],
-                        ['Studio Briefs', dashboard.counts.studioBriefs],
-                        ['Contacts', dashboard.counts.contactMessages],
-                        ['Newsletter', dashboard.counts.newsletterSubscribers],
-                        ['Review Queue', dashboard.counts.pendingReviews],
-                        ['Signals', dashboard.counts.analyticsEvents],
-                      ].map(([label, value]) => (
-                        <MetricCard key={label} label={String(label)} value={String(value)} />
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      {overviewMetrics.map(({ label, value }) => (
+                        <MetricCard key={label} label={label} value={value} />
                       ))}
                     </div>
 
@@ -1610,6 +1679,127 @@ export function AdminDashboard({
                         </div>
                       </PanelShell>
                     </div>
+
+                    {isDeliveryWorkspace ? (
+                      <PanelShell
+                        title={user.role === 'DELIVERY_ADMIN' ? 'Delivery route view' : 'Fulfillment route view'}
+                        subtitle="Stay close to live stops, current locations, and the next handoffs that still need confirmation."
+                      >
+                        {dashboard.deliverySummary.pendingLocations.length ? (
+                          <div className="grid gap-3 lg:grid-cols-2">
+                            {dashboard.deliverySummary.pendingLocations.slice(0, 8).map((location) => (
+                              <div
+                                key={location.id}
+                                className="rounded-[1.25rem] border px-4 py-4"
+                                style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div>
+                                    <div style={{ color: 'var(--tp-heading)' }}>{location.orderNumber}</div>
+                                    <div className="mt-1 text-sm tp-text-soft">{location.customerName}</div>
+                                  </div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-text-muted">
+                                    {location.status}
+                                  </div>
+                                </div>
+                                <div className="mt-3 text-sm leading-7 tp-text-soft">
+                                  {location.shippingCity || 'Location pending'}
+                                  {location.shippingAddr1 ? ` · ${location.shippingAddr1}` : ''}
+                                </div>
+                                <div className="mt-2 text-xs tp-text-muted">
+                                  {location.estimatedDeliveryAt
+                                    ? `ETA ${formatDate(location.estimatedDeliveryAt)}`
+                                    : 'Estimated delivery pending'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div
+                            className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                            style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}
+                          >
+                            There are no active deliveries right now. Completed handoffs will still appear in the orders board and support follow-up view.
+                          </div>
+                        )}
+                      </PanelShell>
+                    ) : null}
+
+                    {user.role === 'CONTENT_ADMIN' ? (
+                      <PanelShell
+                        title="Content priorities"
+                        subtitle="The fastest way to keep the storefront current without touching code."
+                      >
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          {[
+                            `Managed pages ready: ${dashboard.managedPages.length}`,
+                            `Reviews waiting: ${dashboard.counts.pendingReviews}`,
+                            `Newsletter audience: ${dashboard.counts.newsletterSubscribers}`,
+                            `Visible catalog items: ${dashboard.products.filter((product) => product.visible).length}`,
+                          ].map((item) => (
+                            <div
+                              key={item}
+                              className="rounded-[1.25rem] border px-4 py-4 text-sm"
+                              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+                            >
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      </PanelShell>
+                    ) : null}
+
+                    {user.role === 'SUPPORT_ADMIN' ? (
+                      <PanelShell
+                        title="Support focus"
+                        subtitle="Keep customer communication, order assistance, and delivery follow-up easy to triage."
+                      >
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          {dashboard.supportThreads.slice(0, 6).map((thread) => (
+                            <div
+                              key={thread.id}
+                              className="rounded-[1.25rem] border px-4 py-4"
+                              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}
+                            >
+                              <div style={{ color: 'var(--tp-heading)' }}>
+                                {thread.customerName || thread.customerEmail || thread.order?.orderNumber || 'Support thread'}
+                              </div>
+                              <div className="mt-1 text-sm tp-text-soft">
+                                {thread.source.replaceAll('_', ' ')} · {thread.status} · {thread.priority}
+                              </div>
+                              <div className="mt-2 text-xs tp-text-muted">
+                                {thread.order
+                                  ? `${thread.order.orderNumber} · ${thread.order.shippingCity || 'Location pending'}`
+                                  : formatDate(thread.updatedAt)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </PanelShell>
+                    ) : null}
+
+                    {user.role === 'ANALYST' ? (
+                      <PanelShell
+                        title="Signal watch"
+                        subtitle="A quick read on campaign attribution and recent first-party storefront activity."
+                      >
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          {dashboard.orderAttributionSummary.slice(0, 6).map((entry) => (
+                            <div
+                              key={`${entry.label}-${entry.medium}`}
+                              className="rounded-[1.25rem] border px-4 py-4"
+                              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}
+                            >
+                              <div style={{ color: 'var(--tp-heading)' }}>{entry.label}</div>
+                              <div className="mt-1 text-sm tp-text-soft">{entry.medium || 'direct'}</div>
+                              <div className="mt-2 text-xs tp-text-muted">
+                                {entry.orders} orders · {money(entry.revenue)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </PanelShell>
+                    ) : null}
 
                     <PanelShell
                       title="Recent signals"
@@ -2189,6 +2379,21 @@ export function AdminDashboard({
 
                 {tab === 'orders' ? (
                   <div className="grid gap-4">
+                    {isDeliveryWorkspace ? (
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <MetricCard label="Active deliveries" value={String(dashboard.deliverySummary.pending)} />
+                        <MetricCard label="Delivered" value={String(dashboard.deliverySummary.delivered)} />
+                        <MetricCard
+                          label="Delivery follow-ups"
+                          value={String(
+                            dashboard.supportThreads.filter(
+                              (thread) =>
+                                thread.order && ['PAID', 'PROCESSING', 'SHIPPED'].includes(thread.order.status)
+                            ).length
+                          )}
+                        />
+                      </div>
+                    ) : null}
                     <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
                       <SearchField
                         value={orderQuery}
@@ -2223,7 +2428,15 @@ export function AdminDashboard({
                         body: `${order.customerName} · ${money(order.totalAmount)} · ${order.status}`,
                         meta:
                           user.role === 'DELIVERY_ADMIN' || user.role === 'OPERATIONS_ADMIN'
-                            ? order.shippingCity || 'Location pending'
+                            ? [
+                                order.shippingCity || 'Location pending',
+                                order.shippingAddr1 || null,
+                                order.estimatedDeliveryAt
+                                  ? `ETA ${formatDate(order.estimatedDeliveryAt)}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')
                             : formatDate(order.createdAt),
                       }))}
                       selectedId={selectedOrderId}
@@ -2262,7 +2475,19 @@ export function AdminDashboard({
                             <DetailStat label="Payment" value={selectedOrder.paymentMethod} />
                             <DetailStat label="Total" value={money(selectedOrder.totalAmount)} />
                           </div>
-                          <div className="grid gap-4 md:grid-cols-2">
+                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <DetailStat
+                              label="Customer phone"
+                              value={selectedOrder.customerPhone || 'No phone saved'}
+                            />
+                            <DetailStat
+                              label="Delivery location"
+                              value={
+                                [selectedOrder.shippingCity, selectedOrder.shippingAddr1]
+                                  .filter(Boolean)
+                                  .join(' · ') || 'Location pending'
+                              }
+                            />
                             <DetailStat
                               label="Delivery expectation"
                               value={
@@ -2273,6 +2498,26 @@ export function AdminDashboard({
                             />
                             <DetailStat label="Tracking code" value={selectedOrder.trackingCode} />
                           </div>
+                          {isDeliveryWorkspace ? (
+                            <div
+                              className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7"
+                              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+                            >
+                              <div
+                                className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ color: 'var(--tp-accent)' }}
+                              >
+                                Delivery handoff
+                              </div>
+                              <div className="mt-3">
+                                {selectedOrder.shippingCity || 'Location pending'}
+                                {selectedOrder.shippingAddr1 ? ` · ${selectedOrder.shippingAddr1}` : ''}
+                              </div>
+                              <div className="mt-2 tp-text-soft">
+                                {selectedOrder.customerPhone || selectedOrder.customerEmail}
+                              </div>
+                            </div>
+                          ) : null}
                           <ToggleRow
                             label="Custom order timeline"
                             checked={orderIsCustom}
