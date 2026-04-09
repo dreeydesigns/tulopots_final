@@ -83,7 +83,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
 
   if (!secretKey) {
     throw new Error(
-      'Card payment setup is incomplete in this deployment. Add the Stripe secret key in Vercel and redeploy.'
+      'Card payment setup is incomplete in this deployment. Add the Stripe key in Vercel and redeploy.'
     );
   }
 
@@ -139,7 +139,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
 
     if (/api key/i.test(message)) {
       throw new Error(
-        'Card payment setup is incomplete in this deployment. Check the Stripe secret key in Vercel and redeploy.'
+        'Card payment setup is incomplete in this deployment. Check the Stripe key in Vercel and redeploy.'
       );
     }
 
@@ -252,7 +252,7 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
 
     throw new Error(
       credentialError
-        ? 'M-Pesa rejected the credentials. For sandbox, use MPESA_BASE_URL=https://sandbox.safaricom.co.ke, MPESA_SHORTCODE=174379, and make sure the consumer key, consumer secret, and passkey all come from the same Daraja sandbox setup.'
+        ? 'M-Pesa rejected the saved setup. For sandbox, use MPESA_BASE_URL=https://sandbox.safaricom.co.ke, MPESA_SHORTCODE=174379, and make sure the consumer key, consumer secret, and passkey all come from the same Daraja sandbox setup.'
         : stkData?.errorMessage ||
             stkData?.ResponseDescription ||
             'Failed to initiate M-Pesa STK push.'

@@ -111,6 +111,15 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[mpesa] error:', error);
+    const message = error instanceof Error ? error.message : '';
+    if (
+      message.startsWith('M-Pesa is not configured.') ||
+      message.startsWith('M-Pesa rejected the saved setup.') ||
+      message.startsWith('Enter a valid M-Pesa number') ||
+      message.startsWith('Failed to authenticate with the M-Pesa API.')
+    ) {
+      return jsonError(message, 500);
+    }
     return jsonError(getSafeErrorMessage(error, 'Failed to initiate M-Pesa payment.'), 500);
   }
 }

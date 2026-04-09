@@ -144,6 +144,13 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[stripe] error:', error);
+    const message = error instanceof Error ? error.message : '';
+    if (
+      message.startsWith('Card payment setup is incomplete') ||
+      message.startsWith('Stripe rejected the API version')
+    ) {
+      return jsonError(message, 500);
+    }
     return jsonError(getSafeErrorMessage(error, 'Failed to initiate Stripe payment.'), 500);
   }
 }
