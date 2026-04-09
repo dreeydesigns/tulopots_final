@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminUser } from '@/lib/admin';
 import { runOperationsAutomation } from '@/lib/operations';
+import { getSafeErrorMessage } from '@/lib/security/errors';
 
 function hasValidAutomationSecret(request: NextRequest) {
   const configuredSecret = process.env.OPERATIONS_AUTOMATION_SECRET;
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message || 'Unable to run the operations automation pass.',
+        error: getSafeErrorMessage(error, 'Unable to run the operations automation pass.'),
       },
       { status: 500 }
     );

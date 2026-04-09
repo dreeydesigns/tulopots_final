@@ -1,4 +1,5 @@
 import { Prisma, type NotificationChannel, type OrderStatus } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
   appendTrackingEntry,
@@ -33,6 +34,120 @@ type OperationsSummary = {
   processedJobs: number;
   failedJobs: number;
 };
+
+const operationsOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  userId: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  isCustomOrder: true,
+  estimatedDispatchAt: true,
+  estimatedDeliveryAt: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  createdAt: true,
+  updatedAt: true,
+  items: {
+    select: {
+      name: true,
+      productSlug: true,
+    },
+  },
+} satisfies Prisma.OrderSelect;
+
+const legacyOperationsOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  userId: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  isCustomOrder: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  createdAt: true,
+  updatedAt: true,
+  items: {
+    select: {
+      name: true,
+      productSlug: true,
+    },
+  },
+} satisfies Prisma.OrderSelect;
+
+const orderNotificationSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  userId: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+} satisfies Prisma.OrderSelect;
+
+async function findOrderForOperations(orderId: string) {
+  return prisma.order.findUnique({
+    where: { id: orderId },
+    select: orderNotificationSelect,
+  });
+}
+
+async function findOrdersForAutomation() {
+  try {
+    return await prisma.order.findMany({
+      where: {
+        status: {
+          in: ['CONFIRMED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'FAILED'],
+        },
+      },
+      select: operationsOrderSelect,
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findMany({
+      where: {
+        status: {
+          in: ['CONFIRMED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'FAILED'],
+        },
+      },
+      select: legacyOperationsOrderSelect,
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+}
+
+async function safeSupportThreadCount() {
+  try {
+    return await prisma.supportThread.count({
+      where: {
+        status: {
+          in: ['OPEN', 'PENDING'],
+        },
+      },
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return 0;
+  }
+}
 
 function hasNotificationKind(value: Prisma.JsonValue | null | undefined, kind: string) {
   return readNotificationLog(value).some((entry) => entry.kind === kind);
@@ -160,9 +275,7 @@ export async function processAutomationJob(jobId: string) {
           break;
         }
 
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-        });
+        const order = await findOrderForOperations(orderId);
 
         if (!order) {
           break;
@@ -187,9 +300,7 @@ export async function processAutomationJob(jobId: string) {
           break;
         }
 
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-        });
+        const order = await findOrderForOperations(orderId);
 
         if (!order) {
           break;
@@ -228,9 +339,7 @@ export async function processAutomationJob(jobId: string) {
           break;
         }
 
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-        });
+        const order = await findOrderForOperations(orderId);
 
         if (!order) {
           break;
@@ -255,9 +364,7 @@ export async function processAutomationJob(jobId: string) {
           break;
         }
 
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-        });
+        const order = await findOrderForOperations(orderId);
 
         if (!order) {
           break;
@@ -340,13 +447,7 @@ export async function processAutomationJob(jobId: string) {
       }
 
       case 'SUPPORT_DIGEST': {
-        const openThreads = await prisma.supportThread.count({
-          where: {
-            status: {
-              in: ['OPEN', 'PENDING'],
-            },
-          },
-        });
+        const openThreads = await safeSupportThreadCount();
 
         const pendingDeliveries = await prisma.order.count({
           where: {
@@ -462,20 +563,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
   };
 
   const [orders, reviews, products] = await Promise.all([
-    prisma.order.findMany({
-      where: {
-        status: {
-          in: ['CONFIRMED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'FAILED'],
-        },
-      },
-      include: {
-        user: true,
-        items: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    }),
+    findOrdersForAutomation(),
     prisma.review.findMany({
       where: {
         userId: {
@@ -509,6 +597,10 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
     let nextTrackingTimeline = order.trackingTimeline;
     let nextNotificationLog = order.notificationLog;
     let shouldSave = false;
+    const estimatedDispatchAt =
+      'estimatedDispatchAt' in order ? order.estimatedDispatchAt ?? null : null;
+    const estimatedDeliveryAt =
+      'estimatedDeliveryAt' in order ? order.estimatedDeliveryAt ?? null : null;
 
     if (
       ['CONFIRMED', 'PAID'].includes(order.status) &&
@@ -531,7 +623,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
             status: nextStatus,
             isCustomOrder: order.isCustomOrder,
           },
-          order.user,
+          undefined,
           now
         )
       );
@@ -552,8 +644,8 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
 
     if (
       nextStatus === 'PROCESSING' &&
-      order.estimatedDispatchAt &&
-      order.estimatedDispatchAt <= now
+      estimatedDispatchAt &&
+      estimatedDispatchAt <= now
     ) {
       nextStatus = 'SHIPPED';
       nextTrackingTimeline = appendTrackingEntry(
@@ -572,7 +664,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
             status: nextStatus,
             isCustomOrder: order.isCustomOrder,
           },
-          order.user,
+          undefined,
           now
         )
       );
@@ -593,8 +685,8 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
 
     if (
       nextStatus === 'SHIPPED' &&
-      order.estimatedDeliveryAt &&
-      order.estimatedDeliveryAt <= now &&
+      estimatedDeliveryAt &&
+      estimatedDeliveryAt <= now &&
       !hasNotificationKind(nextNotificationLog, 'delivery_check_in')
     ) {
       nextTrackingTimeline = appendUniqueTrackingEntry(
@@ -614,7 +706,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
               : 'Your order has reached its planned delivery window. We should confirm delivery progress now.',
             kind: 'delivery_check_in',
           },
-          order.user,
+          undefined,
           now
         )
       );
@@ -634,7 +726,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
 
     if (
       nextStatus === 'DELIVERED' &&
-      (order.deliveredAt || order.updatedAt) <= hoursAgo(now, REVIEW_REQUEST_AFTER_HOURS) &&
+      order.updatedAt <= hoursAgo(now, REVIEW_REQUEST_AFTER_HOURS) &&
       !hasNotificationKind(nextNotificationLog, 'review_request')
     ) {
       const itemNames = order.items.map((item) => item.name);
@@ -656,7 +748,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
               detail: `Follow up for feedback on ${itemNames.join(', ')} and invite a review once the pieces have settled into the space.`,
               kind: 'review_request',
             },
-            order.user,
+            undefined,
             now
           )
         );

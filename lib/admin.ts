@@ -14,6 +14,96 @@ import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
 import { normalizeAvailableSizes, normalizeModeContent } from '@/lib/product-variants';
 import { prisma } from '@/lib/prisma';
 
+const adminDashboardOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  totalAmount: true,
+  subtotal: true,
+  deliveryFee: true,
+  shippingCity: true,
+  shippingAddr1: true,
+  adminNotes: true,
+  createdAt: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  estimatedDispatchAt: true,
+  estimatedDeliveryAt: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  attributionSource: true,
+  attributionMedium: true,
+  attributionCampaign: true,
+  landingPath: true,
+  gclid: true,
+  fbclid: true,
+  items: {
+    select: {
+      id: true,
+      name: true,
+      quantity: true,
+      mode: true,
+      lineTotal: true,
+      image: true,
+    },
+  },
+} satisfies import('@prisma/client').Prisma.OrderSelect;
+
+const compatibilityDashboardOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  totalAmount: true,
+  subtotal: true,
+  deliveryFee: true,
+  shippingCity: true,
+  shippingAddr1: true,
+  adminNotes: true,
+  createdAt: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  items: {
+    select: {
+      id: true,
+      name: true,
+      quantity: true,
+      mode: true,
+      lineTotal: true,
+      image: true,
+    },
+  },
+} satisfies import('@prisma/client').Prisma.OrderSelect;
+
+async function findDashboardOrders() {
+  try {
+    return await prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+      select: adminDashboardOrderSelect,
+    });
+  } catch (error) {
+    if (!isAdminDashboardFallbackError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+      select: compatibilityDashboardOrderSelect,
+    });
+  }
+}
+
 export const adminOrderStatuses: OrderStatus[] = [
   'PENDING',
   'CONFIRMED',
@@ -186,11 +276,7 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
       orderBy: { updatedAt: 'desc' },
       take: 60,
     }),
-    prisma.order.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 40,
-      include: { items: true },
-    }),
+    findDashboardOrders(),
     prisma.studioBrief.findMany({
       orderBy: { createdAt: 'desc' },
       take: 40,
@@ -322,13 +408,29 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
 
   const attributionSummary = Array.from(
     orders.reduce((summary, order) => {
-      const label =
-        order.attributionCampaign ||
-        order.attributionSource ||
-        (order.gclid ? 'Google Ads' : order.fbclid ? 'Meta Ads' : 'Direct / Unattributed');
-      const medium =
-        order.attributionMedium ||
-        (order.gclid ? 'cpc' : order.fbclid ? 'paid-social' : 'direct');
+      const rawCampaign =
+        'attributionCampaign' in order && typeof order.attributionCampaign === 'string'
+          ? order.attributionCampaign
+          : '';
+      const rawSource =
+        'attributionSource' in order && typeof order.attributionSource === 'string'
+          ? order.attributionSource
+          : '';
+      const rawMedium =
+        'attributionMedium' in order && typeof order.attributionMedium === 'string'
+          ? order.attributionMedium
+          : '';
+      const hasGoogleClick =
+        'gclid' in order && typeof order.gclid === 'string' && order.gclid.length > 0;
+      const hasMetaClick =
+        'fbclid' in order && typeof order.fbclid === 'string' && order.fbclid.length > 0;
+
+      const label = rawCampaign || rawSource || (hasGoogleClick
+        ? 'Google Ads'
+        : hasMetaClick
+          ? 'Meta Ads'
+          : 'Direct / Unattributed');
+      const medium = rawMedium || (hasGoogleClick ? 'cpc' : hasMetaClick ? 'paid-social' : 'direct');
       const key = `${label}__${medium}`;
       const current = summary.get(key) || {
         label,
@@ -388,7 +490,10 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
         shippingCity: order.shippingCity,
         shippingAddr1: order.shippingAddr1,
         status: order.status,
-        estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || null,
+        estimatedDeliveryAt:
+          'estimatedDeliveryAt' in order && order.estimatedDeliveryAt instanceof Date
+            ? order.estimatedDeliveryAt.toISOString()
+            : null,
       })),
     },
     products: products.map((product) => ({
@@ -460,17 +565,23 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
       createdAt: order.createdAt.toISOString(),
       trackingCode: order.trackingCode,
       isCustomOrder: order.isCustomOrder,
-      estimatedDispatchAt: order.estimatedDispatchAt?.toISOString() || null,
-      estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || null,
+      estimatedDispatchAt:
+        'estimatedDispatchAt' in order && order.estimatedDispatchAt instanceof Date
+          ? order.estimatedDispatchAt.toISOString()
+          : null,
+      estimatedDeliveryAt:
+        'estimatedDeliveryAt' in order && order.estimatedDeliveryAt instanceof Date
+          ? order.estimatedDeliveryAt.toISOString()
+          : null,
       trackingTimeline: Array.isArray(order.trackingTimeline) ? order.trackingTimeline : [],
       notificationLog: Array.isArray(order.notificationLog) ? order.notificationLog : [],
       attribution: {
-        source: order.attributionSource,
-        medium: order.attributionMedium,
-        campaign: order.attributionCampaign,
-        landingPath: order.landingPath,
-        gclid: order.gclid,
-        fbclid: order.fbclid,
+        source: 'attributionSource' in order ? order.attributionSource : null,
+        medium: 'attributionMedium' in order ? order.attributionMedium : null,
+        campaign: 'attributionCampaign' in order ? order.attributionCampaign : null,
+        landingPath: 'landingPath' in order ? order.landingPath : null,
+        gclid: 'gclid' in order ? order.gclid : null,
+        fbclid: 'fbclid' in order ? order.fbclid : null,
       },
       itemCount: order.items.length,
       items: order.items.map((item) => ({

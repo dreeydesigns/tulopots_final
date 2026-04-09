@@ -1,10 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { adminOrderStatuses, requireAdminUser } from '@/lib/admin';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries, computeDeliveryDates } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 import { queueAutomationJob } from '@/lib/automation';
 import { processAutomationJob } from '@/lib/operations';
 import { recordAdminAudit } from '@/lib/security/audit';
+
+const existingOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  isCustomOrder: true,
+  createdAt: true,
+  customerEmail: true,
+  customerPhone: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  adminNotes: true,
+} satisfies Prisma.OrderSelect;
+
+async function findExistingOrder(id: string) {
+  return prisma.order.findUnique({
+    where: { id },
+    select: existingOrderSelect,
+  });
+}
+
+async function updateOrderWithFallback(
+  id: string,
+  data: Prisma.OrderUpdateInput,
+  compatibilityData: Prisma.OrderUpdateInput
+) {
+  try {
+    return await prisma.order.update({
+      where: { id },
+      data,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.update({
+      where: { id },
+      data: compatibilityData,
+    });
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -24,10 +68,7 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: 'Invalid order status.' }, { status: 400 });
   }
 
-  const existingOrder = await prisma.order.findUnique({
-    where: { id },
-    include: { user: true },
-  });
+  const existingOrder = await findExistingOrder(id);
 
   if (!existingOrder) {
     return NextResponse.json({ ok: false, error: 'Order not found.' }, { status: 404 });
@@ -43,39 +84,41 @@ export async function PATCH(
     nextIsCustomOrder
   );
 
-  const order = await prisma.order.update({
-    where: { id },
-    data: {
-      status: nextStatus,
-      isCustomOrder: nextIsCustomOrder,
-      estimatedDispatchAt,
-      estimatedDeliveryAt,
-      deliveredAt: nextStatus === 'DELIVERED' ? new Date() : existingOrder.deliveredAt,
-      ...(status
-        ? {
-            trackingTimeline: appendTrackingEntry(
-              existingOrder.trackingTimeline,
-              nextStatus,
-              nextIsCustomOrder
-            ),
-            notificationLog: appendNotificationEntries(
-              existingOrder.notificationLog,
-              buildNotificationEntries(
-                {
-                  orderNumber: existingOrder.orderNumber,
-                  customerEmail: existingOrder.customerEmail,
-                  customerPhone: existingOrder.customerPhone,
-                  status: nextStatus,
-                  isCustomOrder: nextIsCustomOrder,
-                },
-                existingOrder.user
-              )
-            ),
-          }
-        : {}),
-      ...(body.adminNotes !== undefined ? { adminNotes: body.adminNotes || null } : {}),
+  const sharedUpdate = {
+    status: nextStatus,
+    isCustomOrder: nextIsCustomOrder,
+    estimatedDispatchAt,
+    estimatedDeliveryAt,
+    ...(status
+      ? {
+          trackingTimeline: appendTrackingEntry(
+            existingOrder.trackingTimeline,
+            nextStatus,
+            nextIsCustomOrder
+          ),
+          notificationLog: appendNotificationEntries(
+            existingOrder.notificationLog,
+            buildNotificationEntries({
+              orderNumber: existingOrder.orderNumber,
+              customerEmail: existingOrder.customerEmail,
+              customerPhone: existingOrder.customerPhone || '',
+              status: nextStatus,
+              isCustomOrder: nextIsCustomOrder,
+            })
+          ),
+        }
+      : {}),
+    ...(body.adminNotes !== undefined ? { adminNotes: body.adminNotes || null } : {}),
+  } satisfies Prisma.OrderUpdateInput;
+
+  const order = await updateOrderWithFallback(
+    id,
+    {
+      ...sharedUpdate,
+      deliveredAt: nextStatus === 'DELIVERED' ? new Date() : null,
     },
-  });
+    sharedUpdate
+  );
 
   await recordAdminAudit({
     actorUserId: adminUser.id,

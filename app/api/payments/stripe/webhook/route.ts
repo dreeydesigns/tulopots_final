@@ -1,9 +1,20 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
+
+const stripeWebhookOrderSelect = {
+  id: true,
+  orderNumber: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  isCustomOrder: true,
+  customerEmail: true,
+  customerPhone: true,
+} satisfies Prisma.OrderSelect;
 
 function readEnvValue(...keys: string[]) {
   for (const key of keys) {
@@ -57,7 +68,7 @@ export async function POST(req: NextRequest) {
       if (orderId) {
         const order = await prisma.order.findUnique({
           where: { id: orderId },
-          include: { user: true },
+          select: stripeWebhookOrderSelect,
         });
 
         if (!order) {
@@ -93,8 +104,7 @@ export async function POST(req: NextRequest) {
                   customerPhone: order.customerPhone,
                   status: 'PAID',
                   isCustomOrder: order.isCustomOrder,
-                },
-                order.user
+                }
               )
             ),
           },
@@ -112,7 +122,7 @@ export async function POST(req: NextRequest) {
       if (orderId) {
         const order = await prisma.order.findUnique({
           where: { id: orderId },
-          include: { user: true },
+          select: stripeWebhookOrderSelect,
         });
 
         if (!order) {
@@ -148,8 +158,7 @@ export async function POST(req: NextRequest) {
                   customerPhone: order.customerPhone,
                   status: 'FAILED',
                   isCustomOrder: order.isCustomOrder,
-                },
-                order.user
+                }
               )
             ),
           },

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { requireAdminUser } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
@@ -10,6 +12,90 @@ import { prisma } from '@/lib/prisma';
 // and basic customer metadata.  If no orders exist, an empty array is
 // returned.  Errors are surfaced via 500 responses with a generic message.
 
+const orderItemSelect = {
+  name: true,
+  mode: true,
+  quantity: true,
+  unitPrice: true,
+  lineTotal: true,
+  image: true,
+  sizeLabel: true,
+} satisfies Prisma.OrderItemSelect;
+
+const modernOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  totalAmount: true,
+  subtotal: true,
+  deliveryFee: true,
+  currency: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  estimatedDispatchAt: true,
+  estimatedDeliveryAt: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  attributionSource: true,
+  attributionMedium: true,
+  attributionCampaign: true,
+  landingPath: true,
+  createdAt: true,
+  items: {
+    select: orderItemSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+const legacyOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  totalAmount: true,
+  subtotal: true,
+  deliveryFee: true,
+  currency: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  createdAt: true,
+  items: {
+    select: orderItemSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+async function findOrdersWithFallback() {
+  try {
+    return await prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: modernOrderSelect,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: legacyOrderSelect,
+    });
+  }
+}
+
+function toIsoDate(value: unknown) {
+  return value instanceof Date ? value.toISOString() : undefined;
+}
+
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
     const adminUser = await requireAdminUser('orders.read');
@@ -18,11 +104,7 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: { items: true },
-    });
+    const orders = await findOrdersWithFallback();
 
     return NextResponse.json({
       ok: true,
@@ -42,15 +124,33 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
         shippingCity: order.shippingCity || undefined,
         trackingCode: order.trackingCode,
         isCustomOrder: order.isCustomOrder,
-        estimatedDispatchAt: order.estimatedDispatchAt?.toISOString() || undefined,
-        estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || undefined,
-        trackingTimeline: order.trackingTimeline || [],
-        notificationLog: order.notificationLog || [],
+        estimatedDispatchAt:
+          'estimatedDispatchAt' in order ? toIsoDate(order.estimatedDispatchAt) : undefined,
+        estimatedDeliveryAt:
+          'estimatedDeliveryAt' in order ? toIsoDate(order.estimatedDeliveryAt) : undefined,
+        trackingTimeline:
+          'trackingTimeline' in order && Array.isArray(order.trackingTimeline)
+            ? order.trackingTimeline
+            : [],
+        notificationLog:
+          'notificationLog' in order && Array.isArray(order.notificationLog)
+            ? order.notificationLog
+            : [],
         attribution: {
-          source: order.attributionSource || undefined,
-          medium: order.attributionMedium || undefined,
-          campaign: order.attributionCampaign || undefined,
-          landingPath: order.landingPath || undefined,
+          source:
+            'attributionSource' in order && order.attributionSource
+              ? order.attributionSource
+              : undefined,
+          medium:
+            'attributionMedium' in order && order.attributionMedium
+              ? order.attributionMedium
+              : undefined,
+          campaign:
+            'attributionCampaign' in order && order.attributionCampaign
+              ? order.attributionCampaign
+              : undefined,
+          landingPath:
+            'landingPath' in order && order.landingPath ? order.landingPath : undefined,
         },
         createdAt: order.createdAt.toISOString(),
         items: order.items.map((item) => ({

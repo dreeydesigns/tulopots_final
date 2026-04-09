@@ -3,8 +3,19 @@
 // Set MPESA_CALLBACK_URL=https://YOUR_DOMAIN/api/payments/mpesa/callback
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
+
+const paymentCallbackOrderSelect = {
+  id: true,
+  orderNumber: true,
+  trackingTimeline: true,
+  notificationLog: true,
+  isCustomOrder: true,
+  customerEmail: true,
+  customerPhone: true,
+} satisfies Prisma.OrderSelect;
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,11 +34,12 @@ export async function POST(req: NextRequest) {
     // Find the payment record by requestId
     const payment = await prisma.payment.findFirst({
       where: { providerRequestId: requestId },
-      include: {
+      select: {
+        id: true,
+        orderId: true,
+        externalRef: true,
         order: {
-          include: {
-            user: true,
-          },
+          select: paymentCallbackOrderSelect,
         },
       },
     });
@@ -70,8 +82,7 @@ export async function POST(req: NextRequest) {
                 customerPhone: payment.order.customerPhone,
                 status: 'PAID',
                 isCustomOrder: payment.order.isCustomOrder,
-              },
-              payment.order.user
+              }
             )
           ),
         },
@@ -106,8 +117,7 @@ export async function POST(req: NextRequest) {
                 customerPhone: payment.order.customerPhone,
                 status: 'FAILED',
                 isCustomOrder: payment.order.isCustomOrder,
-              },
-              payment.order.user
+              }
             )
           ),
         },

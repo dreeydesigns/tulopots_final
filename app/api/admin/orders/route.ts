@@ -1,10 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { requireAdminUser } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
 function toCsvCell(value: unknown) {
   const normalized = String(value ?? '').replace(/"/g, '""');
   return `"${normalized}"`;
+}
+
+const paymentSelect = {
+  status: true,
+  createdAt: true,
+} satisfies Prisma.PaymentSelect;
+
+const orderItemSelect = {
+  id: true,
+  name: true,
+  quantity: true,
+  mode: true,
+  lineTotal: true,
+} satisfies Prisma.OrderItemSelect;
+
+const modernOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  subtotal: true,
+  deliveryFee: true,
+  totalAmount: true,
+  currency: true,
+  attributionSource: true,
+  attributionMedium: true,
+  attributionCampaign: true,
+  landingPath: true,
+  gclid: true,
+  fbclid: true,
+  estimatedDispatchAt: true,
+  estimatedDeliveryAt: true,
+  createdAt: true,
+  items: {
+    select: orderItemSelect,
+  },
+  payments: {
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    select: paymentSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+const legacyOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  paymentMethod: true,
+  trackingCode: true,
+  isCustomOrder: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingCity: true,
+  subtotal: true,
+  deliveryFee: true,
+  totalAmount: true,
+  currency: true,
+  createdAt: true,
+  items: {
+    select: orderItemSelect,
+  },
+  payments: {
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    select: paymentSelect,
+  },
+} satisfies Prisma.OrderSelect;
+
+async function findAdminOrders() {
+  try {
+    return await prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      select: modernOrderSelect,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      select: legacyOrderSelect,
+    });
+  }
+}
+
+function toIsoDate(value: unknown) {
+  return value instanceof Date ? value.toISOString() : '';
 }
 
 export async function GET(request: NextRequest) {
@@ -15,17 +114,7 @@ export async function GET(request: NextRequest) {
   }
 
   const format = request.nextUrl.searchParams.get('format');
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      items: true,
-      payments: {
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      },
-    },
-    take: 500,
-  });
+  const orders = await findAdminOrders();
 
   if (format === 'csv') {
     const headers = [
@@ -76,14 +165,14 @@ export async function GET(request: NextRequest) {
           order.items
             .map((item) => `${item.name} x${item.quantity} (${item.mode})`)
             .join(' | '),
-          order.attributionSource || '',
-          order.attributionMedium || '',
-          order.attributionCampaign || '',
-          order.landingPath || '',
-          order.gclid || '',
-          order.fbclid || '',
-          order.estimatedDispatchAt?.toISOString() || '',
-          order.estimatedDeliveryAt?.toISOString() || '',
+          ('attributionSource' in order ? order.attributionSource : '') || '',
+          ('attributionMedium' in order ? order.attributionMedium : '') || '',
+          ('attributionCampaign' in order ? order.attributionCampaign : '') || '',
+          ('landingPath' in order ? order.landingPath : '') || '',
+          ('gclid' in order ? order.gclid : '') || '',
+          ('fbclid' in order ? order.fbclid : '') || '',
+          ('estimatedDispatchAt' in order ? toIsoDate(order.estimatedDispatchAt) : ''),
+          ('estimatedDeliveryAt' in order ? toIsoDate(order.estimatedDeliveryAt) : ''),
           order.createdAt.toISOString(),
         ]
           .map(toCsvCell)
@@ -119,16 +208,18 @@ export async function GET(request: NextRequest) {
       deliveryFee: order.deliveryFee,
       totalAmount: order.totalAmount,
       currency: order.currency,
-      estimatedDispatchAt: order.estimatedDispatchAt?.toISOString() || null,
-      estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() || null,
+      estimatedDispatchAt:
+        'estimatedDispatchAt' in order ? toIsoDate(order.estimatedDispatchAt) || null : null,
+      estimatedDeliveryAt:
+        'estimatedDeliveryAt' in order ? toIsoDate(order.estimatedDeliveryAt) || null : null,
       createdAt: order.createdAt.toISOString(),
       attribution: {
-        source: order.attributionSource,
-        medium: order.attributionMedium,
-        campaign: order.attributionCampaign,
-        landingPath: order.landingPath,
-        gclid: order.gclid,
-        fbclid: order.fbclid,
+        source: 'attributionSource' in order ? order.attributionSource : null,
+        medium: 'attributionMedium' in order ? order.attributionMedium : null,
+        campaign: 'attributionCampaign' in order ? order.attributionCampaign : null,
+        landingPath: 'landingPath' in order ? order.landingPath : null,
+        gclid: 'gclid' in order ? order.gclid : null,
+        fbclid: 'fbclid' in order ? order.fbclid : null,
       },
       items: order.items.map((item) => ({
         id: item.id,

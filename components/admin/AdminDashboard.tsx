@@ -390,6 +390,116 @@ const adminRoleOptions = [
   'CUSTOMER',
 ];
 
+const ROLE_DEFAULT_TAB: Record<User['role'], Tab> = {
+  CUSTOMER: 'overview',
+  SUPER_ADMIN: 'overview',
+  OPERATIONS_ADMIN: 'orders',
+  DELIVERY_ADMIN: 'orders',
+  CONTENT_ADMIN: 'products',
+  SUPPORT_ADMIN: 'support',
+  ANALYST: 'overview',
+};
+
+const ROLE_COPY: Record<
+  User['role'],
+  {
+    eyebrow: string;
+    description: string;
+    ordersTitle: string;
+    ordersSubtitle: string;
+    quickActions: Array<{ label: string; tab: Tab }>;
+  }
+> = {
+  CUSTOMER: {
+    eyebrow: 'Internal Control Layer',
+    description: 'Customer accounts do not have operational dashboard access.',
+    ordersTitle: 'Order management',
+    ordersSubtitle: 'Review live orders and move each one through fulfillment.',
+    quickActions: [],
+  },
+  SUPER_ADMIN: {
+    eyebrow: 'Super Admin Control Layer',
+    description:
+      'Full access across catalog, orders, support, automation, security, and role control.',
+    ordersTitle: 'Order management',
+    ordersSubtitle: 'Review live orders and move each one through fulfillment.',
+    quickActions: [
+      { label: 'Add a product', tab: 'products' },
+      { label: 'Review newest order', tab: 'orders' },
+      { label: 'Respond to Studio brief', tab: 'studio' },
+      { label: 'Moderate newest review', tab: 'reviews' },
+      { label: 'Triage support message', tab: 'support' },
+      { label: 'Export newsletter list', tab: 'newsletter' },
+    ],
+  },
+  OPERATIONS_ADMIN: {
+    eyebrow: 'Operations Control Layer',
+    description:
+      'Focus on active orders, fulfillment timing, delivery coordination, and automation health.',
+    ordersTitle: 'Operations board',
+    ordersSubtitle:
+      'Track order status, dispatch timing, delivery windows, and warehouse-to-door progress.',
+    quickActions: [
+      { label: 'Review active deliveries', tab: 'orders' },
+      { label: 'Check support escalations', tab: 'support' },
+      { label: 'Run automation pass', tab: 'automation' },
+      { label: 'Open Studio briefs', tab: 'studio' },
+    ],
+  },
+  DELIVERY_ADMIN: {
+    eyebrow: 'Delivery Control Layer',
+    description:
+      'See active routes, locations, successful handoffs, and the delivery follow-ups that still need attention.',
+    ordersTitle: 'Delivery board',
+    ordersSubtitle:
+      'Track what is out for delivery, what has landed, where it is going, and which handoffs still need confirmation.',
+    quickActions: [
+      { label: 'Review active deliveries', tab: 'orders' },
+      { label: 'Check delivery follow-ups', tab: 'support' },
+      { label: 'See delivered orders', tab: 'orders' },
+    ],
+  },
+  CONTENT_ADMIN: {
+    eyebrow: 'Content Control Layer',
+    description:
+      'Work across products, editorial content, reviews, and newsletter storytelling without touching code.',
+    ordersTitle: 'Order reference',
+    ordersSubtitle:
+      'Read live orders for context while content and campaign work stays in focus.',
+    quickActions: [
+      { label: 'Add a product', tab: 'products' },
+      { label: 'Moderate newest review', tab: 'reviews' },
+      { label: 'Open newsletter', tab: 'newsletter' },
+      { label: 'Edit live content', tab: 'content' },
+    ],
+  },
+  SUPPORT_ADMIN: {
+    eyebrow: 'Support Control Layer',
+    description:
+      'Stay close to customer conversations, delivery issues, Studio requests, and escalations that need a human response.',
+    ordersTitle: 'Order lookup',
+    ordersSubtitle:
+      'Check order status and delivery context while support work stays centered on the customer thread.',
+    quickActions: [
+      { label: 'Open support inbox', tab: 'support' },
+      { label: 'Review delivery issues', tab: 'orders' },
+      { label: 'Open Studio briefs', tab: 'studio' },
+      { label: 'Review newsletter audience', tab: 'newsletter' },
+    ],
+  },
+  ANALYST: {
+    eyebrow: 'Analytics Control Layer',
+    description:
+      'Monitor business signals, campaign attribution, and exportable insights without touching operational records.',
+    ordersTitle: 'Order visibility',
+    ordersSubtitle: 'Read order and campaign signals in a safe, export-focused view.',
+    quickActions: [
+      { label: 'Review recent signals', tab: 'overview' },
+      { label: 'Open newsletter audience', tab: 'newsletter' },
+    ],
+  },
+};
+
 function money(value: number) {
   return new Intl.NumberFormat('en-KE', {
     style: 'currency',
@@ -530,6 +640,14 @@ export function AdminDashboard({
     () => tabs.filter((item) => user.allowedAdminTabs.includes(item.id)),
     [user.allowedAdminTabs]
   );
+  const roleCopy = ROLE_COPY[user.role];
+  const preferredTab = ROLE_DEFAULT_TAB[user.role];
+  const canManageProducts = user.permissions.includes('products.manage');
+  const canManageOrders = user.permissions.includes('orders.manage');
+  const canManageStudio = user.permissions.includes('studio.manage');
+  const canManageAutomation = user.permissions.includes('automation.manage');
+  const canReadExports = user.permissions.includes('exports.read');
+  const canManageNewsletter = user.permissions.includes('newsletter.manage');
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
@@ -550,7 +668,9 @@ export function AdminDashboard({
   const [selectedSecurityEventId, setSelectedSecurityEventId] = useState<string | null>(null);
   const [productQuery, setProductQuery] = useState('');
   const [orderQuery, setOrderQuery] = useState('');
-  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState(
+    user.role === 'DELIVERY_ADMIN' ? 'delivery-active' : 'all'
+  );
   const [supportQuery, setSupportQuery] = useState('');
   const [newsletterQuery, setNewsletterQuery] = useState('');
   const [selectedManagedPageKey, setSelectedManagedPageKey] = useState<string | null>(null);
@@ -567,8 +687,13 @@ export function AdminDashboard({
       return;
     }
 
+    if (user.allowedAdminTabs.includes(preferredTab)) {
+      setTab(preferredTab);
+      return;
+    }
+
     setTab((user.allowedAdminTabs[0] as Tab | undefined) || 'overview');
-  }, [initialTab, user.allowedAdminTabs]);
+  }, [initialTab, preferredTab, user.allowedAdminTabs]);
 
   async function loadDashboard() {
     try {
@@ -765,7 +890,13 @@ export function AdminDashboard({
 
     return dashboard.orders.filter((order) => {
       const matchesStatus =
-        orderStatusFilter === 'all' || order.status === orderStatusFilter;
+        orderStatusFilter === 'all'
+          ? true
+          : orderStatusFilter === 'delivery-active'
+            ? ['PAID', 'PROCESSING', 'SHIPPED'].includes(order.status)
+            : orderStatusFilter === 'delivery-complete'
+              ? order.status === 'DELIVERED'
+              : order.status === orderStatusFilter;
       const matchesQuery =
         !query ||
         [
@@ -1264,7 +1395,7 @@ export function AdminDashboard({
                 className="text-[11px] font-semibold uppercase tracking-[0.26em]"
                 style={{ color: 'var(--tp-accent)' }}
               >
-                Internal Control Layer
+                {roleCopy.eyebrow}
               </div>
               <h1
                 className="mt-4 text-4xl md:text-6xl"
@@ -1276,9 +1407,7 @@ export function AdminDashboard({
                 className="mt-4 max-w-3xl text-sm leading-8 md:text-base"
                 style={{ color: 'color-mix(in srgb, var(--tp-text) 86%, transparent 14%)' }}
               >
-                Signed in as {user.name}. This layer now runs on live Prisma data for products,
-                orders, Studio briefs, contact messages, newsletter growth, and content
-                visibility.
+                Signed in as {user.name}. {roleCopy.description}
               </p>
             </div>
 
@@ -1296,19 +1425,21 @@ export function AdminDashboard({
                 <RefreshCw className="h-4 w-4" />
                 Refresh
               </button>
-              <button
-                type="button"
-                onClick={() => void syncCatalog()}
-                disabled={pendingKey === 'sync-catalog'}
-                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-5 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60"
-                style={{
-                  background: 'var(--tp-accent)',
-                  color: '#ffffff',
-                }}
-              >
-                <Sparkles className="h-4 w-4" />
-                {pendingKey === 'sync-catalog' ? 'Syncing…' : 'Sync Starter Catalog'}
-              </button>
+              {canManageProducts ? (
+                <button
+                  type="button"
+                  onClick={() => void syncCatalog()}
+                  disabled={pendingKey === 'sync-catalog'}
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-5 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60"
+                  style={{
+                    background: 'var(--tp-accent)',
+                    color: '#ffffff',
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {pendingKey === 'sync-catalog' ? 'Syncing…' : 'Sync Starter Catalog'}
+                </button>
+              ) : null}
               <Link
                 href="/progress"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-full px-5 text-[11px] font-semibold uppercase tracking-[0.18em]"
@@ -1463,18 +1594,13 @@ export function AdminDashboard({
                               {automationMessage}
                             </div>
                           ) : null}
-                          {[
-                            ['Add a product', 'products'],
-                            ['Review newest order', 'orders'],
-                            ['Respond to Studio brief', 'studio'],
-                            ['Moderate newest review', 'reviews'],
-                            ['Triage support message', 'support'],
-                            ['Export newsletter list', 'newsletter'],
-                          ].map(([label, nextTab]) => (
+                          {roleCopy.quickActions
+                            .filter((item) => user.allowedAdminTabs.includes(item.tab))
+                            .map(({ label, tab: nextTab }) => (
                             <button
                               key={label}
                               type="button"
-                              onClick={() => setTab(nextTab as Tab)}
+                              onClick={() => setTab(nextTab)}
                               className="rounded-[1.25rem] border px-4 py-4 text-left text-sm"
                               style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
                             >
@@ -2074,6 +2200,12 @@ export function AdminDashboard({
                         value={orderStatusFilter}
                         options={[
                           { value: 'all', label: 'All statuses' },
+                          ...(user.role === 'DELIVERY_ADMIN' || user.role === 'OPERATIONS_ADMIN'
+                            ? [
+                                { value: 'delivery-active', label: 'Active deliveries' },
+                                { value: 'delivery-complete', label: 'Delivered' },
+                              ]
+                            : []),
                           ...orderStatusOptions.map((status) => ({
                             value: status,
                             label: status,
@@ -2083,13 +2215,16 @@ export function AdminDashboard({
                       />
                     </div>
                     <SplitPanel
-                      title="Order management"
-                      subtitle="Review live orders and move each one through fulfillment."
+                      title={roleCopy.ordersTitle}
+                      subtitle={roleCopy.ordersSubtitle}
                       list={filteredOrders.map((order) => ({
                         id: order.id,
                         title: order.orderNumber,
                         body: `${order.customerName} · ${money(order.totalAmount)} · ${order.status}`,
-                        meta: formatDate(order.createdAt),
+                        meta:
+                          user.role === 'DELIVERY_ADMIN' || user.role === 'OPERATIONS_ADMIN'
+                            ? order.shippingCity || 'Location pending'
+                            : formatDate(order.createdAt),
                       }))}
                       selectedId={selectedOrderId}
                       onSelect={setSelectedOrderId}
@@ -2097,29 +2232,31 @@ export function AdminDashboard({
                         selectedOrder ? (
                           <div className="space-y-5">
                           <DetailIntro title={selectedOrder.orderNumber} subtitle={`${selectedOrder.customerName} · ${selectedOrder.customerEmail}`} />
-                          <div className="flex flex-wrap gap-3">
-                            <a
-                              href="/api/admin/orders?format=csv"
-                              className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                              style={{
-                                background: 'var(--tp-accent)',
-                                color: 'var(--tp-btn-primary-text)',
-                              }}
-                            >
-                              Export orders
-                            </a>
-                            <a
-                              href="/api/admin/analytics?format=csv"
-                              className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                              style={{
-                                borderColor: 'var(--tp-border)',
-                                background: 'var(--tp-card)',
-                                color: 'var(--tp-heading)',
-                              }}
-                            >
-                              Export signals
-                            </a>
-                          </div>
+                          {canReadExports ? (
+                            <div className="flex flex-wrap gap-3">
+                              <a
+                                href="/api/admin/orders?format=csv"
+                                className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                style={{
+                                  background: 'var(--tp-accent)',
+                                  color: 'var(--tp-btn-primary-text)',
+                                }}
+                              >
+                                Export orders
+                              </a>
+                              <a
+                                href="/api/admin/analytics?format=csv"
+                                className="rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                style={{
+                                  borderColor: 'var(--tp-border)',
+                                  background: 'var(--tp-card)',
+                                  color: 'var(--tp-heading)',
+                                }}
+                              >
+                                Export signals
+                              </a>
+                            </div>
+                          ) : null}
                           <div className="grid gap-4 md:grid-cols-3">
                             <DetailStat label="Status" value={selectedOrder.status} />
                             <DetailStat label="Payment" value={selectedOrder.paymentMethod} />
@@ -2140,6 +2277,7 @@ export function AdminDashboard({
                             label="Custom order timeline"
                             checked={orderIsCustom}
                             onChange={setOrderIsCustom}
+                            disabled={!canManageOrders}
                           />
                           <div className="grid gap-4 md:grid-cols-2">
                             <DetailStat
@@ -2225,17 +2363,23 @@ export function AdminDashboard({
                               </div>
                             ))}
                           </div>
-                          <select value={orderStatus} onChange={(event) => setOrderStatus(event.target.value)} className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}>
+                          <select value={orderStatus} onChange={(event) => setOrderStatus(event.target.value)} disabled={!canManageOrders} className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}>
                             {orderStatusOptions.map((status) => (
                               <option key={status} value={status}>
                                 {status}
                               </option>
                             ))}
                           </select>
-                          <textarea value={orderNotes} onChange={(event) => setOrderNotes(event.target.value)} rows={5} placeholder="Internal notes for production, delivery, or follow-up" className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }} />
-                          <button type="button" onClick={() => void saveOrder()} disabled={pendingKey === `order:${selectedOrder.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
-                            {pendingKey === `order:${selectedOrder.id}` ? 'Saving…' : 'Save Order'}
-                          </button>
+                          <textarea value={orderNotes} onChange={(event) => setOrderNotes(event.target.value)} rows={5} disabled={!canManageOrders} placeholder="Internal notes for production, delivery, or follow-up" className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }} />
+                          {canManageOrders ? (
+                            <button type="button" onClick={() => void saveOrder()} disabled={pendingKey === `order:${selectedOrder.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
+                              {pendingKey === `order:${selectedOrder.id}` ? 'Saving…' : 'Save Order'}
+                            </button>
+                          ) : (
+                            <div className="rounded-[1.25rem] border px-4 py-4 text-sm" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'color-mix(in srgb, var(--tp-text) 72%, transparent 28%)' }}>
+                              This role can review order and delivery context, but it cannot change order records.
+                            </div>
+                          )}
                           </div>
                         ) : null
                       }
@@ -2262,17 +2406,19 @@ export function AdminDashboard({
                           <div className="rounded-[1.25rem] border px-4 py-4 text-sm leading-7" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
                             {selectedBrief.summary}
                           </div>
-                          <select value={briefStatus} onChange={(event) => setBriefStatus(event.target.value)} className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}>
+                          <select value={briefStatus} onChange={(event) => setBriefStatus(event.target.value)} disabled={!canManageStudio} className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}>
                             {studioStatusOptions.map((status) => (
                               <option key={status} value={status}>
                                 {status}
                               </option>
                             ))}
                           </select>
-                          <textarea value={briefNotes} onChange={(event) => setBriefNotes(event.target.value)} rows={6} placeholder="Internal notes, response framing, sourcing ideas, or next actions" className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }} />
-                          <button type="button" onClick={() => void saveBrief()} disabled={pendingKey === `brief:${selectedBrief.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
-                            {pendingKey === `brief:${selectedBrief.id}` ? 'Saving…' : 'Save Brief'}
-                          </button>
+                          <textarea value={briefNotes} onChange={(event) => setBriefNotes(event.target.value)} rows={6} disabled={!canManageStudio} placeholder="Internal notes, response framing, sourcing ideas, or next actions" className="w-full rounded-[1rem] border px-4 py-3 text-sm outline-none disabled:opacity-60" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }} />
+                          {canManageStudio ? (
+                            <button type="button" onClick={() => void saveBrief()} disabled={pendingKey === `brief:${selectedBrief.id}`} className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] disabled:opacity-60" style={{ background: 'var(--tp-accent)', color: '#ffffff' }}>
+                              {pendingKey === `brief:${selectedBrief.id}` ? 'Saving…' : 'Save Brief'}
+                            </button>
+                          ) : null}
                         </div>
                       ) : null
                     }
@@ -2564,15 +2710,17 @@ export function AdminDashboard({
                         />
                       </div>
                       <div className="mt-6 flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => void runAutomationPass()}
-                          disabled={pendingKey === 'automation:operations'}
-                          className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
-                          style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
-                        >
-                          {pendingKey === 'automation:operations' ? 'Running…' : 'Run automation pass'}
-                        </button>
+                        {canManageAutomation ? (
+                          <button
+                            type="button"
+                            onClick={() => void runAutomationPass()}
+                            disabled={pendingKey === 'automation:operations'}
+                            className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                            style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                          >
+                            {pendingKey === 'automation:operations' ? 'Running…' : 'Run automation pass'}
+                          </button>
+                        ) : null}
                       </div>
                       <div className="mt-6 grid gap-3">
                         {dashboard.automationJobs.slice(0, 12).map((job) => (
@@ -2794,7 +2942,8 @@ export function AdminDashboard({
                             onClick={() => void syncNewsletterToHubSpot()}
                             disabled={
                               pendingKey === 'newsletter:sync' ||
-                              !dashboard.newsletterMarketing.enabled
+                              !dashboard.newsletterMarketing.enabled ||
+                              !canManageNewsletter
                             }
                             className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
                             style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
@@ -3331,16 +3480,23 @@ function ToggleRow({
   label,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-center justify-between rounded-[1rem] border px-4 py-3 text-sm"
+      onClick={() => {
+        if (!disabled) {
+          onChange(!checked);
+        }
+      }}
+      disabled={disabled}
+      className="flex items-center justify-between rounded-[1rem] border px-4 py-3 text-sm disabled:opacity-60"
       style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
     >
       <span>{label}</span>
