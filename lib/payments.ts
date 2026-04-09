@@ -18,6 +18,92 @@ type MpesaStkInput = {
   baseUrl?: string;
 };
 
+type PaymentProvider = 'STRIPE' | 'MPESA';
+
+type PaymentProviderErrorCode =
+  | 'STRIPE_NOT_CONFIGURED'
+  | 'STRIPE_INVALID_KEY'
+  | 'STRIPE_API_VERSION'
+  | 'STRIPE_TEMPORARY_UNAVAILABLE'
+  | 'STRIPE_SESSION_INVALID'
+  | 'STRIPE_SESSION_FAILED'
+  | 'MPESA_NOT_CONFIGURED'
+  | 'MPESA_INVALID_PHONE'
+  | 'MPESA_AUTH_FAILED'
+  | 'MPESA_WRONG_CREDENTIALS'
+  | 'MPESA_REQUEST_FAILED';
+
+const STRIPE_SECRET_ENV_KEYS = [
+  'STRIPE_SECRET_KEY',
+  'STRIPE_API_KEY',
+  'STRIPE_SECRET',
+  'STRIPE_TEST_SECRET_KEY',
+  'STRIPE_LIVE_SECRET_KEY',
+  'STRIPE_TEST_API_KEY',
+  'STRIPE_LIVE_API_KEY',
+] as const;
+
+const STRIPE_RATE_ENV_KEYS = [
+  'STRIPE_KES_TO_USD_RATE',
+  'STRIPE_RATE_KES_TO_USD',
+] as const;
+
+const MPESA_BASE_URL_ENV_KEYS = [
+  'MPESA_BASE_URL',
+  'MPESA_URL',
+  'MPESA_API_BASE_URL',
+] as const;
+
+const MPESA_CONSUMER_KEY_ENV_KEYS = [
+  'MPESA_CONSUMER_KEY',
+  'DARAJA_CONSUMER_KEY',
+  'MPESA_KEY',
+] as const;
+
+const MPESA_CONSUMER_SECRET_ENV_KEYS = [
+  'MPESA_CONSUMER_SECRET',
+  'DARAJA_CONSUMER_SECRET',
+  'MPESA_SECRET',
+] as const;
+
+const MPESA_SHORTCODE_ENV_KEYS = [
+  'MPESA_SHORTCODE',
+  'MPESA_SHORT_CODE',
+  'MPESA_BUSINESS_SHORTCODE',
+] as const;
+
+const MPESA_PASSKEY_ENV_KEYS = [
+  'MPESA_PASSKEY',
+  'MPESA_STK_PASSKEY',
+  'MPESA_EXPRESS_PASSKEY',
+  'MPESA_LNMO_PASSKEY',
+] as const;
+
+const MPESA_CALLBACK_ENV_KEYS = [
+  'MPESA_CALLBACK_URL',
+  'MPESA_CALLBACK',
+  'MPESA_STK_CALLBACK_URL',
+] as const;
+
+export class PaymentProviderError extends Error {
+  provider: PaymentProvider;
+  code: PaymentProviderErrorCode;
+  status: number;
+
+  constructor(
+    provider: PaymentProvider,
+    code: PaymentProviderErrorCode,
+    message: string,
+    status = 500
+  ) {
+    super(message);
+    this.name = 'PaymentProviderError';
+    this.provider = provider;
+    this.code = code;
+    this.status = status;
+  }
+}
+
 function basicAuth(clientKey: string, clientSecret: string) {
   return Buffer.from(`${clientKey}:${clientSecret}`).toString('base64');
 }
@@ -31,6 +117,15 @@ function readEnvValue(...keys: string[]) {
   }
 
   return '';
+}
+
+function createPaymentProviderError(
+  provider: PaymentProvider,
+  code: PaymentProviderErrorCode,
+  message: string,
+  status = 500
+) {
+  return new PaymentProviderError(provider, code, message, status);
 }
 
 function normalizeMpesaBaseUrl(baseUrl?: string) {
@@ -47,9 +142,7 @@ function normalizeMpesaBaseUrl(baseUrl?: string) {
 }
 
 function kesToUsdCents(kes: number): number {
-  const rate = parseFloat(
-    readEnvValue('STRIPE_KES_TO_USD_RATE', 'STRIPE_RATE_KES_TO_USD') || '130'
-  );
+  const rate = parseFloat(readEnvValue(...STRIPE_RATE_ENV_KEYS) || '130');
   const usd = kes / rate;
   return Math.max(50, Math.round(usd * 100));
 }
@@ -73,16 +166,12 @@ function normalizeKenyanPhone(phone: string) {
 }
 
 export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
-  const secretKey = readEnvValue(
-    'STRIPE_SECRET_KEY',
-    'STRIPE_API_KEY',
-    'STRIPE_SECRET',
-    'STRIPE_TEST_SECRET_KEY',
-    'STRIPE_LIVE_SECRET_KEY'
-  );
+  const secretKey = readEnvValue(...STRIPE_SECRET_ENV_KEYS);
 
   if (!secretKey) {
-    throw new Error(
+    throw createPaymentProviderError(
+      'STRIPE',
+      'STRIPE_NOT_CONFIGURED',
       'Card payment setup is incomplete in this deployment. Add the Stripe key in Vercel and redeploy.'
     );
   }
@@ -125,7 +214,11 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
     });
 
     if (!session.url) {
-      throw new Error('Stripe did not return a checkout URL.');
+      throw createPaymentProviderError(
+        'STRIPE',
+        'STRIPE_SESSION_INVALID',
+        'Card checkout started, but Stripe did not return a checkout URL.'
+      );
     }
 
     return {
@@ -135,32 +228,62 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
       raw: session,
     };
   } catch (error: any) {
-    const message = String(error?.message || '');
+    if (error instanceof PaymentProviderError) {
+      throw error;
+    }
 
-    if (/api key/i.test(message)) {
-      throw new Error(
+    const message = String(error?.message || '');
+    const type = String(error?.type || error?.name || '').toLowerCase();
+    const code = String(error?.code || '').toLowerCase();
+
+    if (
+      /api key/i.test(message) ||
+      type.includes('authentication') ||
+      code.includes('api_key')
+    ) {
+      throw createPaymentProviderError(
+        'STRIPE',
+        'STRIPE_INVALID_KEY',
         'Card payment setup is incomplete in this deployment. Check the Stripe key in Vercel and redeploy.'
       );
     }
 
     if (/invalid api version/i.test(message)) {
-      throw new Error(
+      throw createPaymentProviderError(
+        'STRIPE',
+        'STRIPE_API_VERSION',
         'Stripe rejected the API version configured for this deployment. Update the Stripe setup and redeploy.'
       );
     }
 
-    throw error;
+    if (
+      type.includes('connection') ||
+      type.includes('apierror') ||
+      type.includes('ratelimit')
+    ) {
+      throw createPaymentProviderError(
+        'STRIPE',
+        'STRIPE_TEMPORARY_UNAVAILABLE',
+        'Card checkout is temporarily unavailable. Please try again in a moment or use M-Pesa.'
+      );
+    }
+
+    throw createPaymentProviderError(
+      'STRIPE',
+      'STRIPE_SESSION_FAILED',
+      'Card checkout could not start right now. Please try again or use M-Pesa.'
+    );
   }
 }
 
 export async function initiateMpesaStkPush(input: MpesaStkInput) {
-  const baseUrl = normalizeMpesaBaseUrl(process.env.MPESA_BASE_URL);
-  const clientKey = process.env.MPESA_CONSUMER_KEY;
-  const clientSecret = process.env.MPESA_CONSUMER_SECRET;
-  const shortcode = process.env.MPESA_SHORTCODE;
-  const passkey = process.env.MPESA_PASSKEY;
+  const baseUrl = normalizeMpesaBaseUrl(readEnvValue(...MPESA_BASE_URL_ENV_KEYS));
+  const clientKey = readEnvValue(...MPESA_CONSUMER_KEY_ENV_KEYS);
+  const clientSecret = readEnvValue(...MPESA_CONSUMER_SECRET_ENV_KEYS);
+  const shortcode = readEnvValue(...MPESA_SHORTCODE_ENV_KEYS);
+  const passkey = readEnvValue(...MPESA_PASSKEY_ENV_KEYS);
   const callbackUrl =
-    process.env.MPESA_CALLBACK_URL ||
+    readEnvValue(...MPESA_CALLBACK_ENV_KEYS) ||
     `${resolveBaseUrl(input.baseUrl)}/api/payments/mpesa/callback`;
   const missingConfig = [
     ['MPESA_BASE_URL', baseUrl],
@@ -172,7 +295,9 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
 
   if (missingConfig.length > 0) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error(
+      throw createPaymentProviderError(
+        'MPESA',
+        'MPESA_NOT_CONFIGURED',
         `M-Pesa is not configured. Missing ${missingConfig
           .map(([name]) => name)
           .join(', ')}.`
@@ -193,7 +318,9 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
   const phoneNumber = normalizeKenyanPhone(input.phone);
 
   if (!/^254\d{9}$/.test(phoneNumber)) {
-    throw new Error(
+    throw createPaymentProviderError(
+      'MPESA',
+      'MPESA_INVALID_PHONE',
       'Enter a valid M-Pesa number in the format +2547XXXXXXXX.'
     );
   }
@@ -210,7 +337,9 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
   const authData = await authRes.json();
 
   if (!authRes.ok || !authData.access_token) {
-    throw new Error(
+    throw createPaymentProviderError(
+      'MPESA',
+      'MPESA_AUTH_FAILED',
       authData?.errorMessage || 'Failed to authenticate with the M-Pesa API.'
     );
   }
@@ -250,7 +379,9 @@ export async function initiateMpesaStkPush(input: MpesaStkInput) {
       stkData?.errorMessage === 'Wrong credentials' ||
       stkData?.ResponseDescription === 'Wrong credentials';
 
-    throw new Error(
+    throw createPaymentProviderError(
+      'MPESA',
+      credentialError ? 'MPESA_WRONG_CREDENTIALS' : 'MPESA_REQUEST_FAILED',
       credentialError
         ? 'M-Pesa rejected the saved setup. For sandbox, use MPESA_BASE_URL=https://sandbox.safaricom.co.ke, MPESA_SHORTCODE=174379, and make sure the consumer key, consumer secret, and passkey all come from the same Daraja sandbox setup.'
         : stkData?.errorMessage ||

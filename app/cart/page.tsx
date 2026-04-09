@@ -27,6 +27,7 @@ import { money } from '@/lib/utils';
 type CheckoutOrder = {
   id: string;
   orderNumber: string;
+  paymentMethod: 'CARD' | 'MPESA';
   totalAmount: number;
   displayCurrency?: string | null;
   preferredLanguage?: string | null;
@@ -38,6 +39,10 @@ type FieldErrors = Partial<
     string
   >
 >;
+
+type PaymentApiError = Error & {
+  code?: string;
+};
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -92,6 +97,7 @@ export default function CartPage() {
   const [isPaying, setIsPaying] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [statusType, setStatusType] = useState<'info' | 'error' | 'success'>('info');
+  const [pendingOrder, setPendingOrder] = useState<CheckoutOrder | null>(null);
 
   const hasItems = cart.length > 0;
   const displayCurrency = user?.preferredCurrency || 'KES';
@@ -115,6 +121,32 @@ export default function CartPage() {
         quantity: item.quantity,
       })),
     [cart]
+  );
+
+  const checkoutFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim().toLowerCase(),
+        customerPhone: customerPhone.trim(),
+        shippingAddr1: shippingAddr1.trim(),
+        shippingCity: shippingCity.trim(),
+        shippingCountry,
+        items: checkoutItems.map((item) => ({
+          key: item.key,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+      }),
+    [
+      checkoutItems,
+      customerEmail,
+      customerName,
+      customerPhone,
+      shippingAddr1,
+      shippingCity,
+      shippingCountry,
+    ]
   );
 
   useEffect(() => {
@@ -175,6 +207,69 @@ export default function CartPage() {
       active = false;
     };
   }, [cart, checkoutItems, hasItems, shippingCountry, shippingCity]);
+
+  useEffect(() => {
+    setPendingOrder(null);
+  }, [checkoutFingerprint]);
+
+  function buildPaymentError(message: string, code?: string) {
+    const error = new Error(message) as PaymentApiError;
+    error.code = code;
+    return error;
+  }
+
+  function formatPaymentFailureMessage(
+    provider: 'card' | 'mpesa',
+    error: PaymentApiError,
+    order: CheckoutOrder | null
+  ) {
+    const orderLabel = order ? `We saved order ${order.orderNumber}. ` : '';
+    const code = String(error.code || '');
+
+    if (
+      code === 'STRIPE_NOT_CONFIGURED' ||
+      code === 'STRIPE_INVALID_KEY' ||
+      code === 'STRIPE_API_VERSION'
+    ) {
+      return `${orderLabel}Card checkout is not ready on this deployment yet. Please try M-Pesa or contact us before retrying.`;
+    }
+
+    if (
+      code === 'STRIPE_TEMPORARY_UNAVAILABLE' ||
+      code === 'STRIPE_SESSION_INVALID' ||
+      code === 'STRIPE_SESSION_FAILED'
+    ) {
+      return `${orderLabel}Card checkout could not start right now. Please try again or use M-Pesa.`;
+    }
+
+    if (
+      code === 'MPESA_NOT_CONFIGURED' ||
+      code === 'MPESA_WRONG_CREDENTIALS' ||
+      code === 'MPESA_AUTH_FAILED'
+    ) {
+      return `${orderLabel}M-Pesa is not ready on this deployment yet. Please use card checkout or contact us.`;
+    }
+
+    if (code === 'MPESA_INVALID_PHONE') {
+      return error.message;
+    }
+
+    if (provider === 'card') {
+      return `${orderLabel}${error.message || 'Card checkout failed.'}`;
+    }
+
+    return `${orderLabel}${error.message || 'M-Pesa checkout failed.'}`;
+  }
+
+  async function getOrCreateOrder(expectedMethod: 'CARD' | 'MPESA') {
+    if (pendingOrder?.paymentMethod === expectedMethod) {
+      return pendingOrder;
+    }
+
+    const order = await createOrder();
+    setPendingOrder(order);
+    return order;
+  }
 
   function validateCheckout() {
     const nextErrors: FieldErrors = {};
@@ -254,9 +349,11 @@ export default function CartPage() {
 
     setIsPaying(true);
     setStatusMsg('');
+    let activeOrder: CheckoutOrder | null = pendingOrder;
 
     try {
-      const order = await createOrder();
+      const order = await getOrCreateOrder('MPESA');
+      activeOrder = order;
       void trackEvent(
         'begin_checkout',
         {
@@ -274,7 +371,9 @@ export default function CartPage() {
       });
 
       const payData = await payRes.json();
-      if (!payRes.ok) throw new Error(payData?.error || 'Failed to start M-Pesa');
+      if (!payRes.ok) {
+        throw buildPaymentError(payData?.error || 'Failed to start M-Pesa', payData?.code);
+      }
 
       setStatusMsg(payData?.message || 'M-Pesa request sent. Complete payment on your phone.');
       setStatusType('success');
@@ -283,7 +382,7 @@ export default function CartPage() {
         window.location.href = `/order-confirmation?order=${order.id}&payment=mpesa`;
       }, 1800);
     } catch (error: any) {
-      setStatusMsg(error?.message || 'M-Pesa checkout failed');
+      setStatusMsg(formatPaymentFailureMessage('mpesa', error, activeOrder));
       setStatusType('error');
       setIsPaying(false);
     }
@@ -296,9 +395,11 @@ export default function CartPage() {
 
     setIsPaying(true);
     setStatusMsg('');
+    let activeOrder: CheckoutOrder | null = pendingOrder;
 
     try {
-      const order = await createOrder();
+      const order = await getOrCreateOrder('CARD');
+      activeOrder = order;
       void trackEvent(
         'begin_checkout',
         {
@@ -316,14 +417,19 @@ export default function CartPage() {
       });
 
       const payData = await payRes.json();
-      if (!payRes.ok) throw new Error(payData?.error || 'Failed to start Stripe checkout');
+      if (!payRes.ok) {
+        throw buildPaymentError(
+          payData?.error || 'Failed to start Stripe checkout',
+          payData?.code
+        );
+      }
 
       const checkoutUrl = payData?.payment?.checkoutUrl;
       if (!checkoutUrl) throw new Error('Stripe checkout URL not returned');
 
       window.location.href = checkoutUrl;
     } catch (error: any) {
-      setStatusMsg(error?.message || 'Card checkout failed');
+      setStatusMsg(formatPaymentFailureMessage('card', error, activeOrder));
       setStatusType('error');
       setIsPaying(false);
     }

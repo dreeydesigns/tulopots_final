@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { initiateMpesaStkPush } from '@/lib/payments';
+import { initiateMpesaStkPush, PaymentProviderError } from '@/lib/payments';
 import { getRequestOrigin } from '@/lib/request';
 import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
 import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
@@ -111,15 +111,15 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[mpesa] error:', error);
-    const message = error instanceof Error ? error.message : '';
-    if (
-      message.startsWith('M-Pesa is not configured.') ||
-      message.startsWith('M-Pesa rejected the saved setup.') ||
-      message.startsWith('Enter a valid M-Pesa number') ||
-      message.startsWith('Failed to authenticate with the M-Pesa API.')
-    ) {
-      return jsonError(message, 500);
+    if (error instanceof PaymentProviderError) {
+      return jsonError(error.message, error.status, {
+        code: error.code,
+        provider: error.provider,
+      });
     }
-    return jsonError(getSafeErrorMessage(error, 'Failed to initiate M-Pesa payment.'), 500);
+    return jsonError(getSafeErrorMessage(error, 'Failed to initiate M-Pesa payment.'), 500, {
+      code: 'MPESA_UNKNOWN',
+      provider: 'MPESA',
+    });
   }
 }

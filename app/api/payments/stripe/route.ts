@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createStripeCheckoutSession } from '@/lib/payments';
+import { createStripeCheckoutSession, PaymentProviderError } from '@/lib/payments';
 import { getRequestOrigin } from '@/lib/request';
 import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
 import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
@@ -144,13 +144,15 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[stripe] error:', error);
-    const message = error instanceof Error ? error.message : '';
-    if (
-      message.startsWith('Card payment setup is incomplete') ||
-      message.startsWith('Stripe rejected the API version')
-    ) {
-      return jsonError(message, 500);
+    if (error instanceof PaymentProviderError) {
+      return jsonError(error.message, error.status, {
+        code: error.code,
+        provider: error.provider,
+      });
     }
-    return jsonError(getSafeErrorMessage(error, 'Failed to initiate Stripe payment.'), 500);
+    return jsonError(getSafeErrorMessage(error, 'Failed to initiate Stripe payment.'), 500, {
+      code: 'STRIPE_UNKNOWN',
+      provider: 'STRIPE',
+    });
   }
 }
