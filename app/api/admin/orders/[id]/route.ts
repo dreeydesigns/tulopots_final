@@ -21,33 +21,85 @@ const existingOrderSelect = {
   adminNotes: true,
 } satisfies Prisma.OrderSelect;
 
-async function findExistingOrder(id: string) {
-  return prisma.order.findUnique({
-    where: { id },
-    select: existingOrderSelect,
-  });
-}
+const compatibilityExistingOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  isCustomOrder: true,
+  createdAt: true,
+  customerEmail: true,
+  customerPhone: true,
+  trackingTimeline: true,
+  notificationLog: true,
+} satisfies Prisma.OrderSelect;
 
-async function updateOrderWithFallback(
-  id: string,
-  data: Prisma.OrderUpdateInput,
-  compatibilityData: Prisma.OrderUpdateInput
-) {
+const minimalExistingOrderSelect = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  isCustomOrder: true,
+  createdAt: true,
+  customerEmail: true,
+  customerPhone: true,
+} satisfies Prisma.OrderSelect;
+
+const orderUpdateSelect = {
+  id: true,
+  status: true,
+} satisfies Prisma.OrderSelect;
+
+async function findExistingOrder(id: string) {
   try {
-    return await prisma.order.update({
+    return await prisma.order.findUnique({
       where: { id },
-      data,
+      select: existingOrderSelect,
     });
   } catch (error) {
     if (!isSchemaCompatibilityError(error)) {
       throw error;
     }
 
-    return prisma.order.update({
-      where: { id },
-      data: compatibilityData,
-    });
+    try {
+      return await prisma.order.findUnique({
+        where: { id },
+        select: compatibilityExistingOrderSelect,
+      });
+    } catch (compatibilityError) {
+      if (!isSchemaCompatibilityError(compatibilityError)) {
+        throw compatibilityError;
+      }
+
+      return prisma.order.findUnique({
+        where: { id },
+        select: minimalExistingOrderSelect,
+      });
+    }
   }
+}
+
+async function updateOrderWithFallback(
+  id: string,
+  updates: Prisma.OrderUpdateInput[]
+) {
+  let lastCompatibilityError: unknown;
+
+  for (const data of updates) {
+    try {
+      return await prisma.order.update({
+        where: { id },
+        data,
+        select: orderUpdateSelect,
+      });
+    } catch (error) {
+      if (!isSchemaCompatibilityError(error)) {
+        throw error;
+      }
+
+      lastCompatibilityError = error;
+    }
+  }
+
+  throw lastCompatibilityError;
 }
 
 export async function PATCH(
@@ -83,41 +135,78 @@ export async function PATCH(
     existingOrder.createdAt,
     nextIsCustomOrder
   );
+  const trackingTimeline =
+    'trackingTimeline' in existingOrder
+      ? (existingOrder.trackingTimeline as Prisma.JsonValue | undefined)
+      : undefined;
+  const notificationLog =
+    'notificationLog' in existingOrder
+      ? (existingOrder.notificationLog as Prisma.JsonValue | undefined)
+      : undefined;
+  const previousAdminNotes =
+    'adminNotes' in existingOrder && typeof existingOrder.adminNotes === 'string'
+      ? existingOrder.adminNotes
+      : null;
 
-  const sharedUpdate = {
-    status: nextStatus,
-    isCustomOrder: nextIsCustomOrder,
-    estimatedDispatchAt,
-    estimatedDeliveryAt,
-    ...(status
-      ? {
-          trackingTimeline: appendTrackingEntry(
-            existingOrder.trackingTimeline,
-            nextStatus,
-            nextIsCustomOrder
-          ),
-          notificationLog: appendNotificationEntries(
-            existingOrder.notificationLog,
-            buildNotificationEntries({
-              orderNumber: existingOrder.orderNumber,
-              customerEmail: existingOrder.customerEmail,
-              customerPhone: existingOrder.customerPhone || '',
-              status: nextStatus,
-              isCustomOrder: nextIsCustomOrder,
-            })
-          ),
-        }
-      : {}),
-    ...(body.adminNotes !== undefined ? { adminNotes: body.adminNotes || null } : {}),
-  } satisfies Prisma.OrderUpdateInput;
+  const timelineUpdate = status
+    ? {
+        trackingTimeline: appendTrackingEntry(
+          trackingTimeline,
+          nextStatus,
+          nextIsCustomOrder
+        ),
+        notificationLog: appendNotificationEntries(
+          notificationLog,
+          buildNotificationEntries({
+            orderNumber: existingOrder.orderNumber,
+            customerEmail: existingOrder.customerEmail,
+            customerPhone: existingOrder.customerPhone || '',
+            status: nextStatus,
+            isCustomOrder: nextIsCustomOrder,
+          })
+        ),
+      }
+    : {};
+
+  const notesUpdate =
+    body.adminNotes !== undefined ? { adminNotes: body.adminNotes || null } : {};
 
   const order = await updateOrderWithFallback(
     id,
-    {
-      ...sharedUpdate,
-      deliveredAt: nextStatus === 'DELIVERED' ? new Date() : null,
-    },
-    sharedUpdate
+    [
+      {
+        status: nextStatus,
+        isCustomOrder: nextIsCustomOrder,
+        estimatedDispatchAt,
+        estimatedDeliveryAt,
+        ...timelineUpdate,
+        ...notesUpdate,
+        deliveredAt: nextStatus === 'DELIVERED' ? new Date() : null,
+      },
+      {
+        status: nextStatus,
+        isCustomOrder: nextIsCustomOrder,
+        estimatedDispatchAt,
+        estimatedDeliveryAt,
+        ...timelineUpdate,
+        ...notesUpdate,
+      },
+      {
+        status: nextStatus,
+        isCustomOrder: nextIsCustomOrder,
+        ...timelineUpdate,
+        ...notesUpdate,
+      },
+      {
+        status: nextStatus,
+        isCustomOrder: nextIsCustomOrder,
+        ...notesUpdate,
+      },
+      {
+        status: nextStatus,
+        isCustomOrder: nextIsCustomOrder,
+      },
+    ]
   );
 
   await recordAdminAudit({
@@ -129,7 +218,7 @@ export async function PATCH(
     diffJson: {
       previousStatus: existingOrder.status,
       nextStatus,
-      previousAdminNotes: existingOrder.adminNotes,
+      previousAdminNotes,
       nextAdminNotes: body.adminNotes,
     },
   }).catch(() => undefined);

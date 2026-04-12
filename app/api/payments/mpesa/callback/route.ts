@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 
@@ -16,6 +17,31 @@ const paymentCallbackOrderSelect = {
   customerEmail: true,
   customerPhone: true,
 } satisfies Prisma.OrderSelect;
+
+const compatibilityPaymentCallbackOrderSelect = {
+  id: true,
+  orderNumber: true,
+  customerEmail: true,
+  customerPhone: true,
+} satisfies Prisma.OrderSelect;
+
+async function findPaymentCallbackOrder(id: string) {
+  try {
+    return await prisma.order.findUnique({
+      where: { id },
+      select: paymentCallbackOrderSelect,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findUnique({
+      where: { id },
+      select: compatibilityPaymentCallbackOrderSelect,
+    });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,9 +64,6 @@ export async function POST(req: NextRequest) {
         id: true,
         orderId: true,
         externalRef: true,
-        order: {
-          select: paymentCallbackOrderSelect,
-        },
       },
     });
 
@@ -49,6 +72,25 @@ export async function POST(req: NextRequest) {
       console.warn('[mpesa-callback] payment not found for requestId:', requestId);
       return NextResponse.json({ ok: true });
     }
+
+    const order = await findPaymentCallbackOrder(payment.orderId);
+
+    if (!order) {
+      console.warn('[mpesa-callback] order not found for payment:', payment.id);
+      return NextResponse.json({ ok: true });
+    }
+
+    const isCustomOrder =
+      'isCustomOrder' in order ? Boolean(order.isCustomOrder) : false;
+    const trackingTimeline =
+      'trackingTimeline' in order
+        ? (order.trackingTimeline as Prisma.JsonValue | undefined)
+        : undefined;
+    const notificationLog =
+      'notificationLog' in order
+        ? (order.notificationLog as Prisma.JsonValue | undefined)
+        : undefined;
+    const wasCancelled = resultCode === 1032 || /cancel/i.test(resultDesc);
 
     if (resultCode === 0) {
       // ── Payment successful ──────────────────────────────────────────────
@@ -62,6 +104,7 @@ export async function POST(req: NextRequest) {
           providerResponseRaw: JSON.stringify(body),
           externalRef: String(get('MpesaReceiptNumber') || payment.externalRef),
         },
+        select: { id: true },
       });
 
       await prisma.order.update({
@@ -69,26 +112,27 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'PAID',
           trackingTimeline: appendTrackingEntry(
-            payment.order.trackingTimeline,
+            trackingTimeline,
             'PAID',
-            payment.order.isCustomOrder
+            isCustomOrder
           ),
           notificationLog: appendNotificationEntries(
-            payment.order.notificationLog,
+            notificationLog,
             buildNotificationEntries(
               {
-                orderNumber: payment.order.orderNumber,
-                customerEmail: payment.order.customerEmail,
-                customerPhone: payment.order.customerPhone,
+                orderNumber: order.orderNumber,
+                customerEmail: order.customerEmail,
+                customerPhone: order.customerPhone,
                 status: 'PAID',
-                isCustomOrder: payment.order.isCustomOrder,
+                isCustomOrder,
               }
             )
           ),
         },
+        select: { id: true },
       });
 
-      console.log('[mpesa-callback] payment SUCCESS for order:', payment.order.orderNumber);
+      console.log('[mpesa-callback] payment SUCCESS for order:', order.orderNumber);
     } else {
       // ── Payment failed / cancelled ──────────────────────────────────────
       await prisma.payment.update({
@@ -97,33 +141,38 @@ export async function POST(req: NextRequest) {
           status: 'FAILED',
           providerResponseRaw: JSON.stringify(body),
         },
+        select: { id: true },
       });
 
       await prisma.order.update({
         where: { id: payment.orderId },
         data: {
-          status: 'FAILED',
+          status: wasCancelled ? 'CANCELLED' : 'FAILED',
           trackingTimeline: appendTrackingEntry(
-            payment.order.trackingTimeline,
-            'FAILED',
-            payment.order.isCustomOrder
+            trackingTimeline,
+            wasCancelled ? 'CANCELLED' : 'FAILED',
+            isCustomOrder
           ),
           notificationLog: appendNotificationEntries(
-            payment.order.notificationLog,
+            notificationLog,
             buildNotificationEntries(
               {
-                orderNumber: payment.order.orderNumber,
-                customerEmail: payment.order.customerEmail,
-                customerPhone: payment.order.customerPhone,
-                status: 'FAILED',
-                isCustomOrder: payment.order.isCustomOrder,
+                orderNumber: order.orderNumber,
+                customerEmail: order.customerEmail,
+                customerPhone: order.customerPhone,
+                status: wasCancelled ? 'CANCELLED' : 'FAILED',
+                isCustomOrder,
               }
             )
           ),
         },
+        select: { id: true },
       });
 
-      console.log('[mpesa-callback] payment FAILED:', resultDesc);
+      console.log(
+        `[mpesa-callback] payment ${wasCancelled ? 'CANCELLED' : 'FAILED'}:`,
+        resultDesc
+      );
     }
 
     return NextResponse.json({ ok: true });

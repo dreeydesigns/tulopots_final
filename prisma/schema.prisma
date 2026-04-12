@@ -46,6 +46,8 @@ model User {
   supportThreads        SupportThread[]
   notificationAttempts  NotificationAttempt[]
   deletionRequests      DeletionRequest[]
+  sentRoleInvitations   RoleInvitation[] @relation("RoleInvitationSender")
+  acceptedRoleInvitations RoleInvitation[] @relation("RoleInvitationRecipient")
 }
 
 model AuthSession {
@@ -362,6 +364,26 @@ model NotificationAttempt {
   @@index([channel, status, createdAt])
 }
 
+model RoleInvitation {
+  id               String               @id @default(cuid())
+  email            String
+  role             UserRole
+  tokenHash        String               @unique
+  invitedByUserId  String
+  acceptedByUserId String?
+  status           RoleInvitationStatus @default(PENDING)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @default(now()) @updatedAt
+  invitedBy        User                 @relation("RoleInvitationSender", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  acceptedBy       User?                @relation("RoleInvitationRecipient", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([email, status, createdAt])
+  @@index([role, status, createdAt])
+}
+
 model SupportThread {
   id                    String              @id @default(cuid())
   source                SupportSource
@@ -595,4 +617,11 @@ enum DeletionRequestStatus {
   IN_REVIEW
   COMPLETED
   REJECTED
+}
+
+enum RoleInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
 }

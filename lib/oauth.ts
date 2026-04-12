@@ -11,6 +11,11 @@ import {
   mergeAuthProviders,
   updateUserForAuth,
 } from '@/lib/auth';
+import {
+  claimRoleInvitation,
+  clearRoleInvitationCookie,
+  getRoleInvitationCookie,
+} from '@/lib/role-invitations';
 import { getRequestOrigin, getSafeReturnPath } from '@/lib/request';
 
 const OAUTH_STATE_COOKIE = 'tp_oauth_state';
@@ -574,7 +579,30 @@ export async function completeOAuthFlow(input: {
       input.provider === 'google'
         ? await exchangeGoogleCode(code, origin)
         : await exchangeAppleCode(code, origin, input.appleUserPayload);
-    const user = await upsertOAuthUser(identity);
+    let user = await upsertOAuthUser(identity);
+    const roleInvitationToken = getRoleInvitationCookie(input.request);
+    let clearRoleInviteAfterResponse = false;
+
+    if (roleInvitationToken && user.email) {
+      const claimResult = await claimRoleInvitation({
+        token: roleInvitationToken,
+        userId: user.id,
+        email: user.email,
+      });
+
+      if (claimResult.outcome === 'accepted' && claimResult.user) {
+        user = claimResult.user;
+        clearRoleInviteAfterResponse = true;
+      } else if (
+        claimResult.outcome === 'missing' ||
+        claimResult.outcome === 'expired' ||
+        claimResult.outcome === 'used' ||
+        claimResult.outcome === 'invalid'
+      ) {
+        clearRoleInviteAfterResponse = true;
+      }
+    }
+
     const { token, expiresAt } = await createSession(
       user.id,
       user.isAdmin ? 'ADMIN' : 'CUSTOMER'
@@ -585,6 +613,9 @@ export async function completeOAuthFlow(input: {
 
     clearOAuthCookies(response, input.provider);
     attachSessionCookie(response, token, expiresAt);
+    if (clearRoleInviteAfterResponse) {
+      clearRoleInvitationCookie(response);
+    }
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {

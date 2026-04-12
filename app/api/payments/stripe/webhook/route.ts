@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
+import { isSchemaCompatibilityError } from '@/lib/auth';
 import { appendNotificationEntries, appendTrackingEntry, buildNotificationEntries } from '@/lib/fulfillment';
 import { prisma } from '@/lib/prisma';
 
@@ -15,6 +16,31 @@ const stripeWebhookOrderSelect = {
   customerEmail: true,
   customerPhone: true,
 } satisfies Prisma.OrderSelect;
+
+const compatibilityStripeWebhookOrderSelect = {
+  id: true,
+  orderNumber: true,
+  customerEmail: true,
+  customerPhone: true,
+} satisfies Prisma.OrderSelect;
+
+async function findStripeWebhookOrder(orderId: string) {
+  try {
+    return await prisma.order.findUnique({
+      where: { id: orderId },
+      select: stripeWebhookOrderSelect,
+    });
+  } catch (error) {
+    if (!isSchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    return prisma.order.findUnique({
+      where: { id: orderId },
+      select: compatibilityStripeWebhookOrderSelect,
+    });
+  }
+}
 
 function readEnvValue(...keys: string[]) {
   for (const key of keys) {
@@ -66,14 +92,22 @@ export async function POST(req: NextRequest) {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-          select: stripeWebhookOrderSelect,
-        });
+        const order = await findStripeWebhookOrder(orderId);
 
         if (!order) {
           return NextResponse.json({ received: true });
         }
+
+        const isCustomOrder =
+          'isCustomOrder' in order ? Boolean(order.isCustomOrder) : false;
+        const trackingTimeline =
+          'trackingTimeline' in order
+            ? (order.trackingTimeline as Prisma.JsonValue | undefined)
+            : undefined;
+        const notificationLog =
+          'notificationLog' in order
+            ? (order.notificationLog as Prisma.JsonValue | undefined)
+            : undefined;
 
         await prisma.payment.updateMany({
           where: {
@@ -91,23 +125,24 @@ export async function POST(req: NextRequest) {
           data: {
             status: 'PAID',
             trackingTimeline: appendTrackingEntry(
-              order.trackingTimeline,
+              trackingTimeline,
               'PAID',
-              order.isCustomOrder
+              isCustomOrder
             ),
             notificationLog: appendNotificationEntries(
-              order.notificationLog,
+              notificationLog,
               buildNotificationEntries(
                 {
                   orderNumber: order.orderNumber,
                   customerEmail: order.customerEmail,
                   customerPhone: order.customerPhone,
                   status: 'PAID',
-                  isCustomOrder: order.isCustomOrder,
+                  isCustomOrder,
                 }
               )
             ),
           },
+          select: { id: true },
         });
       }
     }
@@ -120,14 +155,22 @@ export async function POST(req: NextRequest) {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-          select: stripeWebhookOrderSelect,
-        });
+        const order = await findStripeWebhookOrder(orderId);
 
         if (!order) {
           return NextResponse.json({ received: true });
         }
+
+        const isCustomOrder =
+          'isCustomOrder' in order ? Boolean(order.isCustomOrder) : false;
+        const trackingTimeline =
+          'trackingTimeline' in order
+            ? (order.trackingTimeline as Prisma.JsonValue | undefined)
+            : undefined;
+        const notificationLog =
+          'notificationLog' in order
+            ? (order.notificationLog as Prisma.JsonValue | undefined)
+            : undefined;
 
         await prisma.payment.updateMany({
           where: {
@@ -145,23 +188,24 @@ export async function POST(req: NextRequest) {
           data: {
             status: 'FAILED',
             trackingTimeline: appendTrackingEntry(
-              order.trackingTimeline,
+              trackingTimeline,
               'FAILED',
-              order.isCustomOrder
+              isCustomOrder
             ),
             notificationLog: appendNotificationEntries(
-              order.notificationLog,
+              notificationLog,
               buildNotificationEntries(
                 {
                   orderNumber: order.orderNumber,
                   customerEmail: order.customerEmail,
                   customerPhone: order.customerPhone,
                   status: 'FAILED',
-                  isCustomOrder: order.isCustomOrder,
+                  isCustomOrder,
                 }
               )
             ),
           },
+          select: { id: true },
         });
       }
     }

@@ -28,6 +28,11 @@ import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
 import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
 import { signupSchema } from '@/lib/security/validation';
 import { recordSecurityEvent } from '@/lib/security/audit';
+import {
+  claimRoleInvitation,
+  clearRoleInvitationCookie,
+  getRoleInvitationCookie,
+} from '@/lib/role-invitations';
 
 function isValidPhone(phone: string) {
   return !phone || /^\+?[0-9]{10,15}$/.test(phone);
@@ -314,12 +319,37 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const roleInvitationToken = getRoleInvitationCookie(request);
+    let clearRoleInviteAfterResponse = false;
+    let effectiveRole = nextRole;
+
+    if (roleInvitationToken) {
+      const claimResult = await claimRoleInvitation({
+        token: roleInvitationToken,
+        userId: user.id,
+        email,
+      });
+
+      if (claimResult.outcome === 'accepted' && claimResult.user) {
+        user = claimResult.user;
+        effectiveRole = normalizeUserRole(claimResult.user.role, claimResult.user.isAdmin);
+        clearRoleInviteAfterResponse = true;
+      } else if (
+        claimResult.outcome === 'missing' ||
+        claimResult.outcome === 'expired' ||
+        claimResult.outcome === 'used' ||
+        claimResult.outcome === 'invalid'
+      ) {
+        clearRoleInviteAfterResponse = true;
+      }
+    }
+
     let token;
     let expiresAt;
     try {
       const session = await createSession(
         user.id,
-        nextRole !== 'CUSTOMER' ? 'ADMIN' : 'CUSTOMER'
+        effectiveRole !== 'CUSTOMER' ? 'ADMIN' : 'CUSTOMER'
       );
       token = session.token;
       expiresAt = session.expiresAt;
@@ -336,6 +366,9 @@ export async function POST(request: NextRequest) {
     });
 
     attachSessionCookie(response, token, expiresAt);
+    if (clearRoleInviteAfterResponse) {
+      clearRoleInvitationCookie(response);
+    }
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {

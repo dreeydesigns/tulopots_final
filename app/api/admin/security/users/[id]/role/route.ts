@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminUser } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
-import { recordAdminAudit, recordSecurityEvent } from '@/lib/security/audit';
+import { recordAdminAudit } from '@/lib/security/audit';
 
 const allowedRoles = [
   'SUPER_ADMIN',
@@ -92,19 +92,6 @@ export async function PATCH(
       nextRole,
       previousIsAdmin: targetUser.isAdmin,
       nextIsAdmin: nextRole !== 'CUSTOMER',
-    },
-  }).catch(() => undefined);
-
-  await recordSecurityEvent({
-    type: 'PERMISSION_DENIED',
-    severity: 'INFO',
-    route: '/api/admin/security/users/[id]/role',
-    userId: adminUser.id,
-    identifier: updatedUser.email || updatedUser.id,
-    metadata: {
-      action: 'role_change',
-      previousRole: targetUser.role,
-      nextRole,
     },
   }).catch(() => undefined);
 

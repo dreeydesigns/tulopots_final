@@ -199,7 +199,7 @@ export async function createStripeCheckoutSession(input: StripeCheckoutInput) {
       mode: 'payment',
       client_reference_id: input.orderId,
       success_url: `${baseUrl}/order-confirmation?order=${input.orderId}&payment=success`,
-      cancel_url: `${baseUrl}/cart?payment=cancelled&order=${input.orderId}`,
+      cancel_url: `${baseUrl}/order-confirmation?order=${input.orderId}&payment=cancelled`,
       customer_email: input.customerEmail,
       metadata: {
         orderId: input.orderId,

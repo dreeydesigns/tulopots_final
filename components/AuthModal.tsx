@@ -84,6 +84,12 @@ function mapAuthError(code: string) {
       return 'Apple sign-in could not be completed right now.';
     case 'account_missing_email':
       return 'We could not read an email address from that social account.';
+    case 'role_invite_invalid':
+      return 'That role access link is no longer valid. Ask a Super Admin to send a new one.';
+    case 'role_invite_expired':
+      return 'That role access link has expired. Ask a Super Admin to send a fresh one.';
+    case 'role_invite_used':
+      return 'That role access link has already been used.';
     default:
       return 'We could not sign you in right now.';
   }
@@ -211,6 +217,34 @@ export function AuthModal() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.delete('authError');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [searchParams, setShowAuthModal]);
+
+  useEffect(() => {
+    const roleInvite = searchParams.get('roleInvite');
+    const inviteEmail = searchParams.get('inviteEmail');
+
+    if (!roleInvite) {
+      return;
+    }
+
+    if (inviteEmail) {
+      setEmail(inviteEmail);
+    }
+
+    setTab(roleInvite === 'new' ? 'signup' : 'signin');
+    setError(
+      roleInvite === 'new'
+        ? 'Your email is verified. Create your account with this email to activate the role you were given.'
+        : 'Your email is verified. Sign in with this email to start using the role that was assigned to you.'
+    );
+    setShowAuthModal(true);
+
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('roleInvite');
+      url.searchParams.delete('inviteEmail');
       window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     }
   }, [searchParams, setShowAuthModal]);

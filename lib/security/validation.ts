@@ -87,6 +87,19 @@ export const studioSchema = z.object({
   extraNote: z.string().trim().optional().default(''),
 });
 
+export const roleInvitationSchema = z.object({
+  email: emailSchema,
+  role: z.enum([
+    'SUPER_ADMIN',
+    'OPERATIONS_ADMIN',
+    'DELIVERY_ADMIN',
+    'CONTENT_ADMIN',
+    'SUPPORT_ADMIN',
+    'ANALYST',
+    'CUSTOMER',
+  ]),
+});
+
 export function sanitizeText(value: string, maxLength = 1200) {
   return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }

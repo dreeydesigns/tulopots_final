@@ -9,6 +9,7 @@ import {
 import { syncCatalogToDatabase } from '@/lib/catalog';
 import { listManagedPages, syncManagedPageContentToDatabase } from '@/lib/cms';
 import { getHubSpotConfig } from '@/lib/hubspot';
+import { listRoleInvitations } from '@/lib/role-invitations';
 import { getCurrentUser, isSchemaCompatibilityError } from '@/lib/auth';
 import { generateProductSku, slugifyProduct } from '@/lib/product-identity';
 import { normalizeAvailableSizes, normalizeModeContent } from '@/lib/product-variants';
@@ -259,6 +260,7 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
     automationJobs,
     securityEvents,
     adminUsers,
+    roleInvitations,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count(),
@@ -364,6 +366,7 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
         createdAt: true,
       },
     }),
+    viewer && hasPermission(viewer.role, 'roles.manage') ? listRoleInvitations(12) : [],
   ]);
 
   const activity = [
@@ -722,6 +725,16 @@ export async function getAdminDashboardData(viewer?: { role: any; permissions: s
       lastSignInAt: adminUser.lastSignInAt?.toISOString() || null,
       createdAt: adminUser.createdAt.toISOString(),
     })),
+    roleInvitations: roleInvitations.map((invitation) => ({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expiresAt.toISOString(),
+      acceptedAt: invitation.acceptedAt?.toISOString() || null,
+      createdAt: invitation.createdAt.toISOString(),
+      invitedBy: invitation.invitedBy.name || invitation.invitedBy.email || 'Super Admin',
+    })),
   };
 }
 
@@ -757,7 +770,7 @@ async function safeAdminDashboardQuery<T>(query: () => Promise<T>, fallback: T):
 export async function getFallbackAdminDashboardData(viewer?: { role: any; permissions: string[] }) {
   const hubspotConfig = getHubSpotConfig();
 
-  const [products, orders, studioBriefs, contactMessages, newsletterSubscribers, siteSections, managedPages, reviews, analyticsCount, adminUsers] =
+  const [products, orders, studioBriefs, contactMessages, newsletterSubscribers, siteSections, managedPages, reviews, analyticsCount, adminUsers, roleInvitations] =
     await Promise.all([
       safeAdminDashboardQuery(
         () =>
@@ -887,6 +900,7 @@ export async function getFallbackAdminDashboardData(viewer?: { role: any; permis
           }),
         []
       ),
+      viewer && hasPermission(viewer.role, 'roles.manage') ? listRoleInvitations(12) : [],
     ]);
 
   const activity = [
@@ -1125,6 +1139,16 @@ export async function getFallbackAdminDashboardData(viewer?: { role: any; permis
       isAdmin: adminUser.isAdmin,
       lastSignInAt: null,
       createdAt: adminUser.createdAt.toISOString(),
+    })),
+    roleInvitations: roleInvitations.map((invitation: any) => ({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expiresAt.toISOString(),
+      acceptedAt: invitation.acceptedAt?.toISOString() || null,
+      createdAt: invitation.createdAt.toISOString(),
+      invitedBy: invitation.invitedBy?.name || invitation.invitedBy?.email || 'Super Admin',
     })),
   };
 }

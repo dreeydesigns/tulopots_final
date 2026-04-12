@@ -795,6 +795,7 @@ export async function runOperationsAutomation(): Promise<OperationsSummary> {
           ? nextNotificationLog
           : []) as Prisma.InputJsonValue,
       },
+      select: { id: true },
     });
   }
 

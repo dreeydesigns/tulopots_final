@@ -17,6 +17,11 @@ import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
 import { loginSchema } from '@/lib/security/validation';
 import { recordLoginAttempt, recordSecurityEvent } from '@/lib/security/audit';
 import { normalizeUserRole } from '@/lib/access';
+import {
+  claimRoleInvitation,
+  clearRoleInvitationCookie,
+  getRoleInvitationCookie,
+} from '@/lib/role-invitations';
 
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 const LOCKOUT_THRESHOLD = 5;
@@ -192,7 +197,7 @@ export async function POST(request: NextRequest) {
       return jsonError('Email or password is incorrect.', 401);
     }
 
-    const resolvedRole = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(email));
+    let resolvedRole = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(email));
 
     if ((isAdminEmailAddress(email) && !user.isAdmin) || user.role !== resolvedRole) {
       try {
@@ -209,6 +214,31 @@ export async function POST(request: NextRequest) {
       }
       user.isAdmin = resolvedRole !== 'CUSTOMER';
       user.role = resolvedRole;
+    }
+
+    const roleInvitationToken = getRoleInvitationCookie(request);
+    let clearRoleInviteAfterResponse = false;
+
+    if (roleInvitationToken) {
+      const claimResult = await claimRoleInvitation({
+        token: roleInvitationToken,
+        userId: user.id,
+        email,
+      });
+
+      if (claimResult.outcome === 'accepted' && claimResult.user) {
+        user = claimResult.user;
+        clearRoleInviteAfterResponse = true;
+      } else if (
+        claimResult.outcome === 'missing' ||
+        claimResult.outcome === 'expired' ||
+        claimResult.outcome === 'used' ||
+        claimResult.outcome === 'invalid'
+      ) {
+        clearRoleInviteAfterResponse = true;
+      }
+
+      resolvedRole = normalizeUserRole(user.role, user.isAdmin || isAdminEmailAddress(email));
     }
 
     if (scope === 'ADMIN' && resolvedRole === 'CUSTOMER') {
@@ -251,6 +281,9 @@ export async function POST(request: NextRequest) {
     });
 
     attachSessionCookie(response, token, expiresAt);
+    if (clearRoleInviteAfterResponse) {
+      clearRoleInvitationCookie(response);
+    }
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error: any) {

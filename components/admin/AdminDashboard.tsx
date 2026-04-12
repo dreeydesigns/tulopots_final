@@ -277,6 +277,16 @@ type DashboardData = {
     lastSignInAt: string | null;
     createdAt: string;
   }>;
+  roleInvitations: Array<{
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    expiresAt: string;
+    acceptedAt: string | null;
+    createdAt: string;
+    invitedBy: string;
+  }>;
 };
 
 type DashboardResponse = {
@@ -306,6 +316,25 @@ type NewsletterSyncResponse = {
     synced: number;
     failed: number;
   };
+  error?: string;
+};
+
+type RoleInvitationResponse = {
+  ok: boolean;
+  invitation?: {
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    expiresAt: string;
+    createdAt: string;
+  };
+  delivery?: {
+    status: string;
+    provider: string;
+  };
+  verificationUrl?: string;
+  message?: string;
   error?: string;
 };
 
@@ -683,6 +712,10 @@ export function AdminDashboard({
   const [supportPriority, setSupportPriority] = useState('NORMAL');
   const [supportNote, setSupportNote] = useState('');
   const [adminRoleDrafts, setAdminRoleDrafts] = useState<Record<string, string>>({});
+  const [roleInviteEmail, setRoleInviteEmail] = useState('');
+  const [roleInviteDraft, setRoleInviteDraft] = useState('DELIVERY_ADMIN');
+  const [roleInviteMessage, setRoleInviteMessage] = useState('');
+  const [roleInviteLink, setRoleInviteLink] = useState('');
 
   const overviewMetrics = useMemo(() => {
     if (!dashboard) {
@@ -1344,6 +1377,45 @@ export function AdminDashboard({
       await loadDashboard();
     } catch {
       setError('Unable to update admin role.');
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function sendRoleInvitation() {
+    const nextEmail = roleInviteEmail.trim().toLowerCase();
+
+    if (!nextEmail) {
+      setError('Enter the email that should receive the role invitation.');
+      return;
+    }
+
+    try {
+      setPendingKey('role-invite');
+      setError('');
+      setRoleInviteMessage('');
+      setRoleInviteLink('');
+      const response = await fetch('/api/admin/security/role-invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: nextEmail,
+          role: roleInviteDraft,
+        }),
+      });
+      const data = (await response.json()) as RoleInvitationResponse;
+
+      if (!response.ok || !data.ok) {
+        setError(data.error || 'Unable to send the role invitation.');
+        return;
+      }
+
+      setRoleInviteEmail('');
+      setRoleInviteMessage(data.message || 'Role invitation is ready.');
+      setRoleInviteLink(data.verificationUrl || '');
+      await loadDashboard();
+    } catch {
+      setError('Unable to send the role invitation.');
     } finally {
       setPendingKey(null);
     }
@@ -3010,11 +3082,17 @@ export function AdminDashboard({
 
                 {tab === 'security' ? (
                   <div className="grid gap-4">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-4">
                       <MetricCard label="Admin accounts" value={String(dashboard.adminUsers.length)} />
                       <MetricCard
                         label="Security events"
                         value={String(dashboard.securityEvents.length)}
+                      />
+                      <MetricCard
+                        label="Pending invites"
+                        value={String(
+                          dashboard.roleInvitations.filter((invitation) => invitation.status === 'PENDING').length
+                        )}
                       />
                       <MetricCard
                         label="Pending deliveries"
@@ -3123,6 +3201,128 @@ export function AdminDashboard({
                               ))}
                             </div>
                           </PanelShell>
+                          {dashboard.adminAccess.permissions.includes('roles.manage') ? (
+                            <PanelShell
+                              title="Database access invitations"
+                              subtitle="Assign a role to any email. Once the person verifies by email, the role activates on their website account."
+                            >
+                              <div className="grid gap-4">
+                                <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto] md:items-end">
+                                  <Field
+                                    label="Invite email"
+                                    value={roleInviteEmail}
+                                    onChange={setRoleInviteEmail}
+                                  />
+                                  <SelectField
+                                    label="Assigned role"
+                                    value={roleInviteDraft}
+                                    options={adminRoleOptions.map((role) => ({
+                                      value: role,
+                                      label: role.replaceAll('_', ' '),
+                                    }))}
+                                    onChange={setRoleInviteDraft}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => void sendRoleInvitation()}
+                                    disabled={pendingKey === 'role-invite'}
+                                    className="rounded-full px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] disabled:opacity-60"
+                                    style={{ background: 'var(--tp-accent)', color: 'var(--tp-btn-primary-text)' }}
+                                  >
+                                    {pendingKey === 'role-invite' ? 'Sending…' : 'Send invite'}
+                                  </button>
+                                </div>
+                                {roleInviteMessage ? (
+                                  <div
+                                    className="rounded-[1.25rem] border px-4 py-3 text-sm leading-6"
+                                    style={{
+                                      borderColor: 'var(--tp-border)',
+                                      background: 'var(--tp-surface)',
+                                      color: 'var(--tp-heading)',
+                                    }}
+                                  >
+                                    {roleInviteMessage}
+                                  </div>
+                                ) : null}
+                                {roleInviteLink ? (
+                                  <div
+                                    className="rounded-[1.25rem] border px-4 py-3"
+                                    style={{
+                                      borderColor: 'var(--tp-border)',
+                                      background: 'var(--tp-card)',
+                                    }}
+                                  >
+                                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] tp-accent">
+                                      Verification link
+                                    </div>
+                                    <div className="mt-2 break-all text-sm leading-6 tp-text-soft">
+                                      {roleInviteLink}
+                                    </div>
+                                  </div>
+                                ) : null}
+                                <div className="grid gap-3">
+                                  {dashboard.roleInvitations.length ? (
+                                    dashboard.roleInvitations.map((invitation) => (
+                                      <div
+                                        key={invitation.id}
+                                        className="rounded-[1.25rem] border px-4 py-4"
+                                        style={{
+                                          borderColor: 'var(--tp-border)',
+                                          background: 'var(--tp-card)',
+                                        }}
+                                      >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div>
+                                            <div className="text-sm font-semibold" style={{ color: 'var(--tp-heading)' }}>
+                                              {invitation.email}
+                                            </div>
+                                            <div className="mt-1 text-xs tp-text-soft">
+                                              Invited by {invitation.invitedBy}
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span
+                                              className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                              style={{ background: 'var(--tp-surface)', color: 'var(--tp-heading)' }}
+                                            >
+                                              {invitation.role.replaceAll('_', ' ')}
+                                            </span>
+                                            <span
+                                              className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                              style={{
+                                                background:
+                                                  invitation.status === 'PENDING'
+                                                    ? 'color-mix(in srgb, var(--tp-accent) 14%, var(--tp-card) 86%)'
+                                                    : 'var(--tp-surface)',
+                                                color:
+                                                  invitation.status === 'PENDING'
+                                                    ? 'var(--tp-accent)'
+                                                    : 'var(--tp-heading)',
+                                              }}
+                                            >
+                                              {invitation.status.replaceAll('_', ' ')}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="mt-3 grid gap-2 text-xs tp-text-soft md:grid-cols-2">
+                                          <div>Sent {formatDate(invitation.createdAt)}</div>
+                                          <div>
+                                            {invitation.status === 'ACCEPTED' && invitation.acceptedAt
+                                              ? `Accepted ${formatDate(invitation.acceptedAt)}`
+                                              : `Expires ${formatDate(invitation.expiresAt)}`}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="rounded-[1.25rem] border px-4 py-4 text-sm tp-text-soft" style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)' }}>
+                                      No role invitations have been sent yet.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </PanelShell>
+                          ) : null}
                         </div>
                       }
                     />

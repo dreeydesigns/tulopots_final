@@ -23,7 +23,9 @@ export function getOptionalEnv(name: string) {
   return readEnvValue(name);
 }
 
-export function hasConfiguredProvider(name: 'stripe' | 'mpesa' | 'hubspot' | 'google') {
+export function hasConfiguredProvider(
+  name: 'stripe' | 'mpesa' | 'hubspot' | 'google' | 'email'
+) {
   switch (name) {
     case 'stripe':
       return Boolean(
@@ -63,6 +65,16 @@ export function hasConfiguredProvider(name: 'stripe' | 'mpesa' | 'hubspot' | 'go
       return Boolean(readEnvValue('HUBSPOT_PRIVATE_APP_TOKEN'));
     case 'google':
       return Boolean(readEnvValue('GOOGLE_CLIENT_ID') && readEnvValue('GOOGLE_CLIENT_SECRET'));
+    case 'email':
+      return Boolean(
+        readEnvValue('RESEND_API_KEY', 'EMAIL_PROVIDER_API_KEY') &&
+          readEnvValue(
+            'EMAIL_FROM',
+            'RESEND_FROM_EMAIL',
+            'MAIL_FROM',
+            'FROM_EMAIL'
+          )
+      );
     default:
       return false;
   }

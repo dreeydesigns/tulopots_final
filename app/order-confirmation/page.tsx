@@ -63,7 +63,8 @@ function OrderConfirmationInner() {
   const [clearedOrderId, setClearedOrderId] = useState<string | null>(null);
   const [trackedPurchaseId, setTrackedPurchaseId] = useState<string | null>(null);
 
-  const isCancelled = paymentStatus === 'cancelled';
+  const isCancelled =
+    paymentStatus === 'cancelled' || order?.status === 'CANCELLED';
   const isPaid = order?.status === 'PAID';
   const isFailed = order?.status === 'FAILED';
   const displayCurrency = order?.displayCurrency || 'KES';
@@ -192,6 +193,22 @@ function OrderConfirmationInner() {
     setTrackedPurchaseId(order.id);
   }, [isPaid, order, trackedPurchaseId]);
 
+  const openSupportChat = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const message = order?.orderNumber
+      ? `I need help with order ${order.orderNumber}. I canceled checkout and want help finishing the purchase.`
+      : 'I canceled checkout and want help finishing the purchase.';
+
+    window.dispatchEvent(
+      new CustomEvent('tp-chatbot-open', {
+        detail: { message },
+      })
+    );
+  };
+
   if (loading) {
     return (
       <main className="container-shell py-32 text-center">
@@ -203,19 +220,57 @@ function OrderConfirmationInner() {
     );
   }
 
-  if (error || isCancelled) {
+  if (isCancelled) {
     return (
       <main className="container-shell py-32 text-center">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
           <XCircle className="h-10 w-10 text-[var(--tp-accent)]" />
         </div>
         <h1 className="mt-6 serif-display text-5xl text-[var(--tp-heading)]">
-          {isCancelled ? 'Payment Cancelled' : 'Something went wrong'}
+          Order Canceled
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--tp-text)]/72">
-          {isCancelled
-            ? 'Your payment was cancelled. Your cart is still saved so you can try again whenever you are ready.'
-            : error}
+          {order?.orderNumber
+            ? `We stopped payment for ${order.orderNumber} before it moved into fulfillment. Your cart is still ready, and support can help you continue whenever you are ready.`
+            : 'This purchase was canceled before payment was confirmed. Your cart is still ready, and support can help you continue whenever you are ready.'}
+        </p>
+        {order?.orderNumber ? (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-5 py-2.5 text-sm font-semibold text-[var(--tp-heading)]">
+            <ShoppingBag className="h-4 w-4 text-[var(--tp-accent)]" />
+            {order.orderNumber}
+          </div>
+        ) : null}
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+          <Link href="/cart" className="btn-primary">
+            Back to Cart
+          </Link>
+          <Link href="/pots" className="btn-secondary">
+            Continue Shopping
+          </Link>
+          <button
+            type="button"
+            onClick={openSupportChat}
+            className="btn-secondary inline-flex items-center justify-center gap-2"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Chatbot Support
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container-shell py-32 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tp-accent-soft)]">
+          <XCircle className="h-10 w-10 text-[var(--tp-accent)]" />
+        </div>
+        <h1 className="mt-6 serif-display text-5xl text-[var(--tp-heading)]">
+          Something went wrong
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-[var(--tp-text)]/72">
+          {error}
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Link href="/cart" className="btn-primary">

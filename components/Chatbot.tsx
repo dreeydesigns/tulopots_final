@@ -17,6 +17,10 @@ type Card = {
   route: string;
 };
 
+type ChatbotOpenDetail = {
+  message?: string;
+};
+
 export function Chatbot() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,6 +46,7 @@ export function Chatbot() {
   const [sent, setSent] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const sendMessageRef = useRef<(text: string) => Promise<void>>(async () => undefined);
   const activeSearch =
     searchParams.get('q') ||
     searchParams.get('query') ||
@@ -127,6 +132,29 @@ export function Chatbot() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  });
+
+  useEffect(() => {
+    const openHandler = (event: Event) => {
+      const detail = (event as CustomEvent<ChatbotOpenDetail>).detail;
+      const message = detail?.message?.trim();
+
+      setOpen(true);
+
+      if (message) {
+        void sendMessageRef.current(message);
+      }
+    };
+
+    window.addEventListener('tp-chatbot-open', openHandler as EventListener);
+
+    return () => {
+      window.removeEventListener('tp-chatbot-open', openHandler as EventListener);
+    };
+  }, []);
 
   async function continueOnWhatsApp() {
     if (!contactForm.name.trim() || !contactForm.phone.trim()) return;
