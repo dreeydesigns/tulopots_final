@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "prisma db push && next build --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "seed:catalog": "tsx prisma/seed.ts",
