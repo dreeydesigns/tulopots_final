@@ -307,7 +307,7 @@ export function AuthModal() {
       setUser(data.user);
       close();
     } catch {
-      setError('We could not sign you in right now.');
+      setError('Unable to connect. Please check your connection and try again.');
     } finally {
       setActiveAction(null);
     }

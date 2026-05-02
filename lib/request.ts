@@ -48,15 +48,23 @@ export function getRequestOrigin(request: NextRequest) {
 
 export function isSameOriginRequest(request: NextRequest) {
   const currentOrigin = getRequestOrigin(request);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    ? trimTrailingSlash(process.env.NEXT_PUBLIC_SITE_URL)
+    : null;
+
   const origin = parseOrigin(request.headers.get('origin'));
   const referer = parseOrigin(request.headers.get('referer'));
 
+  function isAllowed(value: string) {
+    return value === currentOrigin || (siteUrl !== null && value === siteUrl);
+  }
+
   if (origin) {
-    return origin === currentOrigin;
+    return isAllowed(origin);
   }
 
   if (referer) {
-    return referer === currentOrigin;
+    return isAllowed(referer);
   }
 
   return false;

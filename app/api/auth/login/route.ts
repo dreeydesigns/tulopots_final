@@ -275,9 +275,15 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       wasSuccessful: true,
     });
+    const sessionUser = mapUserToSessionUser(user);
+    if (!sessionUser) {
+      return jsonError('Your account could not be prepared. Please contact support.', 500, {
+        code: 'AUTH_MAP_FAILED',
+      });
+    }
     const response = NextResponse.json({
       ok: true,
-      user: mapUserToSessionUser(user),
+      user: sessionUser,
     });
 
     attachSessionCookie(response, token, expiresAt);
