@@ -916,7 +916,10 @@ export default function LoggedInHome() {
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
   const [isPhone, setIsPhone] = useState(false);
-  const [vw, setVw] = useState(1440);
+  // LoggedInHome is client-only (behind auth), so reading window here is safe
+  const [vw, setVw] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440
+  );
   const [hasDismissedFirstHint, setHasDismissedFirstHint] = useState(false);
   const [hasDismissedLastHint, setHasDismissedLastHint] = useState(false);
   const touchStartY = useRef<number | null>(null);
@@ -1258,7 +1261,7 @@ export default function LoggedInHome() {
 
                 <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: rightColHeight }}>
                   {slide.storyMode ? (
-                    <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-12 pr-12 xl:pl-20 xl:pr-16 2xl:pl-28 2xl:pr-20">
+                    <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-4 pr-4 xl:pl-12 xl:pr-10 2xl:pl-16 2xl:pr-14">
                       <div
                         className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
                         style={{
@@ -1368,7 +1371,7 @@ export default function LoggedInHome() {
                         </div>
                       )}
 
-                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-12 pr-12 xl:pl-20 xl:pr-16 2xl:pl-28 2xl:pr-20">
+                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-4 pr-4 xl:pl-12 xl:pr-10 2xl:pl-16 2xl:pr-14">
                         {slide.cardItems.map((item, ci) => {
                           const product = productMap[item.slug];
                           if (!product) return null;
