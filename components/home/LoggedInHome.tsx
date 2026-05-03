@@ -923,6 +923,7 @@ export default function LoggedInHome() {
     typeof window !== 'undefined' ? window.innerWidth : 1440
   );
   const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
   const sceneRefs = useRef<(HTMLElement | null)[]>([]);
 
   const isLight = theme === 'light';
@@ -1017,16 +1018,29 @@ export default function LoggedInHome() {
 
     const onTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0]?.clientY ?? null;
+      touchStartX.current = e.touches[0]?.clientX ?? null;
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (touchStartY.current === null) return;
-      const delta = touchStartY.current - (e.changedTouches[0]?.clientY ?? touchStartY.current);
-      if (Math.abs(delta) > 50) {
-        if (delta > 0) goNext();
-        else goPrev();
-      }
+      const endY = e.changedTouches[0]?.clientY ?? touchStartY.current ?? 0;
+      const endX = e.changedTouches[0]?.clientX ?? touchStartX.current ?? 0;
+      const deltaY = (touchStartY.current ?? endY) - endY;
+      const deltaX = (touchStartX.current ?? endX) - endX;
       touchStartY.current = null;
+      touchStartX.current = null;
+
+      // Use the dominant axis; require at least 45px movement
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (Math.abs(deltaX) > 45) {
+          if (deltaX > 0) goNext(); // swipe left → next
+          else goPrev();            // swipe right → prev
+        }
+      } else {
+        if (Math.abs(deltaY) > 45) {
+          if (deltaY > 0) goNext(); // swipe up → next
+          else goPrev();            // swipe down → prev
+        }
+      }
     };
 
     window.addEventListener('wheel', onWheel, { passive: false });
@@ -1113,7 +1127,7 @@ export default function LoggedInHome() {
                   <h1
                     className="fade-item fade-2 serif-display leading-[0.95]"
                     style={{
-                      fontSize: isPhone ? 'clamp(1.75rem, 9.5vw, 2.75rem)' : 'clamp(3.5rem, 6vw, 6.35rem)',
+                      fontSize: isPhone ? 'clamp(1.75rem, 9.5vw, 2.75rem)' : 'clamp(2.5rem, 4.5vw, 5rem)',
                       color: palette.sceneText,
                     }}
                   >
@@ -1463,7 +1477,7 @@ export default function LoggedInHome() {
         );
       })}
 
-      <div className="absolute left-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 lg:flex">
+      <div className="absolute left-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 xl:flex">
         <button
           onClick={goPrev}
           type="button"

@@ -295,12 +295,12 @@ export function Nav() {
             </div>
           </div>
 
-          <nav className="hidden items-center gap-7 lg:flex">
+          <nav className="hidden items-center gap-4 lg:flex xl:gap-7">
             {links.filter((link) => link.visible).map(({ label, href }) => (
               <Link
                 key={href}
                 href={href}
-                className={`text-[11px] font-medium uppercase tracking-[0.18em] transition ${navLinkClass(
+                className={`text-[10px] font-medium uppercase tracking-[0.14em] transition xl:text-[11px] xl:tracking-[0.18em] ${navLinkClass(
                   href
                 )}`}
               >
