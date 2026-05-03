@@ -313,10 +313,12 @@ function MagneticPotScene({
   onBrowse,
   onContact,
   palette,
+  sceneScale = 1,
 }: {
   onBrowse: () => void;
   onContact: () => void;
   palette: ThemePalette;
+  sceneScale?: number;
 }) {
   const potRef = useRef<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState(false);
@@ -352,7 +354,7 @@ function MagneticPotScene({
   };
 
   return (
-    <div className="absolute left-[5%] top-[3%] h-[580px] w-[720px]">
+    <div className="absolute left-[5%] top-[3%] h-[580px] w-[720px]" style={{ transform: `scale(${sceneScale})`, transformOrigin: 'top left' }}>
       <div className="relative h-full w-full" style={{ perspective: '1400px' }}>
         <div
           className="absolute left-[35%] top-[49%] h-[438px] w-[338px] -translate-x-1/2 -translate-y-1/2"
@@ -566,8 +568,8 @@ function NewsletterScenePanel({
   }
 
   const wrapperClassName = mobile
-    ? 'mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden'
-    : 'absolute right-[4%] top-[20%] z-20 w-[360px] rounded-[34px] border p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md';
+    ? 'mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] lg:hidden'
+    : 'absolute right-[4%] top-[18%] z-20 w-[min(360px,46%)] rounded-[34px] border p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md';
   const inputBackground = mobile
     ? palette.cardShell
     : 'color-mix(in srgb, rgba(255,255,255,0.16) 38%, transparent)';
@@ -725,7 +727,7 @@ function MobileScenePanel({
 }) {
   if (slide.storyMode) {
     return (
-      <div className="mt-8 md:hidden">
+      <div className="mt-8 lg:hidden">
         <Link
           href="/about"
           className="block overflow-hidden rounded-[1.75rem] border"
@@ -794,7 +796,7 @@ function MobileScenePanel({
 
   if (slide.potMode) {
     return (
-      <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
+      <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] lg:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: palette.sceneTextFaint }}>
           Clay Forms
         </div>
@@ -914,6 +916,7 @@ export default function LoggedInHome() {
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
   const [isPhone, setIsPhone] = useState(false);
+  const [vw, setVw] = useState(1440);
   const [hasDismissedFirstHint, setHasDismissedFirstHint] = useState(false);
   const [hasDismissedLastHint, setHasDismissedLastHint] = useState(false);
   const touchStartY = useRef<number | null>(null);
@@ -922,12 +925,25 @@ export default function LoggedInHome() {
   const isLight = theme === 'light';
   const palette = getPalette(isLight);
 
+  // Responsive scale factors — baseline is 1440px viewport
+  const cardScale = Math.max(0.76, Math.min(2.2, vw / 1440));
+  const sceneScale = Math.max(0.68, Math.min(2.0, vw / 1560));
+  const rightColHeight = Math.max(420, Math.min(Math.round(560 * cardScale), 1100));
+  const containerMaxW = Math.min(Math.max(1680, Math.round(vw * 0.88)), 7200);
+
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)');
     const syncMode = () => setIsPhone(media.matches);
     syncMode();
     media.addEventListener('change', syncMode);
     return () => media.removeEventListener('change', syncMode);
+  }, []);
+
+  useEffect(() => {
+    const update = () => setVw(window.innerWidth);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, []);
 
   useEffect(() => {
@@ -1092,9 +1108,9 @@ export default function LoggedInHome() {
               </div>
             )}
 
-            <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-[1680px] items-end px-5 pb-12 pt-28 sm:px-6 md:h-screen md:items-center md:px-[4.5%] md:pb-[84px] md:pt-[84px]">
+            <div className="relative z-20 mx-auto flex min-h-[100svh] items-end px-5 pb-12 pt-28 sm:px-6 md:h-screen md:items-center md:px-[4.5%] md:pb-[84px] md:pt-[84px]" style={{ maxWidth: containerMaxW }}>
               <div className="grid w-full items-center gap-12 lg:grid-cols-[0.74fr_1.26fr] xl:gap-24 2xl:gap-32">
-                <div className="relative z-30 max-w-[430px]">
+                <div className="relative z-30 max-w-[430px] xl:max-w-[520px] 2xl:max-w-[640px]">
                   {slide.kicker ? (
                     <p
                       className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em]"
@@ -1205,7 +1221,7 @@ export default function LoggedInHome() {
 
                   {mobileGestureHint ? (
                     <div
-                      className="mobile-scroll-hint pointer-events-none mt-6 flex items-center gap-3 md:hidden"
+                      className="mobile-scroll-hint pointer-events-none mt-6 flex items-center gap-3 lg:hidden"
                       style={{ color: palette.sceneTextFaint }}
                     >
                       <div
@@ -1240,14 +1256,14 @@ export default function LoggedInHome() {
                   />
                 </div>
 
-                <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: '560px' }}>
+                <div className="pointer-events-none relative hidden overflow-visible lg:block" style={{ height: rightColHeight }}>
                   {slide.storyMode ? (
                     <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-start justify-end pl-12 pr-12 xl:pl-20 xl:pr-16 2xl:pl-28 2xl:pr-20">
                       <div
                         className="replay card-stage card-1 pointer-events-auto flex-shrink-0 cursor-pointer overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]"
                         style={{
-                          width: CARD_WIDTHS[0],
-                          height: CARD_HEIGHTS[0],
+                          width: Math.round(CARD_WIDTHS[0] * cardScale),
+                          height: Math.round(CARD_HEIGHTS[0] * cardScale),
                           background: palette.cardShell,
                           border: `1px solid ${palette.cardBorder}`,
                         }}
@@ -1327,10 +1343,11 @@ export default function LoggedInHome() {
                       onBrowse={() => router.push('/pots')}
                       onContact={() => router.push('/contact')}
                       palette={palette}
+                      sceneScale={sceneScale}
                     />
                   ) : (
                     <>
-                      <div className="replay fade-up delay-2 absolute left-[60px] top-[44px] z-30 flex gap-1">
+                      <div className="replay fade-up delay-2 absolute z-30 flex gap-1" style={{ left: Math.round(60 * cardScale), top: Math.round(44 * cardScale) }}>
                         {[0, 1, 2, 3].map((i) => (
                           <Star key={i} className="h-3.5 w-3.5 fill-[#f2c94c] text-[#f2c94c]" />
                         ))}
@@ -1341,7 +1358,7 @@ export default function LoggedInHome() {
                       </div>
 
                       {slide.sideLabel && (
-                        <div className="replay fade-up delay-2 absolute left-[60px] top-[68px] z-30">
+                        <div className="replay fade-up delay-2 absolute z-30" style={{ left: Math.round(60 * cardScale), top: Math.round(68 * cardScale) }}>
                           <div
                             className="text-[11px] uppercase tracking-[0.14em]"
                             style={{ color: palette.sceneTextSoft }}
@@ -1359,16 +1376,16 @@ export default function LoggedInHome() {
                           const presentation = CARD_LIBRARY[item.slug];
                           const imageSrc = presentation?.image || product.image;
                           const displayName = product.name;
-                          const imageHeight = Math.round(CARD_HEIGHTS[ci] * 0.65);
+                          const imageHeight = Math.round(CARD_HEIGHTS[ci] * cardScale * 0.65);
 
                           return (
                             <div
                               key={item.slug}
                               className={`replay card-stage card-${ci + 1} pointer-events-auto flex flex-shrink-0 flex-col overflow-hidden rounded-[18px] shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03]`}
                               style={{
-                                width: CARD_WIDTHS[ci],
-                                height: CARD_HEIGHTS[ci],
-                                marginTop: CARD_MARGINS[ci],
+                                width: Math.round(CARD_WIDTHS[ci] * cardScale),
+                                height: Math.round(CARD_HEIGHTS[ci] * cardScale),
+                                marginTop: Math.round(CARD_MARGINS[ci] * cardScale),
                                 marginLeft: ci === 0 ? 0 : 16,
                                 zIndex: 30 - ci,
                                 background: palette.cardShell,

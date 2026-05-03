@@ -211,7 +211,7 @@ export default function LoggedOutHome() {
             <p className="text-[11px] uppercase tracking-[0.24em] tp-accent">
               Selected pieces
             </p>
-            <h2 className="serif-display mt-4 text-5xl leading-tight tp-heading">
+            <h2 className="serif-display mt-4 text-5xl leading-tight tp-heading 2xl:text-6xl">
               A few favourites from the studio.
             </h2>
           </div>
@@ -323,7 +323,7 @@ export default function LoggedOutHome() {
               Our Story
             </p>
 
-            <h2 className="serif-display mt-5 text-5xl leading-tight tp-heading">
+            <h2 className="serif-display mt-5 text-5xl leading-tight tp-heading 2xl:text-6xl">
               Still shaped by hand, still rooted in Nairobi.
             </h2>
 
@@ -355,7 +355,7 @@ export default function LoggedOutHome() {
                 Studio Collection
               </p>
 
-              <h2 className="serif-display mt-4 text-5xl leading-tight tp-heading">
+              <h2 className="serif-display mt-4 text-5xl leading-tight tp-heading 2xl:text-6xl">
                 Looking for something more personal?
               </h2>
 

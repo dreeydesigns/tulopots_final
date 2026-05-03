@@ -72,7 +72,7 @@ export function ProductCard({ product }: any) {
 
   return (
     <article className="group relative overflow-hidden rounded-[2rem] border tp-border tp-card tp-shadow-soft transition duration-500 hover:-translate-y-2 hover:tp-shadow">
-      <div className="relative h-[390px] overflow-hidden tp-surface-soft">
+      <div className="relative aspect-[4/5] min-h-[200px] max-h-[480px] overflow-hidden tp-surface-soft">
         <Image
           src={product.image}
           alt={product.name}

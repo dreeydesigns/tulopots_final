@@ -468,6 +468,48 @@ svg {
   }
 }
 
+/* Large screen responsive scaling — 1920p / 2K / 4K / 8K / TV / Billboard */
+@media (min-width: 1920px) {
+  .container-shell {
+    max-width: 1800px;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 2560px) {
+  .container-shell {
+    max-width: 2400px;
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 3840px) {
+  .container-shell {
+    max-width: 3600px;
+    padding-left: 5rem;
+    padding-right: 5rem;
+  }
+  html {
+    font-size: 26px;
+  }
+}
+
+@media (min-width: 7680px) {
+  .container-shell {
+    max-width: 7200px;
+    padding-left: 8rem;
+    padding-right: 8rem;
+  }
+  html {
+    font-size: 40px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
