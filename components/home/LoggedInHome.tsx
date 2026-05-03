@@ -568,7 +568,7 @@ function NewsletterScenePanel({
   }
 
   const wrapperClassName = mobile
-    ? 'mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] lg:hidden'
+    ? 'mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden'
     : 'absolute right-[4%] top-[18%] z-20 w-[min(360px,46%)] rounded-[34px] border p-6 shadow-[0_24px_70px_rgba(0,0,0,0.34)] backdrop-blur-md';
   const inputBackground = mobile
     ? palette.cardShell
@@ -727,7 +727,7 @@ function MobileScenePanel({
 }) {
   if (slide.storyMode) {
     return (
-      <div className="mt-8 lg:hidden">
+      <div className="mt-8 md:hidden">
         <Link
           href="/about"
           className="block overflow-hidden rounded-[1.75rem] border"
@@ -796,7 +796,7 @@ function MobileScenePanel({
 
   if (slide.potMode) {
     return (
-      <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] lg:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
+      <div className="mt-8 rounded-[1.75rem] border p-5 shadow-[0_18px_38px_rgba(0,0,0,0.22)] md:hidden" style={{ background: palette.potPanelBg, borderColor: palette.potPanelBorder }}>
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: palette.sceneTextFaint }}>
           Clay Forms
         </div>
@@ -915,13 +915,13 @@ export default function LoggedInHome() {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
-  const [isPhone, setIsPhone] = useState(false);
+  const [isPhone, setIsPhone] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
+  );
   // LoggedInHome is client-only (behind auth), so reading window here is safe
   const [vw, setVw] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1440
   );
-  const [hasDismissedFirstHint, setHasDismissedFirstHint] = useState(false);
-  const [hasDismissedLastHint, setHasDismissedLastHint] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const sceneRefs = useRef<(HTMLElement | null)[]>([]);
 
@@ -973,14 +973,6 @@ export default function LoggedInHome() {
 
   const goTo = (next: number) => {
     if (animating || next === current || next < 0 || next >= SLIDES.length) return;
-
-    if (current === 0 && next > current) {
-      setHasDismissedFirstHint(true);
-    }
-
-    if (current === lastSlideIndex && next < current) {
-      setHasDismissedLastHint(true);
-    }
 
     setAnimating(true);
     setPrev(current);
@@ -1050,13 +1042,6 @@ export default function LoggedInHome() {
     };
   }, [animating, current, lastSlideIndex]);
 
-  const mobileGestureHint =
-    isPhone && current === 0 && !hasDismissedFirstHint
-      ? { label: 'Scroll up', direction: 'up' as const }
-      : isPhone && current === lastSlideIndex && !hasDismissedLastHint
-        ? { label: 'Scroll down', direction: 'down' as const }
-        : null;
-
   return (
     <main className={`fixed inset-0 overflow-hidden ${isLight ? 'tp-scene-light' : 'tp-scene-dark'}`}>
       {SLIDES.map((slide, index) => {
@@ -1116,19 +1101,19 @@ export default function LoggedInHome() {
                 <div className="relative z-30 max-w-[430px] xl:max-w-[520px] 2xl:max-w-[640px]">
                   {slide.kicker ? (
                     <p
-                      className="fade-item fade-1 mb-5 text-[11px] uppercase tracking-[0.24em]"
+                      className="fade-item fade-1 mb-2 md:mb-5 text-[11px] uppercase tracking-[0.24em]"
                       style={{ color: palette.sceneTextFaint }}
                     >
                       {slide.kicker}
                     </p>
                   ) : (
-                    <div className="mb-5 h-[19px]" />
+                    <div className="mb-2 md:mb-5 h-[19px]" />
                   )}
 
                   <h1
-                    className="fade-item fade-2 serif-display leading-[0.92]"
+                    className="fade-item fade-2 serif-display leading-[0.95]"
                     style={{
-                      fontSize: 'clamp(3.5rem, 6vw, 6.35rem)',
+                      fontSize: isPhone ? 'clamp(1.75rem, 9.5vw, 2.75rem)' : 'clamp(3.5rem, 6vw, 6.35rem)',
                       color: palette.sceneText,
                     }}
                   >
@@ -1143,13 +1128,13 @@ export default function LoggedInHome() {
                   </h1>
 
                   <p
-                    className="fade-item fade-3 mt-7 max-w-[340px] text-[14px] leading-[1.9] md:text-[15px]"
+                    className="fade-item fade-3 mt-2 md:mt-7 max-w-[340px] text-[13px] leading-[1.75] md:text-[15px]"
                     style={{ color: palette.sceneTextSoft }}
                   >
                     {slide.description}
                   </p>
 
-                  <div className="fade-item fade-4 mt-9 flex flex-wrap gap-3">
+                  <div className="fade-item fade-4 mt-4 md:mt-9 flex flex-wrap gap-2 md:gap-3">
                     <Link
                       href={slide.primaryCta.href}
                       className="cursor-hover inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-[0_12px_28px_rgba(208,130,77,0.28)] transition hover:-translate-y-0.5"
@@ -1188,7 +1173,7 @@ export default function LoggedInHome() {
                   </div>
 
                   <div
-                    className="fade-item fade-5 mt-11 grid max-w-[420px] grid-cols-3 gap-4 pt-6 sm:gap-6 md:gap-8"
+                    className="fade-item fade-5 mt-3 md:mt-11 grid max-w-[420px] grid-cols-3 gap-3 pt-3 md:pt-6 sm:gap-6 md:gap-8"
                     style={{ borderTop: `1px solid ${palette.statBorder}` }}
                   >
                     {slide.stats.map((stat) => (
@@ -1215,37 +1200,37 @@ export default function LoggedInHome() {
 
                   {slide.nextLabel ? (
                     <div
-                      className="fade-item fade-5 mt-8 text-[13px] font-light"
+                      className="fade-item fade-5 hidden md:block mt-8 text-[13px] font-light"
                       style={{ color: palette.sceneTextMuted }}
                     >
                       {slide.nextLabel}
                     </div>
                   ) : null}
 
-                  {mobileGestureHint ? (
-                    <div
-                      className="mobile-scroll-hint pointer-events-none mt-6 flex items-center gap-3 lg:hidden"
-                      style={{ color: palette.sceneTextFaint }}
-                    >
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md"
-                        style={{
-                          background: palette.navBtnBg,
-                          borderColor: palette.navBtnBorder,
-                          color: palette.navBtnText,
-                        }}
-                      >
-                        {mobileGestureHint.direction === 'up' ? (
-                          <ArrowUp className="h-4 w-4" />
-                        ) : (
-                          <ArrowDown className="h-4 w-4" />
-                        )}
+                  <div className="pointer-events-none mt-4 md:hidden">
+                    <div className="flex items-center gap-3">
+                      <div className="swipe-hint-dots flex gap-1.5">
+                        {SLIDES.map((_, si) => (
+                          <div
+                            key={si}
+                            className="rounded-full transition-all duration-300"
+                            style={{
+                              width: si === current ? 18 : 6,
+                              height: 6,
+                              background: si === current ? palette.sceneText : palette.sceneTextMuted,
+                              opacity: si === current ? 0.9 : 0.35,
+                            }}
+                          />
+                        ))}
                       </div>
-                      <div className="text-[10px] font-medium uppercase tracking-[0.22em]">
-                        {mobileGestureHint.label}
+                      <div
+                        className="swipe-hint-text text-[9px] font-semibold uppercase tracking-[0.22em]"
+                        style={{ color: palette.sceneTextFaint }}
+                      >
+                        Swipe to explore
                       </div>
                     </div>
-                  ) : null}
+                  </div>
 
                   <MobileScenePanel
                     slide={slide}
@@ -1741,33 +1726,22 @@ export default function LoggedInHome() {
           }
         }
 
-        .mobile-scroll-hint {
-          animation: mobileHintFloat 1.65s ease-in-out infinite;
+        .swipe-hint-text {
+          animation: swipeHintPulse 2.4s ease-in-out infinite;
         }
 
-        .mobile-scroll-hint svg {
-          animation: mobileHintArrow 1.65s ease-in-out infinite;
+        .swipe-hint-dots {
+          animation: swipeHintPulse 2.4s ease-in-out infinite;
+          animation-delay: 0.3s;
         }
 
-        @keyframes mobileHintFloat {
+        @keyframes swipeHintPulse {
           0%,
           100% {
-            transform: translateY(0);
-            opacity: 0.82;
+            opacity: 0.55;
           }
           50% {
-            transform: translateY(-6px);
             opacity: 1;
-          }
-        }
-
-        @keyframes mobileHintArrow {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-3px);
           }
         }
 
@@ -1776,8 +1750,8 @@ export default function LoggedInHome() {
           .fade-item,
           .card-stage,
           .scene.active .fade-item,
-          .mobile-scroll-hint,
-          .mobile-scroll-hint svg {
+          .swipe-hint-text,
+          .swipe-hint-dots {
             animation: none !important;
             transition: none !important;
           }
