@@ -209,6 +209,7 @@ async function callGemini(
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
+      systemInstruction: buildGeminiSystemPrompt(),
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.7,
@@ -231,15 +232,17 @@ async function callGemini(
       ? `\n[User is currently on page: ${context.pathname}]`
       : '';
 
-    const chat = model.startChat({
-      systemInstruction: buildGeminiSystemPrompt(),
-      history,
-    });
+    const chat = model.startChat({ history });
 
     const result = await chat.sendMessage(latestMessage.content + contextNote);
     const text = result.response.text();
 
-    const parsed = JSON.parse(text);
+    let parsed: { reply?: unknown; needsHuman?: unknown; cards?: unknown };
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = { reply: text, needsHuman: false, cards: [] };
+    }
 
     return {
       reply: String(parsed.reply || ''),
