@@ -72,21 +72,46 @@ export function ProductCard({ product }: any) {
 
   return (
     <article className="group relative overflow-hidden rounded-[2rem] border tp-border tp-card tp-shadow-soft transition duration-500 hover:-translate-y-2 hover:tp-shadow">
-      <div className="relative aspect-[4/5] min-h-[200px] max-h-[480px] overflow-hidden tp-surface-soft">
+      {/* ── IMAGE AREA ─────────────────────────────────────────────────── */}
+      <div className="relative aspect-[4/5] overflow-hidden">
         <Image
           src={product.image}
           alt={product.name}
           fill
-          className="object-cover transition duration-700 group-hover:scale-110"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-center transition duration-700 group-hover:scale-110 group-hover:blur-[3px]"
         />
 
-        <div className="absolute inset-0 bg-black/10 opacity-0 transition duration-500 group-hover:opacity-100" />
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/55 via-black/12 to-transparent opacity-70 transition duration-500 group-hover:opacity-100" />
+        {/* dark scrim — stronger on hover */}
+        <div className="absolute inset-0 bg-black/10 transition duration-500 group-hover:bg-black/45" />
 
+        {/* bottom gradient for name readout */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/65 via-black/18 to-transparent transition duration-500 group-hover:from-black/30 group-hover:via-transparent" />
+
+        {/* ── HOVER: centred VIEW button ──────────────────────────────── */}
+        <Link
+          href={`/product/${product.slug}`}
+          className="absolute inset-0 z-20 flex items-center justify-center opacity-0 transition duration-300 group-hover:opacity-100"
+          aria-label={`View ${product.name}`}
+          tabIndex={-1}
+        >
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white shadow-lg transition duration-300 group-hover:scale-100 scale-90"
+            style={{
+              background: 'var(--tp-accent)',
+              boxShadow: '0 8px 28px rgba(0,0,0,0.30)',
+            }}
+          >
+            View Item
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+
+        {/* wishlist button */}
         <button
           onClick={() => toggleWishlist(product.slug)}
           aria-label="Toggle wishlist"
-          className="absolute right-4 top-4 z-20 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2.5 transition hover:scale-105"
+          className="absolute right-4 top-4 z-30 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2.5 transition hover:scale-105"
           style={{
             background: 'var(--tp-surface)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
@@ -101,6 +126,7 @@ export function ProductCard({ product }: any) {
           />
         </button>
 
+        {/* top chips */}
         <div className="pointer-events-none absolute left-5 top-5 z-10 flex flex-wrap gap-2">
           {displayBadge ? (
             <span
@@ -131,34 +157,16 @@ export function ProductCard({ product }: any) {
           </span>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-10 p-5">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="serif-display text-[1.5rem] leading-none text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)]">
-                {product.name}
-              </div>
-
-              {product.short ? (
-                <p className="mt-2 max-w-[85%] text-xs italic text-white/80">
-                  {product.short}
-                </p>
-              ) : null}
-            </div>
-
-            <Link
-              href={`/product/${product.slug}`}
-              className="cursor-hover inline-flex h-10 w-10 items-center justify-center rounded-full border transition"
-              style={{
-                background: 'rgba(255,255,255,0.14)',
-                borderColor: 'rgba(255,255,255,0.24)',
-                color: 'var(--tp-btn-primary-text)',
-                backdropFilter: 'blur(8px)',
-              }}
-              aria-label={`View ${product.name}`}
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
+        {/* bottom name strip */}
+        <div className="absolute inset-x-0 bottom-0 z-10 p-5 transition duration-500 group-hover:opacity-0">
+          <div className="serif-display text-[1.5rem] leading-none text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)]">
+            {product.name}
           </div>
+          {product.short ? (
+            <p className="mt-2 max-w-[85%] text-xs italic text-white/80">
+              {product.short}
+            </p>
+          ) : null}
         </div>
       </div>
 
