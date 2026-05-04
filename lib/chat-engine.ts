@@ -26,6 +26,17 @@ type ChatContext = {
   accountType?: 'guest' | 'customer' | 'admin';
 };
 
+const STOPWORDS = new Set([
+  'a', 'an', 'the', 'is', 'it', 'in', 'on', 'at', 'to', 'do', 'be',
+  'of', 'and', 'or', 'for', 'with', 'you', 'me', 'my', 'we', 'us',
+  'what', 'how', 'can', 'i', 'are', 'have', 'has', 'was', 'will',
+  'that', 'this', 'your', 'our', 'about', 'from', 'get', 'tell',
+  'show', 'give', 'any', 'some', 'which', 'who', 'when', 'where',
+  'does', 'did', 'do', 'please', 'would', 'could', 'should', 'want',
+  'need', 'like', 'help', 'know', 'see', 'look', 'find', 'go',
+  'ni', 'ya', 'na', 'si', 'wa', 'kwa', 'la', 'za', 'au', 'pia',
+]);
+
 function normalize(text: string) {
   return text
     .toLowerCase()
@@ -37,7 +48,7 @@ function normalize(text: string) {
 function words(text: string) {
   return normalize(text)
     .split(' ')
-    .filter((word) => word.length > 1);
+    .filter((word) => word.length > 2 && !STOPWORDS.has(word));
 }
 
 function formatPrice(price: number | string) {
@@ -251,8 +262,8 @@ export async function getChatReply(
   messages: ChatMessage[],
   context?: ChatContext
 ): Promise<ChatResult> {
-  const query = resolveIntent(messages);
-  const normalizedQuery = normalize(query);
+  const lastUserMsg = messages.filter((m) => m.role === 'user').at(-1)?.content || '';
+  const normalizedQuery = normalize(lastUserMsg);
 
   if (!normalizedQuery) {
     return {
@@ -265,6 +276,8 @@ export async function getChatReply(
   const geminiResult = await callGemini(messages, context);
   if (geminiResult) return geminiResult;
 
+  const query = lastUserMsg;
+
   const [products, sections] = await Promise.all([
     getCatalogProducts({ visibleOnly: true }),
     getSiteSections(),
@@ -272,10 +285,15 @@ export async function getChatReply(
   const visibleRoutes = new Set(
     sections.filter((s) => s.visible && s.route).map((s) => s.route!)
   );
+  visibleRoutes.add('/');
+  visibleRoutes.add('/indoor');
+  visibleRoutes.add('/outdoor');
+  visibleRoutes.add('/pots');
+  visibleRoutes.add('/studio');
+  visibleRoutes.add('/faq');
+  visibleRoutes.add('/cart');
   visibleRoutes.add('/care-guide');
   visibleRoutes.add('/delivery-returns');
-  visibleRoutes.add('/terms');
-  visibleRoutes.add('/privacy-policy');
   visibleRoutes.add('/contact');
   visibleRoutes.add('/search');
 
