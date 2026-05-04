@@ -53,10 +53,20 @@ export function Chatbot() {
     searchParams.get('search') ||
     '';
   const quickPrompts = useMemo(() => {
-    const prompts = [];
+    const prompts: string[] = [];
 
     if (activeSearch) {
       prompts.push(`Show me pieces like ${activeSearch}`);
+    }
+
+    if (pathname === '/indoor' || pathname === '/') {
+      prompts.push('What indoor pots do you have?');
+    } else if (pathname === '/outdoor') {
+      prompts.push('What outdoor pots do you have?');
+    } else if (pathname === '/pots') {
+      prompts.push('Show me pots only, no plant');
+    } else {
+      prompts.push('What pots are available?');
     }
 
     if (pathname !== '/delivery') {
@@ -70,8 +80,6 @@ export function Chatbot() {
     if (pathname !== '/studio') {
       prompts.push('Tell me about Studio');
     }
-
-    prompts.push(isLoggedIn ? 'Open my settings' : 'How do I sign in?');
 
     return Array.from(new Set(prompts)).slice(0, 4);
   }, [activeSearch, isLoggedIn, pathname]);
@@ -199,8 +207,9 @@ export function Chatbot() {
         </button>
       ) : (
         <div
-          className="w-[92vw] max-w-[390px] overflow-hidden rounded-[1.5rem] border shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+          className="flex w-[92vw] max-w-[390px] flex-col overflow-hidden rounded-[1.5rem] border shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
           style={{
+            maxHeight: 'min(88vh, 680px)',
             borderColor: 'var(--tp-border)',
             background: 'var(--tp-card)',
           }}
@@ -236,7 +245,7 @@ export function Chatbot() {
 
           <div
             ref={scrollRef}
-            className="max-h-[380px] space-y-3 overflow-y-auto p-4"
+            className="flex-1 space-y-3 overflow-y-auto p-4"
             style={{ background: 'var(--tp-surface)' }}
           >
             {messages.map((message, index) => (
@@ -294,6 +303,74 @@ export function Chatbot() {
                 }}
               >
                 <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : null}
+
+            {needsHuman && !sent ? (
+              <div
+                className="rounded-[1rem] border p-3"
+                style={{
+                  borderColor:
+                    'color-mix(in srgb, var(--tp-success) 34%, var(--tp-border) 66%)',
+                  background:
+                    'color-mix(in srgb, var(--tp-success) 12%, var(--tp-surface) 88%)',
+                }}
+              >
+                <div
+                  className="text-xs font-semibold uppercase tracking-[0.14em]"
+                  style={{ color: 'var(--tp-success)' }}
+                >
+                  Continue with the TuloPots team
+                </div>
+                <p className="mt-2 text-xs leading-6 tp-text-soft">
+                  Share your details below and we can continue on WhatsApp.
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  <input
+                    placeholder="Your name"
+                    value={contactForm.name}
+                    onChange={(event) =>
+                      setContactForm({ ...contactForm, name: event.target.value })
+                    }
+                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                    style={inputStyle()}
+                  />
+                  <input
+                    placeholder="Phone number"
+                    value={contactForm.phone}
+                    onChange={(event) =>
+                      setContactForm({ ...contactForm, phone: event.target.value })
+                    }
+                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                    style={inputStyle()}
+                  />
+                  <input
+                    placeholder="Email (optional)"
+                    value={contactForm.email}
+                    onChange={(event) =>
+                      setContactForm({ ...contactForm, email: event.target.value })
+                    }
+                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                    style={inputStyle()}
+                  />
+
+                  <button
+                    onClick={continueOnWhatsApp}
+                    disabled={
+                      !contactForm.name.trim() ||
+                      !contactForm.phone.trim() ||
+                      sendingWhatsApp
+                    }
+                    className="w-full rounded-full px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition hover:opacity-90 disabled:opacity-50"
+                    style={{
+                      background: 'var(--tp-success)',
+                      color: 'var(--tp-btn-primary-text)',
+                    }}
+                  >
+                    {sendingWhatsApp ? 'Opening WhatsApp...' : 'Continue on WhatsApp'}
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -356,74 +433,6 @@ export function Chatbot() {
               </button>
             </div>
 
-            {needsHuman && !sent ? (
-              <div
-                className="mt-3 rounded-[1rem] border p-3"
-                style={{
-                  borderColor:
-                    'color-mix(in srgb, var(--tp-success) 34%, var(--tp-border) 66%)',
-                  background:
-                    'color-mix(in srgb, var(--tp-success) 12%, var(--tp-surface) 88%)',
-                }}
-              >
-                <div
-                  className="text-xs font-semibold uppercase tracking-[0.14em]"
-                  style={{ color: 'var(--tp-success)' }}
-                >
-                  Continue with the TuloPots team
-                </div>
-                <p className="mt-2 text-xs leading-6 tp-text-soft">
-                  I have exhausted the website knowledge. Share your details below and we
-                  can continue on WhatsApp.
-                </p>
-
-                <div className="mt-3 space-y-2">
-                  <input
-                    placeholder="Your name"
-                    value={contactForm.name}
-                    onChange={(event) =>
-                      setContactForm({ ...contactForm, name: event.target.value })
-                    }
-                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                    style={inputStyle()}
-                  />
-                  <input
-                    placeholder="Phone number"
-                    value={contactForm.phone}
-                    onChange={(event) =>
-                      setContactForm({ ...contactForm, phone: event.target.value })
-                    }
-                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                    style={inputStyle()}
-                  />
-                  <input
-                    placeholder="Email (optional)"
-                    value={contactForm.email}
-                    onChange={(event) =>
-                      setContactForm({ ...contactForm, email: event.target.value })
-                    }
-                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                    style={inputStyle()}
-                  />
-
-                  <button
-                    onClick={continueOnWhatsApp}
-                    disabled={
-                      !contactForm.name.trim() ||
-                      !contactForm.phone.trim() ||
-                      sendingWhatsApp
-                    }
-                    className="w-full rounded-full px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition hover:opacity-90 disabled:opacity-50"
-                    style={{
-                      background: 'var(--tp-success)',
-                      color: 'var(--tp-btn-primary-text)',
-                    }}
-                  >
-                    {sendingWhatsApp ? 'Opening WhatsApp...' : 'Continue on WhatsApp'}
-                  </button>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       )}

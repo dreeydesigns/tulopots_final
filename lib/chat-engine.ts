@@ -63,6 +63,7 @@ function similarity(a: string, b: string) {
   if (left.includes(right) || right.includes(left)) return 0.9;
   const leftWords = words(left);
   const rightWords = words(right);
+  if (!leftWords.length || !rightWords.length) return 0;
   let hits = 0;
   for (const leftWord of leftWords) {
     for (const rightWord of rightWords) {
@@ -74,7 +75,8 @@ function similarity(a: string, b: string) {
       }
     }
   }
-  return hits / Math.max(leftWords.length, rightWords.length, 1);
+  // Score against query length so short queries aren't swamped by long knowledge entries
+  return hits / leftWords.length;
 }
 
 function resolveIntent(messages: ChatMessage[]) {
