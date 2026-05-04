@@ -212,10 +212,10 @@ export function LearnPage() {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
 
         <div className="relative container-shell pb-16 md:pb-24 xl:pb-32">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-white/60 mb-5">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-white/70 mb-5">
             TuloPots Studio — Nairobi
           </p>
           <h1
@@ -224,7 +224,7 @@ export function LearnPage() {
           >
             Where clay meets<br />first-time hands.
           </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-7 text-white/72">
+          <p className="mt-6 max-w-xl text-[17px] leading-7 text-white/90">
             Wheel sessions, hand-building workshops, couples evenings, school visits, and an 8-week course — all held in our working studio in Nairobi.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
