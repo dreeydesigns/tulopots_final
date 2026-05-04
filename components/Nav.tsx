@@ -40,6 +40,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   new: 'Our History',
   limited: 'Limited',
   studio: 'Studio',
+  learn: 'Learn with Clay',
   inbox: 'Inbox',
   journal: 'Journal',
   cart: 'Cart',
@@ -137,6 +138,7 @@ export function Nav() {
       href: '/pots',
       visible: isSectionVisible('collections.pots'),
     },
+    { label: 'Learn', href: '/learn', visible: true },
     { label: 'About', href: '/about', visible: true },
     {
       label: 'Contact',
