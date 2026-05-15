@@ -142,7 +142,13 @@ export async function getCatalogProducts(options?: {
     });
 
     if (rows.length) {
-      return rows.map(mapDbProductToCatalog);
+      const dbProducts = rows.map(mapDbProductToCatalog);
+      const dbSlugs = new Set(dbProducts.map((p) => p.slug));
+      // Include any static products not yet synced to the DB
+      const staticExtras = fallbackProducts.filter(
+        (p) => !dbSlugs.has(p.slug) && (category ? p.category === category : true),
+      );
+      return [...dbProducts, ...staticExtras];
     }
   } catch {
     // Fall back to static products if the table is not yet available.
@@ -176,7 +182,11 @@ export async function getCatalogSlugs() {
     });
 
     if (rows.length) {
-      return rows.map((row) => row.slug);
+      const dbSlugs = rows.map((row) => row.slug);
+      const dbSlugSet = new Set(dbSlugs);
+      // Append slugs for static products not yet in the DB
+      const staticSlugs = Object.keys(fallbackProductBySlug).filter((s) => !dbSlugSet.has(s));
+      return [...dbSlugs, ...staticSlugs];
     }
   } catch {
     // Fall back to static products if the table is not yet available.
