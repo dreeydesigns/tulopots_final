@@ -29,6 +29,7 @@ import {
 } from '@/lib/product-variants';
 import type { ManagedPageRecord } from '@/lib/cms';
 import { ProductVariantEditor } from './ProductVariantEditor';
+import { ProductMediaField } from './ProductMediaField';
 import { AdminHelpPanel } from './AdminHelpPanel';
 
 export type Tab =
@@ -683,6 +684,10 @@ export function AdminDashboard({
 
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm);
+  const [productMedia, setProductMedia] = useState<{ mainImage: string; gallery: string[] }>({
+    mainImage: '',
+    gallery: [],
+  });
   const [slugManual, setSlugManual] = useState(false);
   const [skuManual, setSkuManual] = useState(false);
 
@@ -1193,7 +1198,11 @@ export function AdminDashboard({
         {
           method: editingProductId ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(productForm),
+          body: JSON.stringify({
+            ...productForm,
+            image: productMedia.mainImage || undefined,
+            gallery: productMedia.gallery.length ? productMedia.gallery : undefined,
+          }),
         }
       );
 
@@ -1206,6 +1215,7 @@ export function AdminDashboard({
 
       setEditingProductId(null);
       setProductForm(createDefaultProductForm());
+      setProductMedia({ mainImage: '', gallery: [] });
       setSlugManual(false);
       setSkuManual(false);
       await loadDashboard();
@@ -2105,6 +2115,10 @@ export function AdminDashboard({
                                   setEditingProductId(product.id);
                                   const nextForm = productToForm(product);
                                   setProductForm(nextForm);
+                                  setProductMedia({
+                                    mainImage: product.image || '',
+                                    gallery: product.gallery?.length ? product.gallery : product.image ? [product.image] : [],
+                                  });
                                   setSlugManual(nextForm.slug !== autoSlugForForm(nextForm));
                                   setSkuManual(nextForm.sku !== autoSkuForForm(nextForm));
                                 }}
@@ -2403,6 +2417,13 @@ export function AdminDashboard({
                           disabled={pendingKey === 'save-product'}
                         />
 
+                        <ProductMediaField
+                          gallery={productMedia.gallery}
+                          mainImage={productMedia.mainImage}
+                          onChange={setProductMedia}
+                          disabled={pendingKey === 'save-product'}
+                        />
+
                         <div className="grid gap-3 md:grid-cols-2">
                           <ToggleRow
                             label="Visible on storefront"
@@ -2435,6 +2456,7 @@ export function AdminDashboard({
                             onClick={() => {
                               setEditingProductId(null);
                               setProductForm(createDefaultProductForm());
+                              setProductMedia({ mainImage: '', gallery: [] });
                               setSlugManual(false);
                               setSkuManual(false);
                             }}

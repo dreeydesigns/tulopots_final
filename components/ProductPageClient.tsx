@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  ChevronLeft,
+  ChevronRight,
   Heart,
   Minus,
   Plus,
   Star,
   ChevronDown,
-  ChevronLeft,
   Link2,
   Leaf,
   MessageCircle,
@@ -133,6 +134,23 @@ export function ProductPageClient({
   const [reviewFeedback, setReviewFeedback] = useState('');
   const [reviewError, setReviewError] = useState('');
   const [shareFeedback, setShareFeedback] = useState('');
+
+  // ── image zoom ──────────────────────────────────────────────────────────
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setZoomPos({ x, y });
+  }, []);
+
+  // ── gallery navigation ───────────────────────────────────────────────────
+  const THUMB_VISIBLE = 4;
+  const [thumbOffset, setThumbOffset] = useState(0);
 
   const unit = presentation.unitPrice;
   const total = unit * qty;
@@ -377,6 +395,7 @@ export function ProductPageClient({
 
       <section className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_1fr]">
         <div>
+          {/* ── main image + zoom ────────────────────────────────────────── */}
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--tp-border)] bg-[var(--tp-surface)] shadow-[0_18px_50px_rgba(90,52,34,0.08)]">
             {product.badge && (
               <span className="absolute left-4 top-4 z-10 rounded-full bg-[var(--tp-accent-soft)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--tp-accent-strong)]">
@@ -398,7 +417,14 @@ export function ProductPageClient({
               />
             </button>
 
-            <div className="relative">
+            {/* image with zoom tracking */}
+            <div
+              ref={imageContainerRef}
+              className="relative cursor-crosshair"
+              onMouseEnter={() => setIsZooming(true)}
+              onMouseLeave={() => setIsZooming(false)}
+              onMouseMove={handleMouseMove}
+            >
               <Image
                 src={activeImage}
                 alt={`${display.name} – handcrafted terracotta pot by TuloPots, Nairobi Kenya`}
@@ -408,37 +434,111 @@ export function ProductPageClient({
                 className="h-[32rem] w-full object-cover transition duration-500 md:h-[40rem]"
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/20 to-transparent" />
+
+              {/* zoom lens circle */}
+              {isZooming && (
+                <div
+                  className="pointer-events-none absolute z-20 rounded-full border-2 border-white/80 shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_8px_24px_rgba(0,0,0,0.25)] overflow-hidden"
+                  style={{
+                    width: 160,
+                    height: 160,
+                    left: `calc(${zoomPos.x}% - 80px)`,
+                    top: `calc(${zoomPos.y}% - 80px)`,
+                    backgroundImage: `url(${activeImage})`,
+                    backgroundSize: '350%',
+                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
+              )}
             </div>
+
+            {/* zoom details panel — appears to the right on desktop */}
+            {isZooming && (
+              <div
+                className="pointer-events-none absolute right-0 top-0 z-30 hidden h-full w-[52%] overflow-hidden rounded-r-[2rem] border-l border-white/20 shadow-inner lg:block"
+                style={{
+                  backgroundImage: `url(${activeImage})`,
+                  backgroundSize: '300%',
+                  backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
+            )}
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-4">
-            {gallery.map((img, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveImage(img)}
-                className={`overflow-hidden rounded-[1.25rem] border transition ${
-                  activeImage === img
-                    ? 'border-[var(--tp-accent)] shadow-[var(--tp-shadow-soft)]'
-                    : 'border-[var(--tp-border)] hover:border-[var(--tp-border-strong)]'
-                }`}
-              >
-                <Image
-                  src={img}
-                  alt={
-                    index === 0
-                      ? `${display.name} – handcrafted terracotta pot, main view`
-                      : index === 1
-                      ? `${display.name} – empty clay form, ${product.details?.finish || 'terracotta'}`
-                      : `${display.name} – detail view ${index + 1}, made in Nairobi Kenya`
-                  }
-                  width={400}
-                  height={400}
-                  sizes="(max-width: 640px) 22vw, 12vw"
-                  className="h-24 w-full object-cover transition duration-500 hover:scale-105"
+          {/* ── thumbnail gallery with prev / next ───────────────────────── */}
+          <div className="mt-4 flex items-center gap-2">
+            {/* prev arrow */}
+            <button
+              onClick={() => setThumbOffset((o) => Math.max(0, o - 1))}
+              disabled={thumbOffset === 0}
+              aria-label="Previous image"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border transition disabled:opacity-30"
+              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {/* thumbnails */}
+            <div className="grid flex-1 grid-cols-4 gap-3">
+              {gallery.slice(thumbOffset, thumbOffset + THUMB_VISIBLE).map((img, i) => {
+                const index = thumbOffset + i;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImage(img)}
+                    className={`overflow-hidden rounded-[1.25rem] border transition ${
+                      activeImage === img
+                        ? 'border-[var(--tp-accent)] shadow-[var(--tp-shadow-soft)]'
+                        : 'border-[var(--tp-border)] hover:border-[var(--tp-border-strong)]'
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={
+                        index === 0
+                          ? `${display.name} – main view`
+                          : index === 1
+                          ? `${display.name} – empty clay form, ${product.details?.finish || 'terracotta'}`
+                          : `${display.name} – detail view ${index + 1}`
+                      }
+                      width={400}
+                      height={400}
+                      sizes="(max-width: 640px) 22vw, 12vw"
+                      className="h-24 w-full object-cover transition duration-500 hover:scale-105"
+                    />
+                  </button>
+                );
+              })}
+              {/* fill empty slots so grid stays consistent */}
+              {Array.from({ length: Math.max(0, THUMB_VISIBLE - Math.min(THUMB_VISIBLE, gallery.length - thumbOffset)) }).map((_, i) => (
+                <div
+                  key={`empty-${i}`}
+                  className="h-24 rounded-[1.25rem] border"
+                  style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)' }}
                 />
-              </button>
-            ))}
+              ))}
+            </div>
+
+            {/* next arrow */}
+            <button
+              onClick={() => setThumbOffset((o) => Math.min(o + 1, Math.max(0, gallery.length - THUMB_VISIBLE)))}
+              disabled={thumbOffset + THUMB_VISIBLE >= gallery.length}
+              aria-label="Next image"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border transition disabled:opacity-30"
+              style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-card)', color: 'var(--tp-heading)' }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
+
+          {/* gallery position indicator */}
+          {gallery.length > THUMB_VISIBLE && (
+            <div className="mt-2 text-center text-[10px] tracking-[0.14em] uppercase" style={{ color: 'var(--tp-text-muted)' }}>
+              {thumbOffset + 1}–{Math.min(thumbOffset + THUMB_VISIBLE, gallery.length)} of {gallery.length} photos
+            </div>
+          )}
         </div>
 
         <div className="h-fit lg:sticky lg:top-28">

@@ -1,87 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import { requireAdminUser } from '@/lib/admin';
-import { getSafeErrorMessage, jsonError } from '@/lib/security/errors';
-import { enforceRateLimit, getRequestIp } from '@/lib/security/rate-limit';
-import { normalizeUploadedImage } from '@/lib/security/uploads';
-import { recordSecurityEvent } from '@/lib/security/audit';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
-export async function POST(request: NextRequest) {
-  const adminUser = await requireAdminUser('products.manage');
-
-  if (!adminUser) {
-    return jsonError('Unauthorized', 401);
+export async function POST(request: Request) {
+  const admin = await requireAdminUser('products.manage');
+  if (!admin) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const ip = getRequestIp(request);
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'Image storage is not configured yet. Go to Vercel Dashboard → Storage → Create Blob Store → copy BLOB_READ_WRITE_TOKEN to environment variables, then redeploy.',
+      },
+      { status: 503 }
+    );
+  }
 
+  let formData: FormData;
   try {
-    const rateLimit = await enforceRateLimit({
-      key: `${adminUser.id}:${ip}`,
-      route: '/api/admin/uploads/product-images',
-      limit: 12,
-      windowMs: 60 * 1000,
-      userId: adminUser.id,
-      ip,
-    });
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Invalid form data.' }, { status: 400 });
+  }
 
-    if (!rateLimit.allowed) {
-      return jsonError(
-        'Too many image uploads were attempted. Please wait a moment and try again.',
-        429,
-        { retryAfter: rateLimit.retryAfterSeconds }
+  const files = formData.getAll('files') as File[];
+  if (!files.length) {
+    return NextResponse.json({ ok: false, error: 'No files received.' }, { status: 400 });
+  }
+
+  const MAX_SIZE = 20 * 1024 * 1024;
+  const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+  const uploaded: { url: string }[] = [];
+
+  for (const file of files) {
+    if (!ALLOWED.has(file.type)) {
+      return NextResponse.json(
+        { ok: false, error: `"${file.name}" is not a supported image type. Use JPEG, PNG, or WebP.` },
+        { status: 400 }
+      );
+    }
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { ok: false, error: `"${file.name}" is too large (max 20 MB per file).` },
+        { status: 400 }
       );
     }
 
-    const formData = await request.formData();
-    const files = formData
-      .getAll('files')
-      .filter((entry): entry is File => entry instanceof File);
+    const ext = file.type === 'image/png' ? 'png'
+      : file.type === 'image/webp' ? 'webp'
+      : file.type === 'image/gif' ? 'gif'
+      : 'jpg';
+    const safeName = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    if (!files.length) {
-      return jsonError('Select at least one image to upload.', 400);
-    }
-
-    if (files.length > 8) {
-      return jsonError('Upload up to 8 images at a time.', 400);
-    }
-
-    const images = await Promise.all(
-      files.map(async (file) => {
-        const normalized = await normalizeUploadedImage(file, {
-          width: 1200,
-          height: 1500,
-        });
-
-        return {
-          name: normalized.fileName,
-          url: `data:${normalized.mimeType};base64,${normalized.buffer.toString('base64')}`,
-        };
-      })
-    );
-
-    const response = NextResponse.json({
-      ok: true,
-      images,
+    const blob = await put(safeName, file, {
+      access: 'public',
+      contentType: file.type,
     });
-    response.headers.set('Cache-Control', 'no-store');
-    return response;
-  } catch (error) {
-    await recordSecurityEvent({
-      type: 'SUSPICIOUS_UPLOAD',
-      severity: 'WARNING',
-      route: '/api/admin/uploads/product-images',
-      userId: adminUser.id,
-      ip,
-      metadata: {
-        error: getSafeErrorMessage(error, 'Unable to process the upload.'),
-      },
-    }).catch(() => undefined);
 
-    return jsonError(
-      getSafeErrorMessage(error, 'Unable to process the uploaded images.'),
-      500
-    );
+    uploaded.push({ url: blob.url });
   }
+
+  return NextResponse.json({ ok: true, images: uploaded });
 }
