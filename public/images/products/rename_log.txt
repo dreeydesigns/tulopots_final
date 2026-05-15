@@ -1,0 +1,36 @@
+=== Tulopots Product Image Rename Log ===
+Date: Sat, May 16, 2026  2:05:25 AM
+
+--- RENAMES ---
+RENAMED: safi-terracotta-pot-nairobi.jpg  →  safi_standard_soil_plant_2.jpg
+RENAMED: tulo-one-with-plant-cream-backdrop.jpg  →  tulo-one_standard_soil_plant.jpg
+RENAMED: tulo-noir-terracotta-pot-nairobi.jpg  →  tulo-noir_standard_soil_plant_2.jpg
+RENAMED: zuma-empty-terracotta-pot.jpg  →  zuma_standard_pot_only.jpg
+RENAMED: zola-with-plant-cream-backdrop.jpg  →  zola_standard_soil_plant.jpg
+RENAMED: zuma-with-plant-cream-backdrop.jpg  →  zuma_standard_soil_plant.jpg
+RENAMED: tulo-one-terracotta-pot-nairobi.jpg  →  tulo-one_standard_soil_plant_2.jpg
+RENAMED: tulo-terra-empty-terracotta-pot.jpg  →  tulo-terra_standard_pot_only.jpg
+RENAMED: tulo-one-empty-terracotta-pot.jpg  →  tulo-one_standard_pot_only.jpg
+RENAMED: zola-empty-terracotta-pot.jpg  →  zola_standard_pot_only.jpg
+RENAMED: kora-terracotta-pot-nairobi.jpg  →  kora_standard_soil_plant_2.jpg
+RENAMED: kito-empty-terracotta-pot.jpg  →  kito_standard_pot_only.jpg
+RENAMED: safi-empty-terracotta-pot.jpg  →  safi_standard_pot_only.jpg
+RENAMED: ayo-with-plant-cream-backdrop.jpg  →  ayo_standard_soil_plant.jpg
+RENAMED: nuru-terracotta-pot-nairobi.jpg  →  nuru_standard_soil_plant_2.jpg
+RENAMED: kito-with-plant-cream-backdrop.jpg  →  kito_standard_soil_plant.jpg
+RENAMED: zuma-terracotta-pot-nairobi.jpg  →  zuma_standard_soil_plant_2.jpg
+RENAMED: kora-with-plant-cream-backdrop.jpg  →  kora_standard_soil_plant.jpg
+RENAMED: ayo-empty-terracotta-pot.jpg  →  ayo_standard_pot_only.jpg
+RENAMED: tulo-terra-with-plant-cream-backdrop.jpg  →  tulo-terra_standard_soil_plant.jpg
+RENAMED: tulo-noir-empty-terracotta-pot.jpg  →  tulo-noir_standard_pot_only.jpg
+RENAMED: kora-empty-terracotta-pot.jpg  →  kora_standard_pot_only.jpg
+RENAMED: zola-terracotta-pot-nairobi.jpg  →  zola_standard_soil_plant_2.jpg
+RENAMED: nuru-empty-terracotta-pot.jpg  →  nuru_standard_pot_only.jpg
+RENAMED: tulo-noir-with-plant-cream-backdrop.jpg  →  tulo-noir_standard_soil_plant.jpg
+RENAMED: nuru-with-plant-cream-backdrop.jpg  →  nuru_standard_soil_plant.jpg
+RENAMED: safi-with-plant-cream-backdrop.jpg  →  safi_standard_soil_plant.jpg
+
+--- DELETED DUPLICATES ---
+DELETED (duplicate): ayo-terracotta-pot-nairobi.jpg
+DELETED (duplicate): kito-terracotta-pot-nairobi.jpg
+DELETED (duplicate): tulo-terra-terracotta-pot-nairobi.jpg
