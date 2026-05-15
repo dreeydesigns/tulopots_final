@@ -7,19 +7,22 @@ import { getCatalogProducts } from '@/lib/catalog';
 
 const PUBLIC_ROUTES = [
   '/',
+  '/indoor',
+  '/outdoor',
+  '/pots',
+  '/learn',
   '/about',
   '/contact',
   '/care-guide',
   '/faq',
   '/journal',
-  '/indoor',
-  '/outdoor',
-  '/pots',
   LEGAL_ROUTES.terms,
   LEGAL_ROUTES.privacy,
   LEGAL_ROUTES.cookies,
   LEGAL_ROUTES.delivery,
 ];
+
+const HIGH_PRIORITY_ROUTES = new Set(['/', '/indoor', '/outdoor', '/pots', '/learn']);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [slugs, products] = await Promise.all([
@@ -32,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${SITE_URL}${route}`,
     lastModified: now,
     changeFrequency: route === '/' ? 'daily' : 'weekly',
-    priority: route === '/' ? 1 : 0.7,
+    priority: route === '/' ? 1 : HIGH_PRIORITY_ROUTES.has(route) ? 0.9 : 0.7,
   }));
   const productEntries: MetadataRoute.Sitemap = slugs.map((slug) => ({
     url: `${SITE_URL}/product/${slug}`,

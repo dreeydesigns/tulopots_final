@@ -401,7 +401,7 @@ export function ProductPageClient({
             <div className="relative">
               <Image
                 src={activeImage}
-                alt={display.name}
+                alt={`${display.name} – handcrafted terracotta pot by TuloPots, Nairobi Kenya`}
                 width={1000}
                 height={1200}
                 sizes="(max-width: 1024px) 100vw, 52vw"
@@ -424,7 +424,13 @@ export function ProductPageClient({
               >
                 <Image
                   src={img}
-                  alt={`${display.name} view ${index + 1}`}
+                  alt={
+                    index === 0
+                      ? `${display.name} – handcrafted terracotta pot, main view`
+                      : index === 1
+                      ? `${display.name} – empty clay form, ${product.details?.finish || 'terracotta'}`
+                      : `${display.name} – detail view ${index + 1}, made in Nairobi Kenya`
+                  }
                   width={400}
                   height={400}
                   sizes="(max-width: 640px) 22vw, 12vw"
@@ -465,7 +471,7 @@ export function ProductPageClient({
               {(reviewAverage || product.rating).toFixed(1)} ({reviewCount} reviews)
             </div>
             <div className="rounded-full border border-[var(--tp-border)] bg-[var(--tp-card)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text)]/70">
-              Handcrafted in Kenya
+              Handcrafted in Nairobi, Kenya
             </div>
           </div>
 
