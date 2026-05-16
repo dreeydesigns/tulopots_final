@@ -60,6 +60,14 @@ function asStringArray(value: Prisma.JsonValue | null | undefined) {
 function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
   const storedFields = buildStoredProductFields(product);
 
+  // Serialize gallerySlots (Record<number, string>) → plain object for Prisma JSON.
+  const gallerySlots =
+    product.gallerySlots && Object.keys(product.gallerySlots).length
+      ? (Object.fromEntries(
+          Object.entries(product.gallerySlots).filter(([, v]) => typeof v === 'string')
+        ) as Prisma.InputJsonValue)
+      : Prisma.JsonNull;
+
   return {
     name: storedFields.name,
     slug: product.slug,
@@ -74,6 +82,7 @@ function toDbSeedProduct(product: CatalogProduct): Prisma.ProductCreateInput {
     cardDescription: storedFields.cardDescription,
     image: storedFields.image,
     gallery: storedFields.gallery,
+    gallerySlots,
     availableSizes: storedFields.availableSizes,
     modeContent: storedFields.modeContent,
     decorative: product.decorative ?? false,

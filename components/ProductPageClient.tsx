@@ -124,13 +124,18 @@ export function ProductPageClient({
   const display = presentation.currentContent;
   // Build slot-ordered gallery when gallerySlots are defined on the product.
   // Slot images come first (in slot 1–13 order), then unslotted extras (env shots).
+  // In "pot" (Clay Form) mode, slot 2 (empty pot) comes first when available.
   const rawGallery = display.gallery?.length ? display.gallery : [display.image];
   const gallery = (() => {
     if (!product.gallerySlots) return rawGallery;
     const slotImages = slotsToGallery(product.gallerySlots);
     const [, unslotted] = galleryToSlots(rawGallery);
-    // Slot images first, then env/lifestyle shots not covered by slots
-    const combined = [...slotImages, ...unslotted.filter((u) => !slotImages.includes(u))];
+    let combined = [...slotImages, ...unslotted.filter((u) => !slotImages.includes(u))];
+    // When in Clay Form mode, move the pot-only image (slot 2) to the front.
+    if (activeMode === 'pot' && product.gallerySlots[2]) {
+      const potOnly = product.gallerySlots[2];
+      combined = [potOnly, ...combined.filter((u) => u !== potOnly)];
+    }
     return combined.length ? combined : rawGallery;
   })();
 
@@ -220,7 +225,8 @@ export function ProductPageClient({
   }, [product.slug]);
 
   useEffect(() => {
-    setActiveImage(display.image || gallery[0] || product.image);
+    // When mode or size changes, show the first image of the (reordered) gallery.
+    setActiveImage(gallery[0] || display.image || product.image);
   }, [activeMode, display.image, galleryKey, product.image, product.slug, size.key]);
 
   useEffect(() => {

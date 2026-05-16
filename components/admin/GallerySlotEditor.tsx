@@ -1,5 +1,6 @@
 'use client';
 
+import { upload } from '@vercel/blob/client';
 import { ImagePlus, Loader2, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import {
@@ -41,26 +42,30 @@ export function GallerySlotEditor({ potId, slots, onChange, disabled }: Props) {
     setUploadError('');
 
     try {
-      const formData = new FormData();
-      formData.append('files', files[0]);
+      const file = files[0];
+      const ext =
+        file.type === 'image/png'
+          ? 'png'
+          : file.type === 'image/webp'
+            ? 'webp'
+            : file.type === 'image/gif'
+              ? 'gif'
+              : 'jpg';
 
-      const res = await fetch('/api/admin/uploads/product-images', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        images?: Array<{ url: string }>;
-      };
+      // Client-side upload: file goes browser → Vercel Blob directly.
+      const blob = await upload(
+        `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
+        file,
+        {
+          access: 'public',
+          handleUploadUrl: '/api/admin/uploads/product-images',
+        }
+      );
 
-      if (!res.ok || !data.ok || !data.images?.length) {
-        throw new Error(data.error || 'Upload failed.');
-      }
-
-      onChange({ ...slots, [slot]: data.images[0].url });
-    } catch (err: any) {
-      setUploadError(err?.message || 'Upload failed.');
+      onChange({ ...slots, [slot]: blob.url });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed.';
+      setUploadError(msg);
     } finally {
       setUploadingSlot(null);
       pendingSlotRef.current = null;
