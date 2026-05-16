@@ -10,7 +10,7 @@ const contentSecurityPolicy = [
   "form-action 'self' https://appleid.apple.com https://checkout.stripe.com",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://images.unsplash.com https://www.google.com https://www.google-analytics.com",
+  "img-src 'self' data: blob: https://images.unsplash.com https://www.google.com https://www.google-analytics.com https://*.public.blob.vercel-storage.com",
   "font-src 'self' data:",
   "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://stats.g.doubleclick.net https://www.googleadservices.com",
   "frame-src 'self' https://checkout.stripe.com https://www.google.com https://www.google.com/maps https://maps.google.com",
@@ -71,7 +71,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'public.blob.vercel-storage.com',
+        hostname: '*.public.blob.vercel-storage.com',
       },
     ],
   },
