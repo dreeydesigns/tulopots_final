@@ -79,6 +79,7 @@ model Product {
   cardDescription String   @db.Text
   image           String
   gallery         Json?
+  gallerySlots    Json?
   availableSizes  Json?
   modeContent     Json?
   decorative      Boolean  @default(false)

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { resolveProductPresentation, type ProductMode } from '@/lib/product-variants';
 import { Product } from '@/lib/products';
+import { slotsToGallery, SLOT_LABEL, galleryToSlots } from '@/lib/gallery-slots';
 import { trackEvent } from '@/lib/tracking';
 import { money } from '@/lib/utils';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -121,7 +122,26 @@ export function ProductPageClient({
   const sizes = presentation.sizes;
   const size = presentation.currentSize;
   const display = presentation.currentContent;
-  const gallery = display.gallery?.length ? display.gallery : [display.image];
+  // Build slot-ordered gallery when gallerySlots are defined on the product.
+  // Slot images come first (in slot 1–13 order), then unslotted extras (env shots).
+  const rawGallery = display.gallery?.length ? display.gallery : [display.image];
+  const gallery = (() => {
+    if (!product.gallerySlots) return rawGallery;
+    const slotImages = slotsToGallery(product.gallerySlots);
+    const [, unslotted] = galleryToSlots(rawGallery);
+    // Slot images first, then env/lifestyle shots not covered by slots
+    const combined = [...slotImages, ...unslotted.filter((u) => !slotImages.includes(u))];
+    return combined.length ? combined : rawGallery;
+  })();
+
+  // Map URL → slot label for thumbnail badges
+  const slotLabelMap: Record<string, string> = {};
+  if (product.gallerySlots) {
+    for (const [slot, url] of Object.entries(product.gallerySlots)) {
+      if (url) slotLabelMap[url] = SLOT_LABEL[Number(slot)] ?? '';
+    }
+  }
+
   const galleryKey = gallery.join('||');
   const [activeImage, setActiveImage] = useState(display.image || gallery[0] || product.image);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -484,11 +504,12 @@ export function ProductPageClient({
             <div className="grid flex-1 grid-cols-4 gap-3">
               {gallery.slice(thumbOffset, thumbOffset + THUMB_VISIBLE).map((img, i) => {
                 const index = thumbOffset + i;
+                const slotLabel = slotLabelMap[img] ?? '';
                 return (
                   <button
                     key={index}
                     onClick={() => setActiveImage(img)}
-                    className={`overflow-hidden rounded-[1.25rem] border transition ${
+                    className={`group relative overflow-hidden rounded-[1.25rem] border transition ${
                       activeImage === img
                         ? 'border-[var(--tp-accent)] shadow-[var(--tp-shadow-soft)]'
                         : 'border-[var(--tp-border)] hover:border-[var(--tp-border-strong)]'
@@ -497,17 +518,25 @@ export function ProductPageClient({
                     <Image
                       src={img}
                       alt={
-                        index === 0
+                        slotLabel
+                          ? `${display.name} – ${slotLabel.toLowerCase()}`
+                          : index === 0
                           ? `${display.name} – main view`
-                          : index === 1
-                          ? `${display.name} – empty clay form, ${product.details?.finish || 'terracotta'}`
-                          : `${display.name} – detail view ${index + 1}`
+                          : `${display.name} – view ${index + 1}`
                       }
                       width={400}
                       height={400}
                       sizes="(max-width: 640px) 22vw, 12vw"
                       className="h-24 w-full object-cover transition duration-500 hover:scale-105"
                     />
+                    {slotLabel ? (
+                      <div
+                        className="absolute bottom-0 left-0 right-0 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.12em] truncate text-center leading-tight opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+                      >
+                        {slotLabel}
+                      </div>
+                    ) : null}
                   </button>
                 );
               })}

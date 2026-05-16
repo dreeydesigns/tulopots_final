@@ -977,6 +977,16 @@ export async function getFallbackAdminDashboardData(viewer?: { role: any; permis
         cardDescription: product.cardDescription,
         image: product.image,
         gallery,
+        gallerySlots:
+          product.gallerySlots &&
+          typeof product.gallerySlots === 'object' &&
+          !Array.isArray(product.gallerySlots)
+            ? Object.fromEntries(
+                Object.entries(product.gallerySlots as Record<string, unknown>)
+                  .filter(([, v]) => typeof v === 'string')
+                  .map(([k, v]) => [k, v as string])
+              )
+            : undefined,
         availableSizes,
         modeContent: normalizeModeContent({
           category: product.category,

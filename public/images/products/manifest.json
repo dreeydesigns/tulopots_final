@@ -1,0 +1,104 @@
+{
+  "ayo": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/ayo_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/ayo_standard_pot_only.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/ayo_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/ayo_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/ayo_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/ayo_large_soil_plant_2.jpg"
+    }
+  },
+  "kito": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/kito_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/kito_standard_pot_only.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kito_small_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kito_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kito_large_soil_plant_2.jpg"
+    }
+  },
+  "kora": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/kora_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/kora_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/kora_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kora_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kora_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kora_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/kora_large_soil_plant_2.jpg"
+    }
+  },
+  "nuru": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/nuru_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/nuru_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/nuru_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/nuru_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/nuru_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/nuru_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/nuru_large_soil_plant_2.jpg"
+    }
+  },
+  "safi": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/safi_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/safi_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/safi_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/safi_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/safi_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/safi_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/safi_large_soil_plant_2.jpg"
+    }
+  },
+  "tulo-noir": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-noir_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-noir_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-noir_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-noir_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-noir_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-noir_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-noir_large_soil_plant_2.jpg"
+    }
+  },
+  "tulo-one": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-one_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-one_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-one_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-one_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-one_medium_soil_plant.jpg"
+    }
+  },
+  "tulo-terra": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-terra_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/tulo-terra_standard_pot_only.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-terra_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/tulo-terra_medium_soil_plant.jpg"
+    }
+  },
+  "zola": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zola_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zola_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zola_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zola_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zola_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zola_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zola_large_soil_plant_2.jpg"
+    }
+  },
+  "zuma": {
+    "slots": {
+      "1": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zuma_standard_soil_plant.jpg",
+      "2": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zuma_standard_pot_only.jpg",
+      "4": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/zuma_standard_soil_plant_2.jpg",
+      "10": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zuma_small_soil_plant.jpg",
+      "11": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zuma_medium_soil_plant.jpg",
+      "12": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zuma_large_soil_plant.jpg",
+      "13": "https://oeslp2btyvzh1svt.public.blob.vercel-storage.com/products/gallery/zuma_large_soil_plant_2.jpg"
+    }
+  }
+}

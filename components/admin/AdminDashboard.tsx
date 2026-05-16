@@ -30,7 +30,9 @@ import {
 import type { ManagedPageRecord } from '@/lib/cms';
 import { ProductVariantEditor } from './ProductVariantEditor';
 import { ProductMediaField } from './ProductMediaField';
+import { GallerySlotEditor } from './GallerySlotEditor';
 import { AdminHelpPanel } from './AdminHelpPanel';
+import type { GallerySlots } from '@/lib/gallery-slots';
 
 export type Tab =
   | 'overview'
@@ -91,6 +93,7 @@ type DashboardData = {
     cardDescription: string;
     image: string;
     gallery: string[];
+    gallerySlots?: Record<string, string>;
     availableSizes: ProductSizeKey[];
     modeContent: ProductModeContentMap;
     decorative: boolean;
@@ -688,6 +691,7 @@ export function AdminDashboard({
     mainImage: '',
     gallery: [],
   });
+  const [productGallerySlots, setProductGallerySlots] = useState<GallerySlots>({});
   const [slugManual, setSlugManual] = useState(false);
   const [skuManual, setSkuManual] = useState(false);
 
@@ -1202,6 +1206,7 @@ export function AdminDashboard({
             ...productForm,
             image: productMedia.mainImage || undefined,
             gallery: productMedia.gallery.length ? productMedia.gallery : undefined,
+            gallerySlots: Object.keys(productGallerySlots).length ? productGallerySlots : undefined,
           }),
         }
       );
@@ -1216,6 +1221,7 @@ export function AdminDashboard({
       setEditingProductId(null);
       setProductForm(createDefaultProductForm());
       setProductMedia({ mainImage: '', gallery: [] });
+      setProductGallerySlots({});
       setSlugManual(false);
       setSkuManual(false);
       await loadDashboard();
@@ -2040,6 +2046,8 @@ export function AdminDashboard({
                           onClick={() => {
                             setEditingProductId(null);
                             setProductForm(createDefaultProductForm());
+                            setProductMedia({ mainImage: '', gallery: [] });
+                            setProductGallerySlots({});
                             setSlugManual(false);
                             setSkuManual(false);
                           }}
@@ -2119,6 +2127,14 @@ export function AdminDashboard({
                                     mainImage: product.image || '',
                                     gallery: product.gallery?.length ? product.gallery : product.image ? [product.image] : [],
                                   });
+                                  setProductGallerySlots(
+                                    product.gallerySlots && typeof product.gallerySlots === 'object'
+                                      ? Object.fromEntries(
+                                          Object.entries(product.gallerySlots as Record<string, string>)
+                                            .map(([k, v]) => [Number(k), v])
+                                        )
+                                      : {}
+                                  );
                                   setSlugManual(nextForm.slug !== autoSlugForForm(nextForm));
                                   setSkuManual(nextForm.sku !== autoSkuForForm(nextForm));
                                 }}
@@ -2423,6 +2439,19 @@ export function AdminDashboard({
                           onChange={setProductMedia}
                           disabled={pendingKey === 'save-product'}
                         />
+
+                        {/* Gallery Slots (1–13) — structured image mapping */}
+                        <div
+                          className="rounded-[1.5rem] border p-5"
+                          style={{ borderColor: 'var(--tp-border)', background: 'var(--tp-surface)' }}
+                        >
+                          <GallerySlotEditor
+                            potId={productForm.slug.split('-').slice(0, 2).join('-') || productForm.slug}
+                            slots={productGallerySlots}
+                            onChange={setProductGallerySlots}
+                            disabled={pendingKey === 'save-product'}
+                          />
+                        </div>
 
                         <div className="grid gap-3 md:grid-cols-2">
                           <ToggleRow

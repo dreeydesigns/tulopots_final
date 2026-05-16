@@ -119,10 +119,22 @@ export function mapDbProductToCatalog(product: ProductRecord): CatalogProduct {
     modeContent: product.modeContent,
   });
 
+  // Deserialize gallerySlots from DB JSON (Record<string, string> → Record<number, string>)
+  const rawGallerySlots = (product as any).gallerySlots;
+  const gallerySlots =
+    rawGallerySlots && typeof rawGallerySlots === 'object' && !Array.isArray(rawGallerySlots)
+      ? Object.fromEntries(
+          Object.entries(rawGallerySlots as Record<string, unknown>)
+            .filter(([, v]) => typeof v === 'string')
+            .map(([k, v]) => [Number(k), v as string])
+        )
+      : undefined;
+
   return {
     ...baseProduct,
     availableSizes: normalizeAvailableSizes(product.availableSizes, product.size),
     modeContent,
+    gallerySlots,
   };
 }
 

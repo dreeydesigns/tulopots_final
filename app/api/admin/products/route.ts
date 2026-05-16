@@ -82,6 +82,10 @@ export async function POST(request: NextRequest) {
       cardDescription: storedFields.cardDescription,
       image: storedFields.image,
       gallery: storedFields.gallery,
+      gallerySlots:
+        body.gallerySlots != null && typeof body.gallerySlots === 'object' && !Array.isArray(body.gallerySlots)
+          ? body.gallerySlots
+          : undefined,
       availableSizes: storedFields.availableSizes,
       modeContent: storedFields.modeContent,
       decorative,

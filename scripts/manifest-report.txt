@@ -1,0 +1,380 @@
+=== Tulopots Image Manifest Report ===
+Generated: 2026-05-16T00:11:24.449Z
+
+
+============================================================
+POT: ayo
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         ayo_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         ayo_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✗  Second angle (standard_soil_plant_2)  — MISSING
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         ayo_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         ayo_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         ayo_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         ayo_large_soil_plant_2.jpg
+
+  Unslotted (43 images — environment shots, carousels, etc.):
+    • ayo-in-interior-space.jpg
+    • ayo-lifestyle-interior.jpg
+    • ayo_large_soil_plant_4.jpg
+    • ayo_large_soil_plant_3.jpg
+    • ayo_medium_soil_plant_2.jpg
+    • ayo_medium_soil_plant_3.jpg
+    • ayo_product_alt_2.jpg
+    • ayo_product_alt.jpg
+    • ayo_product_alt_3.jpg
+    • ayo_medium_soil_plant_4.jpg
+    … and 33 more
+
+============================================================
+POT: kito
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         kito_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         kito_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✗  Second angle (standard_soil_plant_2)  — MISSING
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         kito_small_soil_plant.jpg
+  Slot 11  ✗  Medium size (medium_soil_plant)  — MISSING
+  Slot 12  ✓  Large size (large_soil_plant)
+         kito_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         kito_large_soil_plant_2.jpg
+
+  Unslotted (34 images — environment shots, carousels, etc.):
+    • kito-in-interior-space.jpg
+    • kito-lifestyle-interior.jpg
+    • kito_carousel.jpg
+    • kito_carousel_2.jpg
+    • kito_carousel_5.jpg
+    • kito_carousel_6.jpg
+    • kito_carousel_3.jpg
+    • kito_carousel_4.jpg
+    • kito_large_peace-lily_environment_1.jpg
+    • kito_large_snake-plant_environment_2.jpg
+    … and 24 more
+
+============================================================
+POT: kora
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         kora_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         kora_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         kora_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         kora_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         kora_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         kora_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         kora_large_soil_plant_2.jpg
+
+  Unslotted (50 images — environment shots, carousels, etc.):
+    • kora-lifestyle-interior.jpg
+    • kora-in-interior-space.jpg
+    • kora_large_soil_plant_3.jpg
+    • kora_medium_peace-lily_environment_3.jpg
+    • kora_medium_peace-lily_environment_1.jpg
+    • kora_medium_peace-lily_environment_5.jpg
+    • kora_medium_plant-unknown_environment_7.jpg
+    • kora_medium_plant-unknown_environment_6.jpg
+    • kora_large_soil_plant_4.jpg
+    • kora_medium_soil_plant_2.jpg
+    … and 40 more
+
+============================================================
+POT: nuru
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         nuru_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         nuru_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         nuru_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         nuru_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         nuru_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         nuru_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         nuru_large_soil_plant_2.jpg
+
+  Unslotted (40 images — environment shots, carousels, etc.):
+    • nuru-in-interior-space.jpg
+    • nuru-lifestyle-interior.jpg
+    • nuru_large_soil_plant_4.jpg
+    • nuru_medium_soil_plant_2.jpg
+    • nuru_medium_soil_plant_3.jpg
+    • nuru_medium_soil_plant_4.jpg
+    • nuru_pot_only_alt.jpg
+    • nuru_pot_only_alt_4.jpg
+    • nuru_pot_only_alt_2.jpg
+    • nuru_pot_only_alt_3.jpg
+    … and 30 more
+
+============================================================
+POT: safi
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         safi_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         safi_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         safi_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         safi_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         safi_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         safi_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         safi_large_soil_plant_2.jpg
+
+  Unslotted (38 images — environment shots, carousels, etc.):
+    • safi-in-interior-space.jpg
+    • safi-lifestyle-interior.jpg
+    • safi_large_soil_plant_3.jpg
+    • safi_medium_peace-lily_environment.jpg
+    • safi_medium_snake-plant_environment_1.jpg
+    • safi_large_soil_plant_4.jpg
+    • safi_medium_peace-lily_environment_2.jpg
+    • safi_medium_snake-plant_environment_3.jpg
+    • safi_medium_soil_plant_4.jpg
+    • safi_medium_soil_plant_2.jpg
+    … and 28 more
+
+============================================================
+POT: tulo-noir
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         tulo-noir_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         tulo-noir_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         tulo-noir_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         tulo-noir_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         tulo-noir_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         tulo-noir_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         tulo-noir_large_soil_plant_2.jpg
+
+  Unslotted (37 images — environment shots, carousels, etc.):
+    • tulo-noir-in-interior-space.jpg
+    • tulo-noir-lifestyle-interior.jpg
+    • tulo-noir_large_plant-unknown_environment_6.jpg
+    • tulo-noir_large_snake-plant_environment_1.jpg
+    • tulo-noir_large_plant-unknown_environment_5.jpg
+    • tulo-noir_large_snake-plant_environment_3.jpg
+    • tulo-noir_large_soil_plant_3.jpg
+    • tulo-noir_large_soil_plant_4.jpg
+    • tulo-noir_large_zz-plant_environment.jpg
+    • tulo-noir_large_zz-plant_environment_4.jpg
+    … and 27 more
+
+============================================================
+POT: tulo-one
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         tulo-one_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         tulo-one_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         tulo-one_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         tulo-one_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         tulo-one_medium_soil_plant.jpg
+  Slot 12  ✗  Large size (large_soil_plant)  — MISSING
+  Slot 13  ✗  Large size angle 2 (large_soil_plant_2)  — MISSING
+
+  Unslotted (35 images — environment shots, carousels, etc.):
+    • tulo-one-in-interior-space.jpg
+    • tulo-one-lifestyle-interior.jpg
+    • tulo-one_large_soil_plant_slide.jpg
+    • tulo-one_large_soil_plant_slide_2.jpg
+    • tulo-one_large_soil_plant_slide_4.jpg
+    • tulo-one_large_soil_plant_slide_3.jpg
+    • tulo-one_medium_peace-lily_environment_2.jpg
+    • tulo-one_medium_snake-plant_environment_1.jpg
+    • tulo-one_medium_snake-plant_environment_4.jpg
+    • tulo-one_medium_plant-unknown_environment_5.jpg
+    … and 25 more
+
+============================================================
+POT: tulo-terra
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         tulo-terra_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         tulo-terra_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✗  Second angle (standard_soil_plant_2)  — MISSING
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         tulo-terra_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         tulo-terra_medium_soil_plant.jpg
+  Slot 12  ✗  Large size (large_soil_plant)  — MISSING
+  Slot 13  ✗  Large size angle 2 (large_soil_plant_2)  — MISSING
+
+  Unslotted (40 images — environment shots, carousels, etc.):
+    • tulo-terra-lifestyle-interior.jpg
+    • tulo-terra-in-interior-space.jpg
+    • tulo-terra_large_soil_plant_slide.jpg
+    • tulo-terra_large_soil_plant_slide_2.jpg
+    • tulo-terra_large_soil_plant_slide_4.jpg
+    • tulo-terra_large_soil_plant_slide_3.jpg
+    • tulo-terra_large_soil_plant_slide_5.jpg
+    • tulo-terra_large_soil_plant_slide_7.jpg
+    • tulo-terra_large_soil_plant_slide_6.jpg
+    • tulo-terra_large_soil_plant_slide_8.jpg
+    … and 30 more
+
+============================================================
+POT: zola
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         zola_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         zola_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         zola_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         zola_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         zola_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         zola_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         zola_large_soil_plant_2.jpg
+
+  Unslotted (47 images — environment shots, carousels, etc.):
+    • zola-in-interior-space.jpg
+    • zola-lifestyle-interior.jpg
+    • zola_medium_soil_plant_3.jpg
+    • zola_large_soil_plant_4.jpg
+    • zola_large_soil_plant_3.jpg
+    • zola_medium_soil_plant_2.jpg
+    • zola_medium_soil_plant_5.jpg
+    • zola_medium_soil_plant_6.jpg
+    • zola_medium_soil_plant_4.jpg
+    • zola_medium_soil_plant_7.jpg
+    … and 37 more
+
+============================================================
+POT: zuma
+============================================================
+  Slot  1  ✓  Main cover (standard_soil_plant)
+         zuma_standard_soil_plant.jpg
+  Slot  2  ✓  Empty pot (standard_pot_only)
+         zuma_standard_pot_only.jpg
+  Slot  3  ✗  Pot + soil only (standard_soil_only)  — MISSING
+  Slot  4  ✓  Second angle (standard_soil_plant_2)
+         zuma_standard_soil_plant_2.jpg
+  Slot  5  ✗  Third angle  — MISSING
+  Slot  6  ✗  Fourth angle  — MISSING
+  Slot  7  ✗  Fifth angle  — MISSING
+  Slot  8  ✗  Sixth angle  — MISSING
+  Slot  9  ✗  Empty pot angle 2 (standard_pot_only_2)  — MISSING
+  Slot 10  ✓  Small size (small_soil_plant)
+         zuma_small_soil_plant.jpg
+  Slot 11  ✓  Medium size (medium_soil_plant)
+         zuma_medium_soil_plant.jpg
+  Slot 12  ✓  Large size (large_soil_plant)
+         zuma_large_soil_plant.jpg
+  Slot 13  ✓  Large size angle 2 (large_soil_plant_2)
+         zuma_large_soil_plant_2.jpg
+
+  Unslotted (36 images — environment shots, carousels, etc.):
+    • zuma-in-interior-space.jpg
+    • zuma-lifestyle-interior.jpg
+    • zuma_medium_pothos_environment_1.jpg
+    • zuma_large_soil_plant_3.jpg
+    • zuma_large_soil_plant_4.jpg
+    • zuma_medium_pothos_environment_3.jpg
+    • zuma_medium_soil_plant_3.jpg
+    • zuma_medium_soil_plant_4.jpg
+    • zuma_product_alt.jpg
+    • zuma_medium_soil_plant_2.jpg
+    … and 26 more
+
+=== COVERAGE SUMMARY ===
+
+Pot            |  1  2  3  4  5  6  7  8  9 10 11 12 13
+---------------+---------------------------------------
+ayo            |  ✓  ✓  ✗  ✗  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+kito           |  ✓  ✓  ✗  ✗  ✗  ✗  ✗  ✗  ✗  ✓  ✗  ✓  ✓
+kora           |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+nuru           |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+safi           |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+tulo-noir      |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+tulo-one       |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✗  ✗
+tulo-terra     |  ✓  ✓  ✗  ✗  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✗  ✗
+zola           |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
+zuma           |  ✓  ✓  ✗  ✓  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓
